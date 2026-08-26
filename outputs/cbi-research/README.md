@@ -144,20 +144,20 @@ python .\outputs\cbi-research\scripts\build_search_index.py `
   --corpus .\outputs\cbi-research\corpus\office `
   --output .\outputs\cbi-research\index `
   --audit-csv .\outputs\cbi-research\audit\pdf-audit.csv `
-  --database-name cbi-corpus-v3-5568docs.sqlite
+  --database-name cbi-corpus-v4-5568docs.sqlite
 
 python .\outputs\cbi-research\scripts\run_topic_scan.py `
-  --database .\outputs\cbi-research\index\cbi-corpus-v3-5568docs.sqlite `
+  --database .\outputs\cbi-research\index\cbi-corpus-v4-5568docs.sqlite `
   --queries .\outputs\cbi-research\topic_queries.json `
   --output .\outputs\cbi-research\analysis-v3
 
 python .\outputs\cbi-research\scripts\export_evidence_candidates.py `
-  --database .\outputs\cbi-research\index\cbi-corpus-v3-5568docs.sqlite `
+  --database .\outputs\cbi-research\index\cbi-corpus-v4-5568docs.sqlite `
   --queries .\outputs\cbi-research\topic_queries.json `
   --output .\outputs\cbi-research\analysis-v3
 
 python .\outputs\cbi-research\scripts\export_provenance_qa.py `
-  --database .\outputs\cbi-research\index\cbi-corpus-v3-5568docs.sqlite `
+  --database .\outputs\cbi-research\index\cbi-corpus-v4-5568docs.sqlite `
   --previous-database .\outputs\cbi-research\index\cbi-corpus.sqlite `
   --output .\outputs\cbi-research\qa
 ```

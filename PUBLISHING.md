@@ -154,17 +154,18 @@ one for the right service.
 
 | Item | State |
 |---|---|
-| GitHub repo | published. First commit `f20eebd`, 196 files, 188,785 lines |
-| Hugging Face corpus | published and verified. 9 files, 49.4 MB, commit `3d8b9d8` |
-| Hugging Face raw archive | published. 6,309 blobs plus `blob-catalog.csv`, 6.56 GB |
+| GitHub repo | published. `master` at `a1474b2` |
+| Hugging Face corpus | published. 11 files: two Parquet, five manifests, card, attribution |
+| Hugging Face raw archive | published. 6,309 blobs plus card, catalogue and summary, 6.56 GB |
 
 `verify_dataset.py` was run against the live corpus and passed: authorship
 3,809 / 1,656 / 103, totals 5,568 documents and 88,782 pages, plus a working
 cross-file join query.
 
-Until the raw archive is uploaded, `get_source.py --fetch` will fail. Everything
-else works. The blob URLs it prints are correct in advance, because the layout is
-deterministic from the hash.
+The raw archive is uploaded, so `get_source.py --fetch` works end to end. Note
+that files sit at `<ab>/<cd>/<sha256><ext>` in the repository root, with no
+`blobs/` prefix: `hf upload <repo> publish/blobs .` uploads that directory's
+contents. An earlier draft assumed the prefix and every retrieval 404ed.
 
 ---
 

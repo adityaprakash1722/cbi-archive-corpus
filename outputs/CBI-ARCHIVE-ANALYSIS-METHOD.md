@@ -120,7 +120,7 @@ prose around it is unreliable. The 112 flagged documents are listed in
 
 ## Search and provenance model
 
-The 663 MB SQLite index (`index/cbi-corpus-v3-5568docs.sqlite`) contains 5,568
+The 663 MB SQLite index (`index/cbi-corpus-v4-5568docs.sqlite`) contains 5,568
 documents and 88,782 pages.
 
 **The original provenance model did not work, and this is the most serious error
@@ -150,7 +150,7 @@ Corrected counts:
 
 | | Original | Corrected |
 |---|---:|---:|
-| Central Bank documents | 4,112 | 3,807 |
+| Central Bank documents | 4,112 | 3,809 |
 | Stakeholder submissions | 1,134 | 1,656 |
 | Unresolved | 0 | 105 |
 
@@ -250,7 +250,9 @@ differences in `key-dataset-analysis.json` are the absolute source paths.
   pseudo-page, so they are searchable but not page-citable.
 - ZIP taxonomy packages are inventoried and profiled, not transcribed. A claim that
   depends on the contents of a specific schema file needs that file opened.
-- 112 documents are graded below `ok` for extraction fidelity. Material claims from
+- 82 documents are graded below `ok` for extraction fidelity, down from 112
+  after the v4 recovery pass recovered 441,610 characters the converter had
+  dropped from pages carrying a full-page background image. Material claims from
   any of them require source-page review.
 - Markdown does not preserve every visual chart, map, formula or complex merged-cell layout.
 - OCR is searchable evidence, not guaranteed transcription; material claims require

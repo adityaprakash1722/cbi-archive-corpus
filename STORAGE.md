@@ -50,7 +50,7 @@ outputs/
     cbi-data/manifests/summary.json      crawl totals
     cbi-data/metadata/ckan-packages.json open-data catalogue metadata
   cbi-research/
-    scripts/                             23 Python files, the whole pipeline
+    scripts/                             24 Python files, the whole pipeline
     corpus/conversion-manifest.csv       5,246 rows, PDF conversion record
     corpus/office/conversion-manifest.csv  323 rows, Office and ZIP record
     qa/                                  validation, provenance, extraction grades
@@ -97,7 +97,8 @@ blob-summary.json                            layout and dedupe record
 
 | Artifact | Size | Why not |
 |---|---:|---|
-| `cbi-corpus-v3-5568docs.sqlite` | 663 MB | rebuilds in 8s via `make index` |
+| `cbi-corpus-v4-5568docs.sqlite` | 664 MB | rebuilds via `make materialize && make index` |
+| `cbi-corpus-v3-5568docs.sqlite` | 663 MB | superseded, 441,610 characters of page text missing |
 | `cbi-corpus-v2-5568docs.sqlite` | 663 MB | superseded, 55 provenance errors |
 | `cbi-corpus.sqlite` | 619 MB | superseded, wrong provenance, no office corpus |
 | `work/live-index/cbi-corpus.sqlite` | 423 MB | partial build from an interrupted run |
@@ -201,7 +202,7 @@ lets a reader skip most of the file when filtering.
 
 Defaulting ambiguity to the regulator is the exact bug that put AIB's and Bank of
 Ireland's lobbying positions into the Central Bank pile in an earlier version.
-94 regression assertions in `scripts/test_classify_provenance.py` guard this.
+97 regression assertions in `scripts/test_classify_provenance.py` guard this.
 
 ### `page_basis`, which decides whether a citation is valid
 
@@ -359,7 +360,7 @@ central-bank versus stakeholder separation.
 | `scripts/bootstrap.py` | fetch the published corpus onto a fresh machine |
 | `scripts/build_search_index.py` | Markdown to SQLite FTS5, multi-corpus |
 | `scripts/classify_provenance.py` | two-pass authorship classifier |
-| `scripts/test_classify_provenance.py` | 94 regression assertions |
+| `scripts/test_classify_provenance.py` | 97 regression assertions |
 | `scripts/convert_pdfs.py` | PDF to page-anchored Markdown |
 | `scripts/convert_office.py` | DOCX, DOC, ZIP, PPTX, magic-byte dispatch |
 | `scripts/validate_corpus.py` | re-hash and structurally validate |

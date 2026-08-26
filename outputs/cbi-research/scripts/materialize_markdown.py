@@ -40,7 +40,7 @@ you need the original files, not this script.
 """
 from __future__ import annotations
 
-import argparse, json, sqlite3
+import argparse, csv, json, sqlite3
 from pathlib import Path
 
 CORPUS = "https://huggingface.co/datasets/{user}/cbi-archive-corpus/resolve/main/data"
@@ -48,7 +48,11 @@ MANIFEST = "https://huggingface.co/datasets/{user}/cbi-archive-corpus/resolve/ma
 
 FIELDS = ["document_id", "source_url", "source_alias_count", "source_sha256",
           "source_bytes", "page_count", "extraction_engine", "ocr_enabled",
-          "quality_low_text", "quality_empty_pages"]
+          "quality_low_text", "quality_empty_pages",
+          # The indexer reads these two from the frontmatter, not the manifest,
+          # and silently defaults them to "source-page" and "pdf" when they are
+          # absent. Omitting them mislabels every Office and archive document.
+          "page_basis", "source_format"]
 
 
 def yaml_value(value) -> str:
@@ -75,6 +79,8 @@ def frontmatter(document: dict, aliases: list, extra: dict) -> str:
     lines.append("extraction_engine: " + yaml_value(document["extraction_engine"]))
     if extra.get("engine_version"):
         lines.append("extraction_engine_version: " + yaml_value(extra["engine_version"]))
+    lines.append("detected_source_format: " + yaml_value(document["source_format"]))
+    lines.append("page_basis: " + yaml_value(document["page_basis"]))
     lines.append("ocr_enabled: " + yaml_value(bool(document["ocr_enabled"])))
     lines.append("quality_low_text: " + yaml_value(bool(document["quality_low_text"])))
     lines.append("quality_empty_pages: " + str(document["quality_empty_pages"]))
@@ -125,6 +131,11 @@ def from_remote(user: str):
     # the Office one records `pipeline_version` instead, so the columns are
     # matched by name rather than by position.
     extra = {}
+    # Which of the two corpora each document belongs to. The indexer is given
+    # corpus/ and corpus/office/ separately, each with its own manifest, so a
+    # document written to the wrong one is simply not indexed.
+    corpus_of = {}
+    manifest_rows = {}
     for name in ("conversion-manifest.csv.zst", "conversion-manifest-office.csv.zst"):
         try:
             cursor = connection.execute(
@@ -141,11 +152,15 @@ def from_remote(user: str):
         index = {c: i for i, c in enumerate(columns)}
         version_column = next((c for c in ("engine_version", "pipeline_version")
                                if c in index), None)
+        where = "office" if "office" in name else "pdf"
         for row in rows:
-            extra[row[index["source_sha256"]]] = {
+            sha = row[index["source_sha256"]]
+            extra[sha] = {
                 "source_file": row[index["source_file"]] if "source_file" in index else None,
                 "engine_version": row[index[version_column]] if version_column else None,
             }
+            corpus_of.setdefault(sha, set()).add(where)
+            manifest_rows.setdefault(where, []).append(dict(zip(columns, row)))
         print("  read " + name + ": " + str(len(rows)) + " rows", flush=True)
 
     pages = {}
@@ -153,7 +168,7 @@ def from_remote(user: str):
             "SELECT document_id, page_number, text FROM read_parquet('" + base +
             "/pages.parquet') ORDER BY document_id, page_number").fetchall():
         pages.setdefault(did, []).append((number, text))
-    return documents, aliases, extra, pages
+    return documents, aliases, extra, pages, corpus_of, manifest_rows
 
 
 def from_local(database: Path):
@@ -166,11 +181,38 @@ def from_local(database: Path):
     extra = {d["source_sha256"]: {"source_file": d["source_file"],
                                  "engine_version": d["extraction_engine_version"]}
              for d in documents}
+    # Locally the split is recoverable from the recorded Markdown path: the
+    # Office pipeline writes under corpus/office.
+    corpus_of = {}
+    for row in connection.execute("SELECT source_sha256, markdown_file FROM documents"):
+        path = (row["markdown_file"] or "").replace("\\", "/")
+        corpus_of.setdefault(row["source_sha256"], set()).add(
+            "office" if path.startswith("office/") else "pdf")
     pages = {}
     for row in connection.execute("SELECT document_id, page_number, text FROM pages "
                                   "ORDER BY document_id, page_number"):
         pages.setdefault(row["document_id"], []).append((row["page_number"], row["text"]))
-    return documents, aliases, extra, pages
+    return documents, aliases, extra, pages, corpus_of, {}
+
+
+def write_manifests(output: Path, manifest_rows: dict) -> None:
+    """Put each conversion manifest where the indexer looks for it.
+
+    `make index` is handed corpus/ and corpus/office/ and reads
+    conversion-manifest.csv from each. Materialising the Markdown without these
+    leaves the tree unindexable, which is the whole point of materialising it.
+    """
+    for where, rows in manifest_rows.items():
+        if not rows:
+            continue
+        target = (output / "conversion-manifest.csv" if where == "pdf"
+                  else output / "office" / "conversion-manifest.csv")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("w", newline="", encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=list(rows[0].keys()))
+            writer.writeheader()
+            writer.writerows(rows)
+        print("  wrote " + str(target) + ": " + str(len(rows)) + " rows", flush=True)
 
 
 def main() -> int:
@@ -183,12 +225,13 @@ def main() -> int:
 
     if args.database:
         print("reading local index " + str(args.database), flush=True)
-        documents, aliases, extra, pages = from_local(args.database)
+        documents, aliases, extra, pages, corpus_of, manifest_rows = from_local(args.database)
     else:
         print("reading published Parquet for " + args.user, flush=True)
-        documents, aliases, extra, pages = from_remote(args.user)
+        documents, aliases, extra, pages, corpus_of, manifest_rows = from_remote(args.user)
 
-    written = thin = missing = 0
+    written = thin = missing = files = 0
+    counts = {"pdf": 0, "office": 0}
     for document in documents:
         if args.limit and written >= args.limit:
             break
@@ -202,12 +245,26 @@ def main() -> int:
             thin += 1
         known = sorted(set(aliases.get(sha) or [document["source_url"]]))
         text = frontmatter(document, known, detail) + body(document_pages)
-        destination = args.output / sha[:2] / sha[2:4] / (sha + ".md")
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(text, encoding="utf-8", newline="\n")
+        # The two corpora are indexed separately, so each document has to land in
+        # the one its manifest describes. One SHA-256 appears in both manifests,
+        # having been converted by both pipelines, and it needs a file in each:
+        # that is why the original corpus holds 5,569 files for 5,568 documents.
+        for where in sorted(corpus_of.get(sha) or {"pdf"}):
+            counts[where] += 1
+            root = args.output if where == "pdf" else args.output / "office"
+            destination = root / "markdown" / sha[:2] / sha[2:4] / (sha + ".md")
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(text, encoding="utf-8", newline="\n")
+            files += 1
         written += 1
 
-    print("materialised " + str(written) + " Markdown files into " + str(args.output))
+    if manifest_rows and not args.limit:
+        write_manifests(args.output, manifest_rows)
+
+    print("materialised " + str(written) + " documents as " + str(files) +
+          " Markdown files into " + str(args.output))
+    print("  " + str(counts["pdf"]) + " under markdown/, "
+          + str(counts["office"]) + " under office/markdown/")
     print("  " + str(thin) + " have thinner frontmatter (no published conversion manifest row)")
     if missing:
         print("  " + str(missing) + " documents had no pages and were skipped")

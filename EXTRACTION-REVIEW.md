@@ -7,9 +7,14 @@ quantitative half was run the same day.
 
 ## 1. The question
 
-`qa/extraction-quality.csv` grades 112 documents as extracting badly: 63 `gappy`,
-26 `garbled`, 16 `thin`, 7 `empty`. **33 of those are stakeholder documents**, and
-the stakeholder pile is what drives Finding 2's industry pain scan.
+**Sections 1 to 6 describe the corpus as it stood before the recovery pass.
+Section 7 records what changed. The figures below are the pre-recovery ones and
+are kept because the reasoning depends on them.**
+
+`qa/extraction-quality.csv` then graded 112 documents as extracting badly: 63
+`gappy`, 26 `garbled`, 16 `thin`, 7 `empty`. **33 of those were stakeholder
+documents**, and the stakeholder pile is what drives Finding 2's industry pain
+scan. It now grades 82.
 
 I had claimed that extraction failure "can only cause false negatives, never
 false positives", and that its effect was uniform across themes. Codex pushed

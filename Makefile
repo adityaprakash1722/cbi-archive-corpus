@@ -4,7 +4,7 @@ ARCHIVE := outputs/cbi-archive/cbi-data
 RESEARCH := outputs/cbi-research
 INDEX := $(RESEARCH)/index/cbi-corpus-v4-5568docs.sqlite
 
-.PHONY: help fetch index materialize recover scan-personal-data test verify dataset clean-artifacts
+.PHONY: help fetch index materialize recover scan-personal-data test test-fresh-rebuild verify dataset clean-artifacts
 
 help:
 	@echo "fetch            pull the 47 MB Parquet corpus (set DATASET=user/name)"
@@ -12,10 +12,11 @@ help:
 	@echo "recover          re-extract page text the converter dropped (--ocr needs Tesseract)"
 	@echo "scan-personal-data  screen the corpus for personal data before republishing"
 	@echo "index            rebuild the v4 SQLite index from the Markdown corpus"
-	@echo "test             classifier regression suite, 94 assertions"
+	@echo "test             classifier regression suite, 97 assertions"
+	@echo "test-fresh-rebuild  prove a clone can rebuild the index from published data"
 	@echo "verify           re-hash every source and output, check page markers"
 	@echo "dataset          regenerate publish/hf/data from the current index"
-	@echo "clean-artifacts  list the 1.7 GB of superseded indices you can delete"
+	@echo "clean-artifacts  list the 2.36 GB of superseded indices you can delete"
 
 fetch:
 	python3 $(SCRIPTS)/bootstrap.py --dataset $(DATASET)
@@ -28,10 +29,13 @@ index:
 
 materialize:
 	python3 $(SCRIPTS)/materialize_markdown.py --user $(firstword $(subst /, ,$(DATASET))) \
-	  --output $(RESEARCH)/corpus/markdown
+	  --output $(RESEARCH)/corpus
 
 test:
 	cd $(SCRIPTS) && python3 test_classify_provenance.py
+
+test-fresh-rebuild:
+	python3 $(SCRIPTS)/test_fresh_rebuild.py --user $(firstword $(subst /, ,$(DATASET)))
 
 verify:
 	python3 $(SCRIPTS)/validate_corpus.py --corpus $(RESEARCH)/corpus \

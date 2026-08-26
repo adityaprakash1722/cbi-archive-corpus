@@ -81,8 +81,13 @@ def main() -> int:
         sha = entry["sha256"]
         source = archive / entry["local_path"].replace("\\", "/")
         suffix = Path(entry["local_path"]).suffix.lower() or f".{entry['format'].lower()}"
-        key = f"blobs/{sha[:2]}/{sha[2:4]}/{sha}{suffix}"
-        destination = output.parent / key
+        # The key is the path inside the Hugging Face repository, and there the
+        # files sit at the root: `hf upload <repo> publish/blobs .` uploads this
+        # directory's *contents*. Writing "blobs/..." here would put a prefix in
+        # the catalogue that does not exist in the published dataset, which is
+        # exactly the mismatch that broke retrieval once already.
+        key = f"{sha[:2]}/{sha[2:4]}/{sha}{suffix}"
+        destination = output / key
 
         if not source.is_file():
             missing += 1
@@ -128,7 +133,7 @@ def main() -> int:
         "by_format": dict(Counter(c["format"] for c in catalog).most_common()),
         "hard_linked": linked, "copied": copied,
         "already_present": existing, "source_missing": missing,
-        "layout": "blobs/<sha[0:2]>/<sha[2:4]>/<sha256><ext>",
+        "layout": "<sha[0:2]>/<sha[2:4]>/<sha256><ext>",
         "elapsed_seconds": round(time.time() - started, 1),
     }
     (output.parent / "blob-summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")

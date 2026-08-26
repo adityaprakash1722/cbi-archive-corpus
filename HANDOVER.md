@@ -291,16 +291,17 @@ con.execute(f"SELECT authorship, count(*) FROM read_parquet('{BASE}/documents.pa
 **Or use the local index**, which is faster for heavy work:
 
 ```bash
-make index    # rebuilds cbi-corpus-v3-5568docs.sqlite in about 8 seconds
+make index    # rebuilds cbi-corpus-v4-5568docs.sqlite in about 15 seconds
+              # from a fresh clone, run make materialize first
 python outputs/cbi-research/scripts/search_corpus.py '"operational resilience"' \
-  --database outputs/cbi-research/index/cbi-corpus-v3-5568docs.sqlite --limit 10
+  --database outputs/cbi-research/index/cbi-corpus-v4-5568docs.sqlite --limit 10
 ```
 
 **Rebuild the reading bundles** after any classifier change:
 
 ```bash
 python outputs/cbi-research/scripts/build_learning_bundles.py \
-  --database outputs/cbi-research/index/cbi-corpus-v3-5568docs.sqlite \
+  --database outputs/cbi-research/index/cbi-corpus-v4-5568docs.sqlite \
   --output work/learning-bundles
 ```
 

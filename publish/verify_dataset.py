@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import sys
 
-EXPECTED_AUTHORSHIP = {"central-bank": 3807, "stakeholder": 1656, "unresolved": 105}
+EXPECTED_AUTHORSHIP = {"central-bank": 3809, "stakeholder": 1656, "unresolved": 103}
 EXPECTED_DOCUMENTS = 5568
 EXPECTED_PAGES = 88782
 
