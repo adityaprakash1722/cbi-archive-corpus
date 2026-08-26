@@ -53,7 +53,7 @@ outputs/
     cbi-data/manifests/files.csv       every URL, SHA-256, bytes, referrers  [tracked]
     cbi-data/files/                    6.56 GB of raw source              [not tracked]
   cbi-research/
-    scripts/                           the whole pipeline, 18 Python files
+    scripts/                           the whole pipeline, 21 Python files
     corpus/conversion-manifest.csv     per-document conversion record     [tracked]
     corpus/markdown/                   202 MB of page-anchored Markdown   [not tracked]
     index/                             SQLite build artifacts             [not tracked]
@@ -62,6 +62,51 @@ outputs/
     analysis-v2/                       topic scan and evidence candidates
 publish/hf/                            the public dataset, ready to upload
 ```
+
+**`HANDOVER.md` first if you are new to this project.** It covers what the
+research has actually found, what is unfinished, and two confident claims that
+turned out to be wrong. The rest of the docs describe the corpus; that one
+describes the work.
+
+**`PUBLISHING.md`** covers why these services were chosen, the accounts, and the
+runbook for updating each one. Read its decision log before proposing a change to
+where anything is hosted.
+
+**`STORAGE.md` is the full map**: every artifact, where it lives, why, the Parquet
+schemas, access patterns and rebuild commands. Read it before moving or fetching
+anything.
+
+## The three pieces and how they join
+
+Nothing here is a monolith. The project lives in three places, joined by one key.
+
+| Where | What | Size |
+|---|---|---|
+| GitHub | pipeline, manifests, analysis, docs | 10 MB |
+| Hugging Face `cbi-archive-corpus` | the extracted text as Parquet | 47 MB |
+| Hugging Face `cbi-archive-raw` | the original PDFs and spreadsheets | 6.56 GB |
+
+**The join key is the SHA-256 hash**, and it appears in all three:
+
+- `files.csv` in this repo maps every source URL to its hash
+- `documents.parquet` carries `source_sha256` on every document
+- the raw repo stores each file at `<ab>/<cd>/<sha256>.pdf`
+
+Because the files are content-addressed, the identifier and the location are the
+same string. No lookup service is needed to get from a search result to the
+original document:
+
+```
+search the text  ->  source_sha256  ->  ab/cd/abcd....pdf
+```
+
+`publish/get_source.py` does this end to end. Reach for it when you need the
+document as a human would see it, which mainly means charts, diagrams, scanned
+pages, and any of the 112 documents graded as extracting badly.
+
+For everything else, query the Parquet over HTTPS and download nothing. DuckDB
+reads the file's footer, finds which byte ranges hold the columns you asked for,
+and fetches only those.
 
 ## Gotchas that will cost you an hour
 

@@ -55,3 +55,10 @@ directory_structure.txt
 # Append-only journals that duplicate their CSV siblings byte for byte in content
 outputs/cbi-archive/cbi-data/manifests/files.jsonl
 outputs/cbi-research/audit/pdf-audit.jsonl
+
+# The content-addressed blob tree: 6,309 hard links to 6.56 GB of source files.
+# These go to the Hugging Face raw repo, never to git. The catalogue describing
+# them (blob-catalog.csv, blob-summary.json) IS tracked, because it is small and
+# it is what makes the archive self-describing.
+publish/blobs/
+downloaded-sources/

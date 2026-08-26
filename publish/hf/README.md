@@ -77,10 +77,14 @@ missed three whole families:
 
 Family 3 cannot be resolved from a filename, so classification is two-pass:
 filename attribution and Central Bank document-type cues first, then the opening
-pages of the document itself where the filename is silent. Central Bank document
-types take precedence, which is what keeps
+pages of the document itself where the filename is silent. Only a narrow set of
+issuer-specific Central Bank cues takes precedence over stakeholder attribution,
+which is what keeps
 `note-from-the-financial-regulator-in-relation-to-submissions-received-on-cp43`
-correctly attributed to the Bank. The rule that produced each label is stored in
+correctly attributed to the Bank. Generic document-type cues do not: they apply
+only where the filename carries no attribution, because letting them win is the
+defect that put AIB's and Bank of Ireland's submissions into the regulator's
+pile in an earlier version. The rule that produced each label is stored in
 `classification_basis`, with a `classification_confidence` of high, medium or
 low. 94 regression assertions cover the classifier.
 

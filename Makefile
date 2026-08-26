@@ -4,10 +4,11 @@ ARCHIVE := outputs/cbi-archive/cbi-data
 RESEARCH := outputs/cbi-research
 INDEX := $(RESEARCH)/index/cbi-corpus-v3-5568docs.sqlite
 
-.PHONY: help fetch index test verify dataset clean-artifacts
+.PHONY: help fetch index materialize test verify dataset clean-artifacts
 
 help:
 	@echo "fetch            pull the 47 MB Parquet corpus (set DATASET=user/name)"
+	@echo "materialize      regenerate the Markdown corpus from the published Parquet"
 	@echo "index            rebuild the v3 SQLite index from the Markdown corpus"
 	@echo "test             classifier regression suite, 94 assertions"
 	@echo "verify           re-hash every source and output, check page markers"
@@ -20,7 +21,12 @@ fetch:
 index:
 	python3 $(SCRIPTS)/build_search_index.py \
 	  --corpus $(RESEARCH)/corpus --corpus $(RESEARCH)/corpus/office \
-	  --audit-csv $(RESEARCH)/audit/pdf-audit.csv --output $(RESEARCH)/index
+	  --audit-csv $(RESEARCH)/audit/pdf-audit.csv --output $(RESEARCH)/index \
+	  --database-name $(notdir $(INDEX))
+
+materialize:
+	python3 $(SCRIPTS)/materialize_markdown.py --user $(firstword $(subst /, ,$(DATASET))) \
+	  --output $(RESEARCH)/corpus/markdown
 
 test:
 	cd $(SCRIPTS) && python3 test_classify_provenance.py

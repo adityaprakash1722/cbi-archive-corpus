@@ -262,3 +262,72 @@ files. Let it finish once. It is fast afterwards.
 **Push rejected, file too large.** Something got past `.gitignore`. Run
 `git rm -r --cached .` then `git add .` to re-apply the rules, and check
 `git status --short | Measure-Object -Line` again before recommitting.
+
+---
+
+# Part 4: The raw archive, 6.56 GB
+
+This puts the original PDFs and spreadsheets somewhere you can reach them from
+any machine, which the Parquet corpus cannot do because it holds only the text.
+
+**Why Hugging Face rather than Cloudflare R2.** R2 requires a payment method on
+file to activate, even inside its free 10 GB tier. Hugging Face public datasets
+have no hard size limit on a free account: the documented guidance is fewer than
+100,000 files per repository, fewer than 10,000 per folder, and under 200 GB per
+file. 6,309 files at 6.56 GB sits well inside all three, on the account you
+already have.
+
+## Step 1. Lay the files out by content hash
+
+```powershell
+python publish\build_blob_tree.py
+```
+
+This creates `publish\blobs\<ab>\<cd>\<sha256>.pdf` for every unique file, using
+**hard links**, which are extra directory entries pointing at bytes already on
+disk rather than copies. It therefore costs essentially no additional space.
+
+It also collapses the 654 files that are byte-identical content served at more
+than one URL, taking 7.48 GB down to 6.56 GB before anything is uploaded. Both
+`blob-catalog.csv` and `blob-summary.json` are written alongside, recording every
+URL that served each hash so the provenance survives the rename.
+
+Expect roughly 6,309 files across 256 top-level directories, about 25 files in
+each, which keeps every folder far below the 10,000-file limit.
+
+## Step 2. Upload
+
+```powershell
+hf upload aditya487/cbi-archive-raw publish/blobs . --repo-type=dataset
+```
+
+**Note the trailing `.`, and note what it does.** The third argument is
+`PATH_IN_REPO`. Omitting it uploads the *contents* of `publish/blobs` to the
+repository root, which is what happened on the first run: the files live at
+`<ab>/<cd>/<sha256><ext>`, not under a `blobs/` prefix. That layout is now the
+standard one, and `get_source.py`, `blob-catalog.csv` and every document agree
+on it. The explicit `.` says the same thing on purpose rather than by accident.
+
+Use `hf upload`, not `hf upload-large-folder`. The latter is deprecated as of
+CLI 1.28 and prints so; `hf upload` is resumable and handles thousands of files.
+
+This is a real 6.56 GB upload. At 20 Mbps that is around 45 minutes, at 50 Mbps
+around 18, at 100 Mbps around 9. Start it and leave it.
+
+Then add the catalogue so the repository describes itself:
+
+```powershell
+hf upload aditya487/cbi-archive-raw publish/blob-catalog.csv blob-catalog.csv --repo-type=dataset
+hf upload aditya487/cbi-archive-raw publish/blob-summary.json blob-summary.json --repo-type=dataset
+```
+
+## Step 3. Test the whole loop
+
+```powershell
+python publish\get_source.py --search "operational resilience" --authorship central-bank --limit 3
+python publish\get_source.py --search "operational resilience" --authorship central-bank --limit 1 --fetch
+```
+
+The first lists matching documents and prints the blob URL for each. The second
+downloads an actual original PDF, from a search of the text, without you knowing
+in advance where the file was.

@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-08-26T17:11:35Z",
+  "download_records": 6963,
+  "unique_files": 6309,
+  "duplicate_copies_dropped": 654,
+  "bytes_saved_by_dedupe": 917328682,
+  "files_laid_out": 6309,
+  "total_bytes": 6558826563,
+  "by_format": {
+    "PDF": 5246,
+    "XLSX": 447,
+    "CSV": 246,
+    "DOCX": 201,
+    "DOC": 71,
+    "ZIP": 49,
+    "XLS": 42,
+    "XML": 5,
+    "PPTX": 2
+  },
+  "hard_linked": 6309,
+  "copied": 0,
+  "already_present": 0,
+  "source_missing": 0,
+  "layout": "<sha[0:2]>/<sha[2:4]>/<sha256><ext>",
+  "elapsed_seconds": 3.7
+}
