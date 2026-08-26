@@ -1,0 +1,63 @@
+{
+  "generated_at": "2026-08-26T22:09:49Z",
+  "pages_scanned": 88782,
+  "documents_total": 5568,
+  "documents_with_any_signal": 3169,
+  "method": "Pattern screening. Candidates for human review, not determinations. Values are never stored; only counts and truncated hashes.",
+  "patterns": {
+    "ppsn": "Irish PPS number shape",
+    "iban": "IBAN shape",
+    "email_personal": "Email with a personal-looking local part",
+    "email_any": "Any email address",
+    "phone_ie": "Irish phone number shape",
+    "dob": "Date of birth label",
+    "signature": "Signature block",
+    "home_address": "Home address label",
+    "personal_capacity": "Written as a private individual"
+  },
+  "documents_by_pattern": {
+    "ppsn": 17,
+    "iban": 4,
+    "email_personal": 508,
+    "email_any": 2372,
+    "phone_ie": 223,
+    "dob": 2,
+    "signature": 1806,
+    "home_address": 14,
+    "personal_capacity": 39
+  },
+  "documents_by_pattern_and_authorship": {
+    "central-bank": {
+      "email_personal": 349,
+      "email_any": 1732,
+      "phone_ie": 98,
+      "signature": 1056,
+      "home_address": 11,
+      "personal_capacity": 19,
+      "iban": 4,
+      "dob": 2,
+      "ppsn": 4
+    },
+    "stakeholder": {
+      "email_personal": 151,
+      "email_any": 607,
+      "phone_ie": 119,
+      "signature": 713,
+      "ppsn": 13,
+      "personal_capacity": 20,
+      "home_address": 3
+    },
+    "unresolved": {
+      "email_personal": 8,
+      "email_any": 33,
+      "signature": 37,
+      "phone_ie": 6
+    }
+  },
+  "distinct_values_seen": {
+    "email_personal": 358,
+    "email_any": 974,
+    "ppsn": 12,
+    "iban": 2
+  }
+}

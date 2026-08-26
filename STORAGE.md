@@ -50,7 +50,7 @@ outputs/
     cbi-data/manifests/summary.json      crawl totals
     cbi-data/metadata/ckan-packages.json open-data catalogue metadata
   cbi-research/
-    scripts/                             21 Python files, the whole pipeline
+    scripts/                             22 Python files, the whole pipeline
     corpus/conversion-manifest.csv       5,246 rows, PDF conversion record
     corpus/office/conversion-manifest.csv  323 rows, Office and ZIP record
     qa/                                  validation, provenance, extraction grades

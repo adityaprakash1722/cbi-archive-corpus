@@ -117,11 +117,36 @@ def from_remote(user: str):
             "/files.csv.zst') WHERE sha256 IS NOT NULL").fetchall():
         aliases.setdefault(sha, []).append(url)
 
+    # Both conversion manifests. The PDF one covers 5,246 documents and the
+    # Office one the remaining 323; reading only the first leaves the Office
+    # corpus without source_file in its frontmatter.
+    #
+    # The two do not share a schema. The PDF manifest records `engine_version`,
+    # the Office one records `pipeline_version` instead, so the columns are
+    # matched by name rather than by position.
     extra = {}
-    for sha, source_file, version in connection.execute(
-            "SELECT source_sha256, source_file, engine_version FROM read_csv_auto('" +
-            manifests + "/conversion-manifest.csv.zst')").fetchall():
-        extra[sha] = {"source_file": source_file, "engine_version": version}
+    for name in ("conversion-manifest.csv.zst", "conversion-manifest-office.csv.zst"):
+        try:
+            cursor = connection.execute(
+                "SELECT * FROM read_csv_auto('" + manifests + "/" + name +
+                "', all_varchar=true)")
+            columns = [d[0] for d in cursor.description]
+            rows = cursor.fetchall()
+        except Exception as exc:
+            print("  could not read " + name + ": " + str(exc).split("\n")[0], flush=True)
+            continue
+        if "source_sha256" not in columns:
+            print("  " + name + " has no source_sha256 column, skipped", flush=True)
+            continue
+        index = {c: i for i, c in enumerate(columns)}
+        version_column = next((c for c in ("engine_version", "pipeline_version")
+                               if c in index), None)
+        for row in rows:
+            extra[row[index["source_sha256"]]] = {
+                "source_file": row[index["source_file"]] if "source_file" in index else None,
+                "engine_version": row[index[version_column]] if version_column else None,
+            }
+        print("  read " + name + ": " + str(len(rows)) + " rows", flush=True)
 
     pages = {}
     for did, number, text in connection.execute(

@@ -21,6 +21,11 @@ WANTED = [
     "manifests/files.csv.zst",
     "manifests/provenance-classification.csv.zst",
     "manifests/extraction-quality.csv.zst",
+    # Both conversion manifests. materialize_markdown.py reads them to restore
+    # source_file and engine version to the frontmatter, and without the Office
+    # one the 323 non-PDF documents come out thinner than they need to be.
+    "manifests/conversion-manifest.csv.zst",
+    "manifests/conversion-manifest-office.csv.zst",
 ]
 
 

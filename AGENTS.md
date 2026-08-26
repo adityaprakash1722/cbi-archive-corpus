@@ -53,7 +53,7 @@ outputs/
     cbi-data/manifests/files.csv       every URL, SHA-256, bytes, referrers  [tracked]
     cbi-data/files/                    6.56 GB of raw source              [not tracked]
   cbi-research/
-    scripts/                           the whole pipeline, 21 Python files
+    scripts/                           the whole pipeline, 22 Python files
     corpus/conversion-manifest.csv     per-document conversion record     [tracked]
     corpus/markdown/                   202 MB of page-anchored Markdown   [not tracked]
     index/                             SQLite build artifacts             [not tracked]
@@ -71,6 +71,14 @@ describes the work.
 **`PUBLISHING.md`** covers why these services were chosen, the accounts, and the
 runbook for updating each one. Read its decision log before proposing a change to
 where anything is hosted.
+
+**`RIGHTS-REVIEW.md`** is the personal-data and licence screen: what the
+corpus actually contains, why the PPSN hits were all VAT numbers, and the 18
+documents that need a human decision before wider sharing.
+
+**`EXTRACTION-REVIEW.md`** reads the 33 flagged stakeholder documents and says
+which of the 112 bad extractions actually matter. One is 94% unreadable; the
+rest are mostly scanned cover pages.
 
 **`STORAGE.md` is the full map**: every artifact, where it lives, why, the Parquet
 schemas, access patterns and rebuild commands. Read it before moving or fetching
@@ -134,6 +142,7 @@ and fetches only those.
 
 ```bash
 make fetch      # pull the Parquet corpus (47 MB), no build needed
+make materialize # regenerate the Markdown corpus from the Parquet, for a fresh clone
 make index      # rebuild the v3 SQLite from the Markdown corpus (~8s)
 make test       # classifier regression suite, 94 assertions
 make verify     # re-hash every source and output, check page markers

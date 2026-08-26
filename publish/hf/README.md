@@ -96,6 +96,7 @@ low. 94 regression assertions cover the classifier.
 | `data/pages.parquet` | 88,782 | 46.6 MB | one row per source page, carrying the full text |
 | `manifests/files.csv.zst` | 6,984 | 0.6 MB | the original download manifest: every URL, its SHA-256, bytes, content type, referrers |
 | `manifests/conversion-manifest.csv.zst` | 5,246 | 0.8 MB | PDF to Markdown conversion record, per document |
+| `manifests/conversion-manifest-office.csv.zst` | 323 | 51 KB | the same for Word, Excel, PowerPoint and ZIP sources |
 | `manifests/provenance-classification.csv.zst` | 5,568 | 0.3 MB | full classification audit trail, including the previous label |
 | `manifests/extraction-quality.csv.zst` | 5,568 | 0.3 MB | per-document extraction fidelity grades |
 
