@@ -212,7 +212,7 @@ hf upload aditya487/cbi-archive-corpus publish/hf . --repo-type=dataset
 python publish\verify_dataset.py aditya487
 ```
 
-`make dataset` regenerates the two Parquet files from the current v3 index.
+`make dataset` regenerates the two Parquet files from the current v4 index.
 Always run `verify_dataset.py` afterwards: it catches a stale or half-uploaded
 dataset immediately.
 

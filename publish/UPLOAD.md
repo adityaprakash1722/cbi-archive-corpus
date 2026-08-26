@@ -129,9 +129,9 @@ duckdb -c "SELECT authorship, count(*) FROM 'https://huggingface.co/datasets/YOU
 Expect exactly:
 
 ```
-central-bank   3807
+central-bank   3809
 stakeholder    1656
-unresolved      105
+unresolved      103
 ```
 
 If you get those three numbers, the corpus is live and reachable from any

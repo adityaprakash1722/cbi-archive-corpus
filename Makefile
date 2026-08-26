@@ -4,7 +4,7 @@ ARCHIVE := outputs/cbi-archive/cbi-data
 RESEARCH := outputs/cbi-research
 INDEX := $(RESEARCH)/index/cbi-corpus-v4-5568docs.sqlite
 
-.PHONY: help fetch index materialize recover scan-personal-data test test-fresh-rebuild verify dataset clean-artifacts
+.PHONY: help fetch index materialize recover scan-personal-data test test-invariants test-fresh-rebuild verify dataset clean-artifacts
 
 help:
 	@echo "fetch            pull the 47 MB Parquet corpus (set DATASET=user/name)"
@@ -13,6 +13,7 @@ help:
 	@echo "scan-personal-data  screen the corpus for personal data before republishing"
 	@echo "index            rebuild the v4 SQLite index from the Markdown corpus"
 	@echo "test             classifier regression suite, 97 assertions"
+	@echo "test-invariants  check tracked manifests agree with the docs, no network"
 	@echo "test-fresh-rebuild  prove a clone can rebuild the index from published data"
 	@echo "verify           re-hash every source and output, check page markers"
 	@echo "dataset          regenerate publish/hf/data from the current index"
@@ -33,6 +34,9 @@ materialize:
 
 test:
 	cd $(SCRIPTS) && python3 test_classify_provenance.py
+
+test-invariants:
+	python3 $(SCRIPTS)/check_manifest_invariants.py
 
 test-fresh-rebuild:
 	python3 $(SCRIPTS)/test_fresh_rebuild.py --user $(firstword $(subst /, ,$(DATASET)))

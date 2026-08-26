@@ -150,14 +150,26 @@ def from_remote(user: str):
             print("  " + name + " has no source_sha256 column, skipped", flush=True)
             continue
         index = {c: i for i, c in enumerate(columns)}
-        version_column = next((c for c in ("engine_version", "pipeline_version")
-                               if c in index), None)
         where = "office" if "office" in name else "pdf"
         for row in rows:
             sha = row[index["source_sha256"]]
-            extra[sha] = {
-                "source_file": row[index["source_file"]] if "source_file" in index else None,
-                "engine_version": row[index[version_column]] if version_column else None,
+
+            def column(name_: str):
+                position = index.get(name_)
+                return row[position] if position is not None else None
+
+            # The two manifests record the engine version in different columns,
+            # and the Office one records it nowhere useful: `engine_version` is
+            # absent and `pipeline_version` is blank, while the value the index
+            # carries is the engine name itself. Fall through all three.
+            version = column("engine_version") or column("pipeline_version") or column("engine")
+            # Keyed by corpus as well as hash. One SHA-256 sits in both
+            # manifests with a different source_file in each, a .pdf and a
+            # .docx, so a hash-only key lets whichever manifest is read last
+            # overwrite the other.
+            extra[(sha, where)] = {
+                "source_file": column("source_file"),
+                "engine_version": version,
             }
             corpus_of.setdefault(sha, set()).add(where)
             manifest_rows.setdefault(where, []).append(dict(zip(columns, row)))
@@ -175,19 +187,22 @@ def from_local(database: Path):
     connection = sqlite3.connect(database)
     connection.row_factory = sqlite3.Row
     query = ("SELECT " + ", ".join(FIELDS) +
-             ", source_urls_json, source_file, extraction_engine_version FROM documents")
+             ", source_urls_json, source_file, extraction_engine_version, markdown_file "
+             "FROM documents")
     documents = [dict(row) for row in connection.execute(query)]
     aliases = {d["source_sha256"]: json.loads(d["source_urls_json"] or "[]") for d in documents}
-    extra = {d["source_sha256"]: {"source_file": d["source_file"],
-                                 "engine_version": d["extraction_engine_version"]}
-             for d in documents}
+    extra = {}
     # Locally the split is recoverable from the recorded Markdown path: the
     # Office pipeline writes under corpus/office.
     corpus_of = {}
-    for row in connection.execute("SELECT source_sha256, markdown_file FROM documents"):
-        path = (row["markdown_file"] or "").replace("\\", "/")
-        corpus_of.setdefault(row["source_sha256"], set()).add(
-            "office" if path.startswith("office/") else "pdf")
+    for d in documents:
+        path = (d.get("markdown_file") or "").replace("\\", "/")
+        where = "office" if path.startswith("office/") else "pdf"
+        corpus_of.setdefault(d["source_sha256"], set()).add(where)
+        extra[(d["source_sha256"], where)] = {
+            "source_file": d["source_file"],
+            "engine_version": d["extraction_engine_version"],
+        }
     pages = {}
     for row in connection.execute("SELECT document_id, page_number, text FROM pages "
                                   "ORDER BY document_id, page_number"):
@@ -240,16 +255,16 @@ def main() -> int:
         if not document_pages:
             missing += 1
             continue
-        detail = extra.get(sha, {})
-        if not detail.get("source_file"):
-            thin += 1
         known = sorted(set(aliases.get(sha) or [document["source_url"]]))
-        text = frontmatter(document, known, detail) + body(document_pages)
         # The two corpora are indexed separately, so each document has to land in
         # the one its manifest describes. One SHA-256 appears in both manifests,
         # having been converted by both pipelines, and it needs a file in each:
         # that is why the original corpus holds 5,569 files for 5,568 documents.
         for where in sorted(corpus_of.get(sha) or {"pdf"}):
+            detail = extra.get((sha, where), {})
+            if not detail.get("source_file"):
+                thin += 1
+            text = frontmatter(document, known, detail) + body(document_pages)
             counts[where] += 1
             root = args.output if where == "pdf" else args.output / "office"
             destination = root / "markdown" / sha[:2] / sha[2:4] / (sha + ".md")

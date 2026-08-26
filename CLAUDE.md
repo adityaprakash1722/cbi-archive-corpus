@@ -37,7 +37,7 @@ There are three SQLite files. Only one is current.
 | `cbi-corpus.sqlite` | 5,246 | Superseded. Wrong provenance, missing the office corpus. |
 | `work/live-index/cbi-corpus.sqlite` | 3,259 | Never. Partial build from an interrupted run. |
 
-v4 SHA-256: `05d6f3743db8db962e45abd55baf09a1664015cae3c0d116c6729394b724309e`
+v4 SHA-256: `a89923ba64a121792ba2f2776edb66fa9e8179f1914492cdfb17165efecd29ca`
 
 None of these are in git. Run `make index` to build v4 locally, or `make fetch`
 to pull the Parquet corpus, which is usually what you actually want.
@@ -54,7 +54,7 @@ outputs/
     cbi-data/manifests/files.csv       every URL, SHA-256, bytes, referrers  [tracked]
     cbi-data/files/                    6.56 GB of raw source              [not tracked]
   cbi-research/
-    scripts/                           the whole pipeline, 24 Python files
+    scripts/                           the whole pipeline, 25 Python files
     corpus/conversion-manifest.csv     per-document conversion record     [tracked]
     corpus/markdown/                   202 MB of page-anchored Markdown   [not tracked]
     index/                             SQLite build artifacts             [not tracked]
@@ -145,7 +145,7 @@ and fetches only those.
 ```bash
 make fetch      # pull the Parquet corpus (47 MB), no build needed
 make materialize # regenerate the Markdown corpus from the Parquet, for a fresh clone
-make index      # rebuild the v3 SQLite from the Markdown corpus (~8s)
+make index      # rebuild the v4 SQLite from the Markdown corpus (~15s)
 make test       # classifier regression suite, 97 assertions
 make test-fresh-rebuild   # prove a clone can rebuild the index from published data
 make verify     # re-hash every source and output, check page markers

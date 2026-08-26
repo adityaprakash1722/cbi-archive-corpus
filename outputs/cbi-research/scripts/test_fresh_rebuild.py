@@ -47,6 +47,57 @@ EXPECTED_NON_DEFAULT_PAGE_BASIS = 320
 EXPECTED_NON_PDF_FORMAT = 326
 
 
+COMPARED_COLUMNS = ["title", "authorship", "classification_basis",
+                    "classification_confidence", "page_basis", "source_format",
+                    "document_class", "consultation_id", "page_count",
+                    "extraction_engine", "ocr_enabled"]
+
+
+def untitled_in_published(user: str) -> int:
+    """How many published documents carry no title, so the rebuild can match it."""
+    try:
+        import duckdb
+    except ImportError:
+        return 0
+    remote = duckdb.connect()
+    remote.execute("INSTALL httpfs; LOAD httpfs;")
+    url = ("https://huggingface.co/datasets/" + user +
+           "/cbi-archive-corpus/resolve/main/data/documents.parquet")
+    return remote.execute(
+        "SELECT COUNT(*) FROM read_parquet('" + url + "') "
+        "WHERE title IS NULL OR trim(title) = ''").fetchone()[0]
+
+
+def compare_against_published(connection, user: str):
+    """Compare the rebuilt index row by row against the published documents table."""
+    try:
+        import duckdb
+    except ImportError:
+        print("   (duckdb not installed, skipping the column comparison)")
+        return []
+    remote = duckdb.connect()
+    remote.execute("INSTALL httpfs; LOAD httpfs;")
+    url = ("https://huggingface.co/datasets/" + user +
+           "/cbi-archive-corpus/resolve/main/data/documents.parquet")
+    published = {
+        row[0]: row[1:] for row in remote.execute(
+            "SELECT document_id, " + ", ".join(COMPARED_COLUMNS) +
+            " FROM read_parquet('" + url + "')").fetchall()}
+    local = {
+        row[0]: row[1:] for row in connection.execute(
+            "SELECT document_id, " + ", ".join(COMPARED_COLUMNS) + " FROM documents")}
+    results = []
+    for position, column in enumerate(COMPARED_COLUMNS):
+        differing = sum(
+            1 for did, values in published.items()
+            if did in local and str(local[did][position]) != str(values[position]))
+        results.append((column, differing))
+    missing = len(set(published) - set(local))
+    if missing:
+        results.append(("documents absent from rebuild", missing))
+    return results
+
+
 def run(command: list[str]) -> None:
     print("  $ " + " ".join(str(c) for c in command), flush=True)
     result = subprocess.run(command, capture_output=True, text=True)
@@ -75,11 +126,20 @@ def main() -> int:
 
         print("\n2. build an index from it")
         (workspace / "index").mkdir(parents=True, exist_ok=True)
-        run([sys.executable, scripts / "build_search_index.py",
-             "--corpus", workspace / "corpus",
-             "--corpus", workspace / "corpus" / "office",
-             "--output", workspace / "index",
-             "--database-name", "fresh.sqlite"])
+        # The audit CSV is tracked in git and `make index` passes it. Without it
+        # the build still succeeds but every title falls back to a heading or the
+        # URL, so a test that omits it proves less than the real build does.
+        audit = scripts.parent / "audit" / "pdf-audit.csv"
+        command = [sys.executable, scripts / "build_search_index.py",
+                   "--corpus", workspace / "corpus",
+                   "--corpus", workspace / "corpus" / "office",
+                   "--output", workspace / "index",
+                   "--database-name", "fresh.sqlite"]
+        if audit.is_file():
+            command += ["--audit-csv", audit]
+        else:
+            print(f"   WARNING: {audit} missing, titles will not be checked")
+        run(command)
 
         print("\n3. check the result")
         failures = json.loads((workspace / "index" / "index-failures.json").read_text())
@@ -98,13 +158,39 @@ def main() -> int:
             ("non-pdf source_format",
              scalar("SELECT COUNT(*) FROM documents WHERE source_format != 'pdf'"),
              EXPECTED_NON_PDF_FORMAT),
+            # Metadata the earlier version of this test never looked at. Each of
+            # these was silently wrong at some point and nothing caught it.
+            #
+            # Titles are compared against the published count rather than zero:
+            # 33 documents are genuinely untitled at source, and asserting an
+            # ideal instead of the actual target is how a test fails on correct
+            # output. source_file and engine_version are not in the published
+            # Parquet at all, so those two are absolute.
+            ("documents missing a title",
+             scalar("SELECT COUNT(*) FROM documents WHERE title IS NULL OR trim(title)=''"),
+             untitled_in_published(args.user)),
+            ("documents missing source_file",
+             scalar("SELECT COUNT(*) FROM documents WHERE source_file IS NULL OR trim(source_file)=''"), 0),
+            ("documents missing engine version",
+             scalar("SELECT COUNT(*) FROM documents WHERE extraction_engine_version IS NULL "
+                    "OR trim(extraction_engine_version)=''"), 0),
         ]
+
+        # Column-by-column comparison against the published Parquet, which is the
+        # thing a fresh clone is actually trying to reproduce.
+        compared = compare_against_published(connection, args.user)
+
         bad = []
         for label, got, want in checks:
             mark = "ok" if got == want else "FAIL"
             if got != want:
                 bad.append(label)
-            print(f"   {label:26} got {got:>8,}  want {want:>8,}  {mark}")
+            print(f"   {label:30} got {got:>8,}  want {want:>8,}  {mark}")
+        for label, differing in compared:
+            mark = "ok" if differing == 0 else "FAIL"
+            if differing:
+                bad.append(label)
+            print(f"   {label:30} {differing:>8,} differing rows          {mark}")
 
         if failures:
             print("\n   first failure:", json.dumps(failures[0])[:300])

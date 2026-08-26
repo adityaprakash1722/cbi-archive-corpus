@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-26T22:40:23Z",
+  "generated_at": "2026-08-26T23:38:43Z",
   "manifest_records": 5568,
   "indexed_documents": 5568,
   "indexed_pages": 88782,
@@ -31,7 +31,7 @@
     "cbi-discussion-material": 26
   },
   "failures": 0,
-  "elapsed_seconds": 15.51,
+  "elapsed_seconds": 26.64,
   "database_bytes": 664154112,
   "database_file": "cbi-corpus-v4-5568docs.sqlite"
 }

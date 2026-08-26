@@ -1,0 +1,69 @@
+name: checks
+
+# The classifier suite is cheap and guards the one rule this corpus depends on:
+# never file a firm's lobbying submission as a regulatory finding. It runs on
+# every push.
+#
+# The rebuild test downloads 47 MB from Hugging Face and takes several minutes,
+# so it runs on a schedule and on demand rather than on every commit. It is the
+# only thing that proves the published data is actually sufficient to rebuild
+# the index, which was claimed for a while before it was true.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  classifier:
+    name: classifier regression suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Run the suite
+        run: python outputs/cbi-research/scripts/test_classify_provenance.py
+        working-directory: ${{ github.workspace }}
+
+  compile:
+    name: every script parses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Byte-compile the pipeline
+        run: |
+          python -m compileall -q outputs/cbi-research/scripts publish
+          echo "all scripts compile"
+
+  manifest-invariants:
+    name: manifest invariants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Check the tracked manifests agree with themselves
+        run: python outputs/cbi-research/scripts/check_manifest_invariants.py
+
+  fresh-rebuild:
+    name: fresh clone can rebuild the index
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install what the rebuild needs
+        run: pip install --quiet duckdb
+      - name: Materialise from the published data and index it
+        run: python outputs/cbi-research/scripts/test_fresh_rebuild.py

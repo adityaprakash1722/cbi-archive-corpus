@@ -50,7 +50,7 @@ outputs/
     cbi-data/manifests/summary.json      crawl totals
     cbi-data/metadata/ckan-packages.json open-data catalogue metadata
   cbi-research/
-    scripts/                             24 Python files, the whole pipeline
+    scripts/                             25 Python files, the whole pipeline
     corpus/conversion-manifest.csv       5,246 rows, PDF conversion record
     corpus/office/conversion-manifest.csv  323 rows, Office and ZIP record
     qa/                                  validation, provenance, extraction grades
@@ -159,7 +159,7 @@ Three properties follow, and all three are load-bearing:
 | 8 | `document_class` | string | 16 values, see below |
 | 9 | `authorship` | string | **`central-bank` / `stakeholder` / `unresolved`** |
 | 10 | `classification_basis` | string | the rule that produced the label |
-| 11 | `classification_confidence` | string | `high` 5,340 / `medium` 123 / `low` 105 |
+| 11 | `classification_confidence` | string | `high` 5,340 / `medium` 125 / `low` 103 |
 | 12 | `page_basis` | string | what a page anchor means, see below |
 | 13 | `source_format` | string | detected from magic bytes, not the file extension |
 | 14 | `consultation_id` | string | e.g. `cp158`, null outside consultations |
@@ -274,7 +274,7 @@ python publish/get_source.py --sha e5dabf14e1e876c484b3fd0d9b4fe86925befc868391e
 Or construct the URL directly, since the hash is the address:
 
 ```
-https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/main/blobs/e5/da/e5dabf14....pdf
+https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/main/e5/da/e5dabf14....pdf
 ```
 
 ---
