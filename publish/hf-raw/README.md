@@ -27,7 +27,7 @@ instead: 5,568 documents and 88,782 pages as Parquet, 47 MB, queryable over
 HTTPS without downloading anything.
 
 Come here when the text is not enough: charts, diagrams, scanned pages, tables
-that did not survive extraction, and the 112 documents graded as extracting
+that did not survive extraction, and the 82 documents graded as extracting
 badly.
 
 ## How files are addressed
@@ -167,7 +167,7 @@ disproportionate is **advocacy**, not a regulatory finding, and treating it as
 one is the easiest way to produce confidently wrong analysis from this data.
 
 The `authorship` column in `documents.parquet` records which is which:
-`central-bank` (3,807), `stakeholder` (1,656), `unresolved` (105). Check it
+`central-bank` (3,809), `stakeholder` (1,656), `unresolved` (103). Check it
 before you quote anything.
 
 ## Citation

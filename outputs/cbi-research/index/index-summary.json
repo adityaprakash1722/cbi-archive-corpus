@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-08-26T15:55:27Z",
+  "generated_at": "2026-08-26T22:40:23Z",
   "manifest_records": 5568,
   "indexed_documents": 5568,
   "indexed_pages": 88782,
   "authorship": {
-    "central-bank": 3807,
+    "central-bank": 3809,
     "stakeholder": 1656,
-    "unresolved": 105
+    "unresolved": 103
   },
   "classification_confidence": {
     "high": 5340,
-    "low": 105,
-    "medium": 123
+    "low": 103,
+    "medium": 125
   },
   "document_classes": {
     "cbi-regulatory-material": 1695,
@@ -20,18 +20,18 @@
     "cbi-policy-analysis": 400,
     "cbi-research": 244,
     "cbi-statistical-material": 210,
-    "cbi-consultation-material": 205,
+    "cbi-consultation-material": 207,
     "cbi-speech-or-news-material": 145,
     "stakeholder-discussion-submission": 135,
     "cbi-correspondence": 111,
-    "consultation-hosted-unresolved": 105,
+    "consultation-hosted-unresolved": 103,
     "cbi-consultation-feedback": 84,
     "cbi-consumer-material": 49,
     "cbi-corporate-report": 32,
     "cbi-discussion-material": 26
   },
   "failures": 0,
-  "elapsed_seconds": 14.25,
-  "database_bytes": 662695936,
-  "database_file": "cbi-corpus-v3-5568docs.sqlite"
+  "elapsed_seconds": 15.51,
+  "database_bytes": 664154112,
+  "database_file": "cbi-corpus-v4-5568docs.sqlite"
 }

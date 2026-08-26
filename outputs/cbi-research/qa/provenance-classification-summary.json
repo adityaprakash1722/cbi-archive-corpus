@@ -1,25 +1,23 @@
 {
-  "generated_at": "2026-08-26T15:57:16Z",
-  "database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus-v3-5568docs.sqlite",
-  "previous_database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus.sqlite",
+  "generated_at": "2026-08-26T22:42:37Z",
+  "database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus-v4-5568docs.sqlite",
+  "previous_database": null,
   "documents": 5568,
   "authorship": {
-    "central-bank": 3807,
+    "central-bank": 3809,
     "stakeholder": 1656,
-    "unresolved": 105
+    "unresolved": 103
   },
   "confidence": {
     "high": 5340,
-    "medium": 123,
-    "low": 105
+    "medium": 125,
+    "low": 103
   },
   "change_vs_previous": {
-    "unchanged": 4607,
-    "reclassified": 639,
-    "new-document": 322
+    "new-document": 5568
   },
-  "moved_to_stakeholder": 526,
-  "moved_to_unresolved": 105,
+  "moved_to_stakeholder": 0,
+  "moved_to_unresolved": 0,
   "basis_breakdown": {
     "non-consultation-path": 3492,
     "filename-attribution:response": 1064,
@@ -30,7 +28,7 @@
     "filename-cp-prefix-without-attribution": 61,
     "filename-attribution:response-to": 58,
     "filename-attribution:response.": 56,
-    "content-inconclusive(0v0)": 53,
+    "content-inconclusive(0v0)": 51,
     "filename-cbi-doctype:discussion-paper": 23,
     "filename-cbi-doctype:consultation-paper": 22,
     "content-inconclusive(0v2)": 15,
@@ -45,6 +43,7 @@
     "filename-cbi-doctype:regulations": 5,
     "content-inconclusive(1v2)": 5,
     "content-stakeholder(4v0):dear sir;yours sincerely": 4,
+    "content-cbi(3v0):feedback statement": 3,
     "filename-cbi-doctype:minimum-competency": 3,
     "filename-cbi-doctype:guidance-on": 3,
     "filename-cbi-doctype:administrative-sanctions": 3,
@@ -52,10 +51,8 @@
     "filename-cbi-doctype:cross-industry-guidance": 3,
     "filename-cbi-doctype:gn-1": 3,
     "content-inconclusive(1v3)": 3,
-    "content-stakeholder(3v0):this submission": 3,
     "content-stakeholder(4v0):dear sir;yours faithfully": 3,
     "filename-attribution:to-cp9": 3,
-    "content-cbi(3v0):feedback statement": 2,
     "filename-cbi-doctype:addendum": 2,
     "filename-attribution:to-cp1": 2,
     "filename-cbi-doctype:requirements.": 2,
@@ -63,6 +60,7 @@
     "filename-attribution:repsonse": 2,
     "filename-cbi-doctype:gn-3": 2,
     "content-cbi(3v0):this consultation paper": 2,
+    "content-stakeholder(3v0):this submission": 2,
     "content-stakeholder(5v0):yours sincerely;this submission": 2,
     "filename-cbi-doctype:code-of-conduct": 2,
     "filename-strong-cbi-doctype:a-note-from-the-central-bank": 2,
@@ -109,6 +107,7 @@
     "content-inconclusive(4v3)": 1,
     "filename-strong-cbi-doctype:consumer-protection-code-for-licensed-moneylenders-public-response": 1,
     "filename-cbi-doctype:cp33-consultation": 1,
+    "content-stakeholder(6v0):this submission;our submission": 1,
     "content-stakeholder(7v0):dear sir;yours sincerely;this submission": 1,
     "filename-attribution:cover-e-mail-from": 1,
     "filename-attribution:cover-letter-from": 1,
@@ -145,6 +144,7 @@
     "content-stakeholder(9v0):welcomes the opportunity to respond;our submission;response to cp": 1,
     "content-stakeholder(8v1):welcomes the opportunity to respond;dear sir;this submission": 1,
     "filename-cbi-doctype:cp90-consultation": 1,
+    "content-cbi(8v3):feedback response;key decisions and next steps": 1,
     "filename-cbi-doctype:cp94-consultation": 1,
     "filename-cbi-doctype:cp95-consultation": 1,
     "filename-cbi-doctype:cp97-consultation": 1,

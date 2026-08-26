@@ -159,7 +159,7 @@ one for the right service.
 | Hugging Face raw archive | published. 6,309 blobs plus `blob-catalog.csv`, 6.56 GB |
 
 `verify_dataset.py` was run against the live corpus and passed: authorship
-3,807 / 1,656 / 105, totals 5,568 documents and 88,782 pages, plus a working
+3,809 / 1,656 / 103, totals 5,568 documents and 88,782 pages, plus a working
 cross-file join query.
 
 Until the raw archive is uploaded, `get_source.py --fetch` will fail. Everything

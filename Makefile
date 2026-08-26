@@ -2,14 +2,16 @@ DATASET ?= aditya487/cbi-archive-corpus
 SCRIPTS := outputs/cbi-research/scripts
 ARCHIVE := outputs/cbi-archive/cbi-data
 RESEARCH := outputs/cbi-research
-INDEX := $(RESEARCH)/index/cbi-corpus-v3-5568docs.sqlite
+INDEX := $(RESEARCH)/index/cbi-corpus-v4-5568docs.sqlite
 
-.PHONY: help fetch index materialize test verify dataset clean-artifacts
+.PHONY: help fetch index materialize recover scan-personal-data test verify dataset clean-artifacts
 
 help:
 	@echo "fetch            pull the 47 MB Parquet corpus (set DATASET=user/name)"
 	@echo "materialize      regenerate the Markdown corpus from the published Parquet"
-	@echo "index            rebuild the v3 SQLite index from the Markdown corpus"
+	@echo "recover          re-extract page text the converter dropped (--ocr needs Tesseract)"
+	@echo "scan-personal-data  screen the corpus for personal data before republishing"
+	@echo "index            rebuild the v4 SQLite index from the Markdown corpus"
 	@echo "test             classifier regression suite, 94 assertions"
 	@echo "verify           re-hash every source and output, check page markers"
 	@echo "dataset          regenerate publish/hf/data from the current index"
@@ -41,8 +43,17 @@ verify:
 dataset:
 	python3 $(SCRIPTS)/export_dataset.py --database $(INDEX) --output publish/hf/data
 
+recover:
+	python3 $(SCRIPTS)/recover_lost_pages.py --database $(INDEX) \
+	  --blobs publish/blobs --catalog publish/blob-catalog.csv \
+	  --corpus $(RESEARCH)/corpus --output $(RESEARCH)/qa --ocr
+
+scan-personal-data:
+	python3 $(SCRIPTS)/scan_personal_data.py --database $(INDEX) --output $(RESEARCH)/qa
+
 clean-artifacts:
-	@echo "Superseded, safe to delete (1.70 GB):"
-	@ls -la $(RESEARCH)/index/cbi-corpus-v2-5568docs.sqlite \
+	@echo "Superseded, safe to delete (2.36 GB):"
+	@ls -la $(RESEARCH)/index/cbi-corpus-v3-5568docs.sqlite \
+	        $(RESEARCH)/index/cbi-corpus-v2-5568docs.sqlite \
 	        $(RESEARCH)/index/cbi-corpus.sqlite \
 	        work/live-index/cbi-corpus.sqlite 2>/dev/null | awk '{printf "  %6.0f MB  %s\n",$$5/1e6,$$9}'

@@ -50,7 +50,7 @@ outputs/
     cbi-data/manifests/summary.json      crawl totals
     cbi-data/metadata/ckan-packages.json open-data catalogue metadata
   cbi-research/
-    scripts/                             22 Python files, the whole pipeline
+    scripts/                             23 Python files, the whole pipeline
     corpus/conversion-manifest.csv       5,246 rows, PDF conversion record
     corpus/office/conversion-manifest.csv  323 rows, Office and ZIP record
     qa/                                  validation, provenance, extraction grades
@@ -70,7 +70,7 @@ working surface: nearly every question is answerable here.
 
 ```
 data/documents.parquet      5,568 rows,  736 KB
-data/pages.parquet         88,782 rows, 46.6 MB, 190,502,323 characters
+data/pages.parquet         88,782 rows, 46.8 MB, 190,943,933 characters
 data/dataset-summary.json
 manifests/files.csv.zst
 manifests/conversion-manifest.csv.zst
@@ -195,7 +195,7 @@ lets a reader skip most of the file when filtering.
 
 | Value | Documents | Meaning |
 |---|---:|---|
-| `central-bank` | 3,807 | the regulator speaking: a rule, finding or expectation |
+| `central-bank` | 3,809 | the regulator speaking: a rule, finding or expectation |
 | `stakeholder` | 1,656 | a firm or trade body writing **to** the regulator. Advocacy. |
 | `unresolved` | 105 | genuinely ambiguous. **Never treat as `central-bank`.** |
 
@@ -336,7 +336,7 @@ central-bank versus stakeholder separation.
 3. **Three SQLite files exist, one is current.** See `index/README.md`. A fourth,
    at `work/live-index/`, is a partial build covering 3,259 of 5,568 documents
    and carries no warning of its own.
-4. **112 documents extract badly**, graded in `qa/extraction-quality.csv`:
+4. **82 documents extract badly**, graded in `qa/extraction-quality.csv`:
    63 `gappy`, 26 `garbled`, 16 `thin`, 7 `empty`. Chart-heavy statistical
    releases are the worst and can render "March" as "~~M~~ arch" while their
    numbers survive intact. Check the grade before quoting prose.

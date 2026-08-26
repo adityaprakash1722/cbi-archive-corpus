@@ -159,10 +159,8 @@ position.
 
 ## 9. Recommendations
 
-1. **Review the 18 candidates by hand** against
-   `qa/individual-submission-review.csv`. Decide per document: keep, keep with
-   the name masked, or withhold from the raw tier while retaining the text for
-   analysis.
+1. **Done. All 18 were reviewed and all 18 are preserved.** See section 11 for
+   the decision and its reasoning.
 2. **Publish a takedown route.** The raw dataset card must carry a named contact
    and an undertaking to remove on request. This is the single highest-value
    mitigation and it costs nothing.
@@ -187,3 +185,66 @@ python outputs/cbi-research/scripts/scan_personal_data.py \
 Outputs `qa/personal-data-scan.csv` (per-document worklist),
 `qa/personal-data-scan.json` (summary) and, from the follow-up pass,
 `qa/individual-submission-review.csv`.
+
+---
+
+## 11. Decision on the 18 candidates: preserve all of them
+
+Taken 26 August 2026 by the maintainer, who is the data controller here. The
+instruction was explicit: preserve all data. Recorded per document in
+`qa/individual-submission-review.csv`, in the `assessment`, `action` and
+`mitigation` columns.
+
+### The split, after reading each one
+
+**9 are public-role**, and the "personal" signal was misleading:
+
+| Document | Why it is not a private individual |
+|---|---|
+| Career Stories (two documents) | Central Bank staff profiles, published by the Bank for recruitment |
+| Opening Statement of Mr Peter Hinchliffe | Statutory inquiry opening statement, deliberately public |
+| Quinn Insurance Limited Inquiry statement | The same |
+| IFSAT decision | Tribunal ruling on a regulatory appeal, public record |
+| 2019 Insurance Conference | Speakers in professional capacity |
+| Mr Bernard Sheridan | The Central Bank's Director of Consumer Protection, official capacity |
+| Dr. Laura E. Kodres | Academic economist submitting professionally |
+| Comments on Regulation and Guidance | Named professional commentary |
+
+Publishing these carries no meaningful privacy exposure. They are people acting
+in public roles in documents the Bank published on purpose.
+
+**9 are private individuals** writing about their own circumstances, across
+CP33, CP45, CP55, CP56, CP63, CP76, CP87, CP114 and CP141.
+
+### What was decided, and why
+
+**All 18 preserved. Nothing removed, nothing redacted.**
+
+The reasoning:
+
+1. **Deletion is irreversible and the exposure is reversible.** A takedown on
+   request can be granted at any time. A document deleted from an archive is
+   gone, and this crawl is not trivially repeatable: source URLs rot, and the
+   Bank reorganises its site.
+2. **The nine private submissions are 0.54% of the stakeholder pile.** Removing
+   them would put a silent, undocumented hole in a corpus whose entire value is
+   that it is a complete and checkable record. A researcher who later found the
+   gap could not tell whether it was censorship, crawler failure, or the Bank
+   never publishing them.
+3. **The mitigation is already live and costs nothing.** The raw dataset card
+   carries a takedown route that requires no justification and promises no
+   argument. That converts a permanent decision into a request anyone affected
+   can make.
+4. **The Bank redacted first.** These documents reached the corpus after the
+   Central Bank's own pass; one of the nine arrives with its email address
+   already masked upstream.
+
+### What this decision is not
+
+It is **not** a finding that publication is risk-free. Section 8's assessment
+stands: the risk is low but not zero, and it sits with these nine documents.
+Preserving them is a choice to keep the record complete and handle objections as
+they arrive, rather than to pre-emptively thin the archive.
+
+*If that trade looks wrong later, the reversal is easy and the worklist is
+already written.* That asymmetry is the point.

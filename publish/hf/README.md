@@ -30,7 +30,7 @@ configs:
 # Central Bank of Ireland Public Archive Corpus
 
 A page-anchored, provenance-classified corpus of the Central Bank of Ireland's
-public document archive. **5,568 documents, 88,782 source pages, 190.5 million
+public document archive. **5,568 documents, 88,782 source pages, 190.9 million
 characters**, in 47 MB of Parquet.
 
 This is an unofficial derived work. It is not published by, affiliated with, or
@@ -57,9 +57,9 @@ The `authorship` column separates them:
 
 | authorship | documents | what it means |
 |---|---:|---|
-| `central-bank` | 3,807 | the regulator speaking |
+| `central-bank` | 3,809 | the regulator speaking |
 | `stakeholder` | 1,656 | a firm or trade body writing to the regulator, i.e. advocacy |
-| `unresolved` | 105 | genuinely ambiguous, and deliberately not guessed |
+| `unresolved` | 103 | genuinely ambiguous, and deliberately not guessed |
 
 `unresolved` is a real answer, not a gap. Do not fold it into `central-bank`.
 
@@ -86,14 +86,14 @@ only where the filename carries no attribution, because letting them win is the
 defect that put AIB's and Bank of Ireland's submissions into the regulator's
 pile in an earlier version. The rule that produced each label is stored in
 `classification_basis`, with a `classification_confidence` of high, medium or
-low. 94 regression assertions cover the classifier.
+low. 97 regression assertions cover the classifier.
 
 ## Files
 
 | File | Rows | Size | Contents |
 |---|---:|---:|---|
 | `data/documents.parquet` | 5,568 | 0.7 MB | one row per document: URL, hashes, title, authorship, class, page count, extraction metadata |
-| `data/pages.parquet` | 88,782 | 46.6 MB | one row per source page, carrying the full text |
+| `data/pages.parquet` | 88,782 | 46.8 MB | one row per source page, carrying the full text |
 | `manifests/files.csv.zst` | 6,984 | 0.6 MB | the original download manifest: every URL, its SHA-256, bytes, content type, referrers |
 | `manifests/conversion-manifest.csv.zst` | 5,246 | 0.8 MB | PDF to Markdown conversion record, per document |
 | `manifests/conversion-manifest-office.csv.zst` | 323 | 51 KB | the same for Word, Excel, PowerPoint and ZIP sources |
@@ -147,10 +147,16 @@ Parquet is columnar, so that query reads only the columns it names.
   Office documents mostly have no page structure: 179 of the 323 are a single
   pseudo-page, meaning the anchor identifies the document, not a location within
   it. Only `source-page` and `slide` are safe to cite as positions.
-- **112 documents are graded below `ok`** for extraction fidelity: 63 with
-  substantially blank pages, 26 garbled by encoding damage, 16 thin, 7 empty.
+- **82 documents are graded below `ok`** for extraction fidelity: 30 with
+  substantially blank pages, 26 garbled by encoding damage, 19 thin, 7 empty.
   They are listed in `extraction-quality.csv.zst`. Chart-heavy statistical
   releases extract with visible damage even when their numbers survive intact.
+- **441,610 characters were recovered in a later pass** and are included here.
+  The original converter returned nothing for pages carrying a full-page
+  background image, even where a readable text layer sat underneath, so 1,167
+  pages were re-extracted directly and a further 258 image-only pages were
+  recovered by OCR. Empty pages fell from 1,723 to 298. `recovered-pages.csv`
+  in the GitHub repository records every page and which method read it.
 - **ZIP archives are profiled, not transcribed.** Most are XBRL taxonomy
   packages; one held 31,185 schema files. Transcribing them produced 705 MB of
   Markdown and would have made machine schema dominate every word count. The

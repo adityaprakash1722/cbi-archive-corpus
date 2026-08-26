@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-08-26T22:39:32Z",
+  "dry_run": false,
+  "documents_examined": 923,
+  "markdown_files_rewritten": 132,
+  "pages_recovered": 258,
+  "characters_recovered": 284347,
+  "documents_affected": 132,
+  "substantial_pages_500_plus": 129,
+  "substantial_characters": 266796,
+  "substantial_documents": 43,
+  "by_method": {
+    "text-layer": 0,
+    "ocr": 258
+  },
+  "ocr_enabled": true,
+  "not_recovered": {
+    "image-only": 0,
+    "vector-only": 80,
+    "blank": 141,
+    "source-missing": 0,
+    "unopenable": 0,
+    "no-markdown": 0,
+    "page-out-of-range": 0,
+    "marker-not-found": 0,
+    "ocr-found-nothing": 77
+  },
+  "note": "Existing page text is never overwritten. Without --ocr, image-only pages are left alone and counted under not_recovered."
+}

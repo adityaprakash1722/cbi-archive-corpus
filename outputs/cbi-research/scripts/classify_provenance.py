@@ -131,6 +131,15 @@ CBI_TEXT_MARKERS = (
     ("consultation paper cp", 1),
     ("discussion paper dp", 1),
     ("feedback statement", 3),
+    # "Feedback Response to CP93" is a Central Bank title, but "response to cp"
+    # is a stakeholder cue, so without this the Bank's own feedback document
+    # scores as a submission. The giveaways are that only the decision-maker
+    # announces next steps, counts the submissions it received, and thanks the
+    # parties who made them.
+    ("feedback response", 4),
+    ("submissions were received in response", 4),
+    ("would like to thank all parties", 4),
+    ("key decisions and next steps", 4),
     ("closing date for submissions", 3),
     ("the central bank invites", 3),
     ("we invite comments", 2),

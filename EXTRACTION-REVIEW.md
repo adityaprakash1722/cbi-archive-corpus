@@ -134,3 +134,91 @@ document reading, which remains the right posture.
    under 1% damaged. A grade that groups those with a 94% failure is not helping
    the reader decide anything. A threshold at, say, 5% would separate them.
 4. **Leave the rest.** 25 gappy cover pages are not worth remediating.
+
+---
+
+## 7. Superseded in part: the recovery pass
+
+Written later the same day, after acting on section 6.
+
+Actions 1 and 2 of section 6 said to fetch the Minister's submission from the
+original and treat one document as absent. Investigating why they were damaged
+found a bug rather than a limitation, and most of the damage turned out to be
+repairable in place.
+
+### The bug
+
+`pymupdf4llm` returns an empty string for any page carrying a full-page
+background image, even when a readable text layer sits underneath it. Plain
+`page.get_text()` reads the same pages without difficulty.
+
+The clearest case is a 22-page prohibition notice where 20 pages came out empty
+and 43,085 characters were in the file the whole time. Every page has a
+letterhead image.
+
+### What was recovered
+
+| Method | Pages | Characters | Documents |
+|---|---:|---:|---:|
+| Direct text-layer re-extraction | 1,167 | 157,263 | 509 |
+| OCR of image-only pages | 258 | 284,347 | 132 |
+| **Total** | **1,425** | **441,610** | **609** |
+
+Corpus-wide, empty pages fell from **1,723 to 298**, a reduction of 83%.
+Documents graded below `ok` fell from **112 to 82**, with `gappy` more than
+halving from 63 to 30.
+
+An honest note on the first row: about 95% of those 1,167 pages yield under 200
+characters and are running headers, footers and page numbers. Treating them as
+empty was defensible. The substance is 37 pages across 9 documents.
+
+### The two documents this section named
+
+**`Minister for Finance response to CP158` is recovered.** OCR read all eight
+missing pages, 17,409 characters, cleanly. It no longer needs to be read from
+the original.
+
+**`Submission Chpt 13 re CP76 31.3.14.pdf` is still absent, and now the reason is
+known.** Its text is not scanned or damaged: it is a subsetted font with a custom
+encoding and no ToUnicode map, so the glyph codes are literally `\x01\x02\x03`
+with nothing to map them to. It renders correctly in a PDF viewer and extracts
+as noise. Its pages carry no image either, so OCR has nothing to render. Action
+2 stands: treat it as absent.
+
+### What it did to the analysis
+
+Almost nothing, which is the reassuring part.
+
+Re-running the industry pain scan against the recovered corpus, **19 of 20 themes
+hold their consultation count exactly**. The only movement is complaints handling,
+from 14 consultations to 15, which is 14.4% to 15.5% of the 97-consultation base.
+Fraud and scam handling stays at 25 consultations. Twelve themes gain between one
+and three documents.
+
+The stakeholder base is unchanged at 1,656, so Finding 2's denominator is intact
+and its conclusion is unaffected: interpretation and proportionality still
+dominate, operational themes still sit at the bottom.
+
+### One thing the recovery broke, and how it was caught
+
+Two previously `unresolved` documents became classifiable once their opening
+pages had text. One resolved correctly. The other, the Central Bank's own
+*Central Credit Register Feedback Response to CP93*, was classified as
+**stakeholder** because it contains the phrase "response to cp".
+
+Its fourth page reads: "20 submissions were received in response to CP93. The
+Central Bank would like to thank all parties who took the time to make a
+submission." That is the regulator's own feedback statement, and putting it in
+the industry pile is precisely the error `CLAUDE.md` names as the cardinal one,
+running in the opposite direction.
+
+Fixed by giving four decision-maker phrases precedence over the generic
+stakeholder cue, on the reasoning that only the body making the decision counts
+the submissions it received, thanks the parties who made them, and sets out next
+steps. Three regression assertions cover it, including the mirror case of a
+genuine respondent citing the same consultation. The suite is now 97 assertions.
+
+*The general lesson is worth keeping: recovering data changed a classification,
+and a classifier that was correct on an empty document was wrong on a full one.
+Any future recovery pass should diff the authorship split before and after, and
+read every document that moves.*

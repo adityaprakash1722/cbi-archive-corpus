@@ -10,13 +10,13 @@ the analysis built on top of it. Read this before touching anything.
 This archive contains two kinds of document that read alike and mean the
 opposite:
 
-- `authorship = 'central-bank'` (3,807 docs) is the regulator speaking. A
+- `authorship = 'central-bank'` (3,809 docs) is the regulator speaking. A
   finding, a rule, a supervisory expectation.
 - `authorship = 'stakeholder'` (1,656 docs) is a bank, insurer or trade body
   writing **to** the regulator during a consultation. This is advocacy. These
   firms have a standing incentive to claim that requirements are burdensome and
   disproportionate.
-- `authorship = 'unresolved'` (105 docs) is genuinely ambiguous. It is a real
+- `authorship = 'unresolved'` (103 docs) is genuinely ambiguous. It is a real
   answer. **Never fold it into `central-bank`** — defaulting ambiguity to the
   regulator is the exact bug that put AIB's and Bank of Ireland's lobbying
   positions into the Central Bank pile in an earlier version.
@@ -31,14 +31,15 @@ There are three SQLite files. Only one is current.
 
 | File | Documents | Use |
 |---|---:|---|
-| `outputs/cbi-research/index/cbi-corpus-v3-5568docs.sqlite` | 5,568 | **Yes. This one.** |
+| `outputs/cbi-research/index/cbi-corpus-v4-5568docs.sqlite` | 5,568 | **Yes. This one.** |
+| `cbi-corpus-v3-5568docs.sqlite` | 5,568 | Superseded. 441,610 characters of page text missing. |
 | `cbi-corpus-v2-5568docs.sqlite` | 5,568 | Superseded. 55 provenance errors. |
 | `cbi-corpus.sqlite` | 5,246 | Superseded. Wrong provenance, missing the office corpus. |
 | `work/live-index/cbi-corpus.sqlite` | 3,259 | Never. Partial build from an interrupted run. |
 
-v3 SHA-256: `e92274b5adcc5cb97d2477bc93abc4094da82809c836fb4a68b76be5a0d9e0c2`
+v4 SHA-256: `05d6f3743db8db962e45abd55baf09a1664015cae3c0d116c6729394b724309e`
 
-None of these are in git. Run `make index` to build v3 locally, or `make fetch`
+None of these are in git. Run `make index` to build v4 locally, or `make fetch`
 to pull the Parquet corpus, which is usually what you actually want.
 
 ## Layout
@@ -53,7 +54,7 @@ outputs/
     cbi-data/manifests/files.csv       every URL, SHA-256, bytes, referrers  [tracked]
     cbi-data/files/                    6.56 GB of raw source              [not tracked]
   cbi-research/
-    scripts/                           the whole pipeline, 22 Python files
+    scripts/                           the whole pipeline, 23 Python files
     corpus/conversion-manifest.csv     per-document conversion record     [tracked]
     corpus/markdown/                   202 MB of page-anchored Markdown   [not tracked]
     index/                             SQLite build artifacts             [not tracked]
@@ -110,7 +111,7 @@ search the text  ->  source_sha256  ->  ab/cd/abcd....pdf
 
 `publish/get_source.py` does this end to end. Reach for it when you need the
 document as a human would see it, which mainly means charts, diagrams, scanned
-pages, and any of the 112 documents graded as extracting badly.
+pages, and any of the 82 documents graded as extracting badly.
 
 For everything else, query the Parquet over HTTPS and download nothing. DuckDB
 reads the file's footer, finds which byte ranges hold the columns you asked for,
@@ -127,7 +128,7 @@ and fetches only those.
    documents mostly do not: 179 of 323 are `single-pseudo-page`, meaning the
    anchor identifies the document, not a position in it. Only `source-page` and
    `slide` are citable as locations.
-3. **112 documents extract badly.** Graded `gappy`, `garbled`, `thin` or `empty`
+3. **82 documents extract badly.** Graded `gappy`, `garbled`, `thin` or `empty`
    in `qa/extraction-quality.csv`. Chart-heavy statistical releases are the worst
    offenders and can render "March" as "~~M~~ arch" while their numbers survive
    intact. Check the grade before quoting prose from one.

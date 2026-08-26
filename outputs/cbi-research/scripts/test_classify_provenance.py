@@ -111,6 +111,27 @@ CASES += [
 
 # Bare responder names: filename gives nothing, so content decides.
 CONTENT_CASES = [
+    # The Bank's own feedback document carries "response to cp", a stakeholder
+    # cue. Only the decision-maker counts submissions, thanks the parties who
+    # made them, and sets out next steps, so those outrank it. Recovering lost
+    # page text surfaced this: the document was 'unresolved' while its opening
+    # pages were empty, and landed in the stakeholder pile once they were not.
+    (f"{BASE}/cp93/feedbackresponse_cp93.pdf",
+     "Central Credit Register Feedback Response to CP93 2016. Overview of key "
+     "decisions and next steps. 20 submissions were received in response to CP93. "
+     "The Central Bank would like to thank all parties who took the time to make "
+     "a submission on CP93.",
+     "central-bank"),
+    (f"{BASE}/cp72/feedback-on-cp-72-final.pdf",
+     "Feedback Statement on Consultation Process for CP 72 March 2014. "
+     "Introduction. Submissions. Main issues highlighted. Next steps.",
+     "central-bank"),
+    # The mirror image must keep working: a genuine respondent citing the same
+    # consultation is still a stakeholder.
+    (f"{BASE}/cp93/aib-response.pdf",
+     "AIB welcomes the opportunity to respond to CP93. This submission sets out "
+     "our response to consultation paper CP93. Yours sincerely.",
+     "stakeholder"),
     (f"{BASE}/cp71/blackrock.pdf",
      "BlackRock welcomes the opportunity to respond to the Central Bank of Ireland "
      "consultation. Yours sincerely, BlackRock Investment Management.",
