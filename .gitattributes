@@ -1,0 +1,14 @@
+# This repository is written on Windows and read on Linux and macOS. Pin line
+# endings so manifests and CSVs do not change hash just by being checked out.
+* text=auto eol=lf
+*.csv  text eol=lf
+*.jsonl text eol=lf
+*.md   text eol=lf
+*.py   text eol=lf
+*.mjs  text eol=lf
+
+# Never let git touch these
+*.parquet  binary
+*.sqlite   binary
+*.zst      binary
+*.pdf      binary

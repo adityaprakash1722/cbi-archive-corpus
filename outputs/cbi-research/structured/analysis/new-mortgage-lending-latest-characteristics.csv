@@ -1,0 +1,39 @@
+﻿Year,Description,Borrower_Type_Code,Borrower_Type_Description,Characteristic_Type,Unit,Observation_Amount
+2025,Average Loan Size,FTB,First Time Buyers,Loan Information,Euro,322253
+2025,Average Property Value,FTB,First Time Buyers,Property Information,Euro,408224
+2025,Average Loan-to-Value,FTB,First Time Buyers,Loan Information,Per Cent,79.8
+2025,Average Income,FTB,First Time Buyers,Borrower Information,Euro,94957
+2025,Average Loan-to-Income,FTB,First Time Buyers,Loan Information,Ratio,3.5
+2025,Average Loan Term,FTB,First Time Buyers,Loan Information,Years,30
+2025,Average Property Size,FTB,First Time Buyers,Property Information,Sq.Ft,1260
+2025,Average Interest Rate,FTB,First Time Buyers,Loan Information,Per Cent,3.624
+2025,Fixed,FTB,First Time Buyers,Share of Lending: Interest Rate Fixation Type,Per Cent,88.7
+2025,Variable,FTB,First Time Buyers,Share of Lending: Interest Rate Fixation Type,Per Cent,10.5
+2025,Other,FTB,First Time Buyers,Share of Lending: Interest Rate Fixation Type,Per Cent,0.8
+2025,Average Borrower Age,FTB,First Time Buyers,Borrower Information,Years,35
+2025,Joint Applicant,FTB,First Time Buyers,Borrower Information,Per Cent,68.6
+2025,Salaried Employee,FTB,First Time Buyers,Borrower Information,Per Cent,94.9
+2025,Dublin,FTB,First Time Buyers,Share Of Lending: Region,Per Cent,30
+2025,Leinster (excl. Dublin),FTB,First Time Buyers,Share Of Lending: Region,Per Cent,32.8
+2025,Munster,FTB,First Time Buyers,Share Of Lending: Region,Per Cent,24.6
+2025,Connacht,FTB,First Time Buyers,Share Of Lending: Region,Per Cent,8.9
+2025,Ulster,FTB,First Time Buyers,Share Of Lending: Region,Per Cent,3.6
+2025,Average Loan Size,SSB,Second and Subsequent Buyers,Loan Information,Euro,384250
+2025,Average Property Value,SSB,Second and Subsequent Buyers,Property Information,Euro,605528
+2025,Average Loan-to-Value,SSB,Second and Subsequent Buyers,Loan Information,Per Cent,65.71
+2025,Average Income,SSB,Second and Subsequent Buyers,Borrower Information,Euro,146281
+2025,Average Loan-to-Income,SSB,Second and Subsequent Buyers,Loan Information,Ratio,2.7
+2025,Average Loan Term,SSB,Second and Subsequent Buyers,Loan Information,Years,24
+2025,Average Property Size,SSB,Second and Subsequent Buyers,Property Information,Sq.Ft,1644
+2025,Average Interest Rate,SSB,Second and Subsequent Buyers,Loan Information,Per Cent,3.62
+2025,Fixed,SSB,Second and Subsequent Buyers,Share of Lending: Interest Rate Fixation Type,Per Cent,78
+2025,Variable,SSB,Second and Subsequent Buyers,Share of Lending: Interest Rate Fixation Type,Per Cent,18.6
+2025,Other,SSB,Second and Subsequent Buyers,Share of Lending: Interest Rate Fixation Type,Per Cent,3.4
+2025,Average Borrower Age,SSB,Second and Subsequent Buyers,Borrower Information,Years,42
+2025,Joint Applicant,SSB,Second and Subsequent Buyers,Borrower Information,Per Cent,79.6
+2025,Salaried Employee,SSB,Second and Subsequent Buyers,Borrower Information,Per Cent,90
+2025,Dublin,SSB,Second and Subsequent Buyers,Share Of Lending: Region,Per Cent,39.4
+2025,Leinster (excl. Dublin),SSB,Second and Subsequent Buyers,Share Of Lending: Region,Per Cent,27.4
+2025,Munster,SSB,Second and Subsequent Buyers,Share Of Lending: Region,Per Cent,21.7
+2025,Connacht,SSB,Second and Subsequent Buyers,Share Of Lending: Region,Per Cent,8.2
+2025,Ulster,SSB,Second and Subsequent Buyers,Share Of Lending: Region,Per Cent,3.2

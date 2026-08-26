@@ -1,0 +1,7 @@
+﻿period,metric,value,unit,source_url
+2026-06-30,Household overnight deposit rate,0.14,percent per annum,https://opendata.centralbank.ie/dataset/f4f24cf8-d63e-486f-b27d-ef0df7d071df/resource/f10999a2-24d2-4236-a84a-2e43af482d33/download/b.1.1.csv
+2026-06-30,Household overnight deposit volume,150540.0,EUR million,https://opendata.centralbank.ie/dataset/f4f24cf8-d63e-486f-b27d-ef0df7d071df/resource/f10999a2-24d2-4236-a84a-2e43af482d33/download/b.1.1.csv
+2026-06-30,Household deposits up to 2 years rate,2.2,percent per annum,https://opendata.centralbank.ie/dataset/f4f24cf8-d63e-486f-b27d-ef0df7d071df/resource/f10999a2-24d2-4236-a84a-2e43af482d33/download/b.1.1.csv
+2026-06-30,New mortgage lending ex renegotiations rate,3.49,percent per annum,https://opendata.centralbank.ie/dataset/dadd792b-87d1-4b9e-9ce9-8fa6e81a3378/resource/fc4dddc5-c36d-4de0-9605-076d765a0efa/download/b.2.1.csv
+2026-06-30,New NFC loans up to EUR250k rate,5.87,percent per annum,https://opendata.centralbank.ie/dataset/dadd792b-87d1-4b9e-9ce9-8fa6e81a3378/resource/fc4dddc5-c36d-4de0-9605-076d765a0efa/download/b.2.1.csv
+2026-06-30,New household consumer loan rate,7.48,percent per annum,https://opendata.centralbank.ie/dataset/dadd792b-87d1-4b9e-9ce9-8fa6e81a3378/resource/fc4dddc5-c36d-4de0-9605-076d765a0efa/download/b.2.1.csv

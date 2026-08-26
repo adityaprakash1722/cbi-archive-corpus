@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-08-26T16:05:54Z",
+  "pipeline_version": "office-0.2.0",
+  "records": 323,
+  "by_format": {
+    "DOC": 71,
+    "DOCX": 201,
+    "PPTX": 2,
+    "ZIP": 49
+  },
+  "statuses": {
+    "success": 323
+  },
+  "by_page_basis": {
+    "single-pseudo-page": 179,
+    "explicit-page-break": 91,
+    "slide": 2,
+    "archive-member": 49,
+    "source-page": 2
+  },
+  "pages": 678,
+  "source_bytes": 387075790,
+  "markdown_bytes": 19279948
+}

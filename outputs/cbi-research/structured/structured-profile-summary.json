@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-08-26T10:04:17Z",
+  "downloaded_structured_url_records": 749,
+  "logical_structured_files": 740,
+  "logical_by_format": {
+    "CSV": 246,
+    "XLS": 42,
+    "XLSX": 447,
+    "XML": 5
+  },
+  "all_logical_csvs": 246,
+  "all_csv_bytes": 1657617408,
+  "all_csv_rows_including_headers": 3603275,
+  "official_open_data_csvs": 71,
+  "official_open_data_bytes": 1548847919,
+  "official_open_data_rows_including_headers": 2896591,
+  "hash_failures": 0
+}

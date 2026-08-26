@@ -1,0 +1,25 @@
+﻿Year,Description,Data_Type,Reference_Limit,Unit,Observation_Amount
+2025,Total Lending,Value of Loans,,Euro Millions,15458.59
+2025,Lending In Scope of Regulations,Value of Loans,,Euro Millions,14203.79
+2025,FTB Lending,Value of Loans,,Euro Millions,9602.124
+2025,FTB Lending above LTI limit only,Value of Loans,4x LTI,Euro Millions,924.211
+2025,FTB Lending above LTV limit only,Value of Loans,90% LTV,Euro Millions,1.243
+2025,FTB Lending above LTV and LTI limit,Value of Loans,"4x LTI, 90% LTV",Euro Millions,0
+2025,SSB Lending,Value of Loans,,Euro Millions,4432.229
+2025,SSB Lending above LTI limit only,Value of Loans,3.5x LTI,Euro Millions,440.323
+2025,SSB Lending above LTV limit only,Value of Loans,90% LTV,Euro Millions,0.176
+2025,SSB Lending above LTV and LTI limit,Value of Loans,"3.5x LTI, 90% LTV",Euro Millions,0
+2025,BTL Lending,Value of Loans,,Euro Millions,169.436
+2025,BTL Lending over LTV Limit,Value of Loans,70% LTV,Euro Millions,2.532
+2025,Total Lending,Number of Loans,,Unit,48896
+2025,Lending In Scope of Regulations,Number of Loans,,Unit,44369
+2025,FTB Lending,Number of Loans,,Unit,30472
+2025,FTB Lending above LTI limit only,Number of Loans,4x LTI,Unit,2440
+2025,FTB Lending above LTV limit only,Number of Loans,90% LTV,Unit,4
+2025,FTB Lending above LTV and LTI limit,Number of Loans,"4x LTI, 90% LTV",Unit,0
+2025,SSB Lending,Number of Loans,,Unit,13026
+2025,SSB Lending above LTI limit only,Number of Loans,3.5x LTI,Unit,899
+2025,SSB Lending above LTV limit only,Number of Loans,90% LTV,Unit,1
+2025,SSB Lending above LTV and LTI limit,Number of Loans,"3.5x LTI, 90% LTV",Unit,0
+2025,BTL Lending,Number of Loans,,Unit,871
+2025,BTL Lending over LTV Limit,Number of Loans,70% LTV,Unit,12

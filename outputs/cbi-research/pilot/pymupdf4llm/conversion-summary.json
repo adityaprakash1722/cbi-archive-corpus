@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-08-25T22:53:47Z",
+  "pipeline_version": "0.1.0",
+  "records": 5,
+  "statuses": {
+    "success": 5
+  },
+  "source_bytes": 6316352,
+  "markdown_bytes": 375148,
+  "pages": 137,
+  "characters": 362541
+}

@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-08-26T15:53:36Z",
+  "elapsed_seconds": 152.19,
+  "expected_logical_documents": 5246,
+  "manifest_records": 5246,
+  "manifest_unique_shas": 5246,
+  "markdown_files": 5246,
+  "total_pages": 88106,
+  "status_counts": {
+    "success": 5237,
+    "low_text": 9
+  },
+  "engine_counts": {
+    "pymupdf4llm|ocr=False": 4701,
+    "pymupdf4llm|ocr=True": 541,
+    "markitdown|ocr=False": 4
+  },
+  "source_bytes_hashed": 4219717046,
+  "markdown_bytes_hashed": 182718214,
+  "orphan_markdown_files": 0,
+  "warnings": 0,
+  "failures": 0,
+  "passed": true
+}

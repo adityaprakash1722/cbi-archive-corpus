@@ -1,0 +1,6 @@
+﻿check,status,observed,expected_or_rule,impact
+rows_have_expected_width,pass,19199,"19,199 data rows parsed to the 10-column header",File is structurally readable as CSV.
+quarter_end_dates_use_consistent_calendar_dates,fail,01/09/2025 | 01/12/2025,Quarter-end dates should not unexpectedly use day 01.,Quarter grouping by raw date is unsafe without a documented normalization rule.
+number_rows_use_only_number_of_accounts_column,fail,70,Observation should be blank when Observation Type is Number.,Some Q1 2026 rows contain unrelated monetary values in Observation.
+q1_2026_bank_pdh_headline_cells_present,fail,row 2/Arrears € (000) | row 2/Balance € (000) | row 2/Number | row 3/Arrears € (000) | row 3/Balance € (000) | row 3/Number | row 4/Number,"Rows 2-4 should each contain Number, Balance and Arrears observations.",The CSV cannot reproduce the Q1 2026 aggregate Bank/PDH arrears headline.
+q1_2026_btl_arrears_reconciles_to_release,pass,total=5708; over90=4519,"Release reports total=5,708 and over90=4,519.",The BTL subset is usable after field-specific parsing.

@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-08-25T23:44:42Z",
+  "audited_files": 5246,
+  "status_counts": {
+    "error": 4,
+    "likely_ocr": 524,
+    "ok": 4718
+  },
+  "suspected_image_only": 524,
+  "encrypted": 3,
+  "total_pages": 88102,
+  "pages": {
+    "median": 7.0,
+    "p90": 39,
+    "p99": 149,
+    "maximum": 1384
+  },
+  "total_bytes": 4219717046,
+  "bytes": {
+    "median": 437785.0,
+    "p90": 1544673,
+    "p99": 5734980,
+    "maximum": 67282582
+  },
+  "audit_elapsed_seconds": 0.0
+}

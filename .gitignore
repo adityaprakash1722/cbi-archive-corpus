@@ -1,0 +1,57 @@
+# ---------------------------------------------------------------------------
+# Large or regenerable. Nothing here belongs in version control.
+# ---------------------------------------------------------------------------
+
+# The raw crawl: 6.56 GB unique across 6,309 files. Content-addressed and fully
+# described by outputs/cbi-archive/cbi-data/manifests/files.csv, which IS tracked.
+outputs/cbi-archive/cbi-data/files/
+outputs/cbi-archive/cbi-data/duplicate-alias-files/
+outputs/cbi-archive/cbi-data/archive-state.json
+
+# The Markdown corpus: 202 MB. Published as Parquet instead. See CLAUDE.md.
+outputs/cbi-research/corpus/markdown/
+outputs/cbi-research/corpus/office/markdown/
+
+# Search indices: 1.94 GB across three files, all build artifacts. The current
+# one rebuilds from the corpus in about eight seconds.
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Parquet is published to the dataset host, not to git.
+publish/hf/data/*.parquet
+
+# Build and scratch
+work/pdf-env/
+work/pip-cache/
+work/python-deps/
+work/live-index/
+work/live-corpus/
+work/key-corpus/
+work/remediation/
+work/learning-bundles/
+__pycache__/
+*.pyc
+*.tmp
+.fuse_hidden*
+
+# Smoke-test runs from crawler development. These downloaded real files, one of
+# them 27.9 MB, and none of it is project data.
+work/cbi-smoke/
+work/cbi-cap-smoke/
+work/cbi-docs-smoke/
+work/pilot-*/
+work/visual-audit/
+work/structured/
+work/live-analysis*/
+work/live-evidence/
+work/key-index/
+work/pilot-index*/
+
+# A 60,196-line `tree /f` dump. Regenerable, goes stale immediately, and
+# CLAUDE.md documents the layout properly.
+directory_structure.txt
+
+# Append-only journals that duplicate their CSV siblings byte for byte in content
+outputs/cbi-archive/cbi-data/manifests/files.jsonl
+outputs/cbi-research/audit/pdf-audit.jsonl

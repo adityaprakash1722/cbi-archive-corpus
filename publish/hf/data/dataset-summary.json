@@ -1,0 +1,9 @@
+{
+  "generated_at": "2026-08-26T16:19:57Z",
+  "source_index": "v3.sqlite",
+  "documents": 5568,
+  "pages": 88782,
+  "documents_parquet_bytes": 736482,
+  "pages_parquet_bytes": 46615323,
+  "elapsed_seconds": 3.5
+}

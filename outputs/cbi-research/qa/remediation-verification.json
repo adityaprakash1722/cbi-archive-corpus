@@ -1,0 +1,54 @@
+{
+  "verified_at": "2026-08-26T16:06:00Z",
+  "classifier_regression_assertions": 94,
+  "python_scripts_compiled": 18,
+  "index": {
+    "file": "cbi-corpus-v3-5568docs.sqlite",
+    "sha256": "e92274b5adcc5cb97d2477bc93abc4094da82809c836fb4a68b76be5a0d9e0c2",
+    "integrity_check": "ok",
+    "documents": 5568,
+    "distinct_source_sha256": 5568,
+    "pages": 88782,
+    "fts_rows": 88782,
+    "declared_pages": 88782,
+    "sidecars_required": false,
+    "failures": 0
+  },
+  "authorship": {
+    "central-bank": 3807,
+    "stakeholder": 1656,
+    "unresolved": 105,
+    "known_precedence_conflicts_not_stakeholder": 0,
+    "strong_cbi_exceptions_preserved": 3
+  },
+  "office_corpus": {
+    "manifest_rows": 323,
+    "unique_source_sha256": 323,
+    "pages": 678,
+    "conversion_errors": 0,
+    "repaired_merged_table_documents": 2,
+    "repaired_documents_use_xml_table_fallback": true,
+    "repaired_document_source_and_markdown_hashes_match": true,
+    "repaired_document_page_markers_sequential": true
+  },
+  "extraction_quality": {
+    "unique_documents_assessed": 5568,
+    "duplicate_manifest_rows_deduplicated": 1,
+    "ok": 5456,
+    "gappy": 63,
+    "garbled": 26,
+    "thin": 16,
+    "empty": 7,
+    "flagged": 112
+  },
+  "corrected_topic_stakeholder_documents": {
+    "payments": 322,
+    "complaints_redress": 274,
+    "fraud_scams": 133,
+    "consumer_harm": 252,
+    "data_quality": 8,
+    "operational_resilience": 159,
+    "reg_reporting": 295
+  },
+  "structured_analysis_reproduced": true
+}

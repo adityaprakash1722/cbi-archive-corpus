@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-08-25T20:41:27.686Z",
+  "sitemapUrls": 11371,
+  "ckanDatasets": 39,
+  "ckanResources": 71,
+  "files": 6984,
+  "statuses": {
+    "downloaded": 6963,
+    "failed": 21
+  },
+  "formats": {
+    "CSV": 248,
+    "PDF": 5889,
+    "XLSX": 454,
+    "DOCX": 214,
+    "XLS": 47,
+    "ZIP": 50,
+    "DOC": 75,
+    "XML": 5,
+    "PPTX": 2
+  },
+  "sources": {
+    "opendata": 71,
+    "documents": 6913
+  },
+  "knownBytes": 170010238,
+  "knownBytesHuman": "162.13 MiB",
+  "downloadedBytes": 7476155245,
+  "downloadedBytesHuman": "6.96 GiB",
+  "pageStatuses": {
+    "done": 11370,
+    "failed": 1
+  }
+}

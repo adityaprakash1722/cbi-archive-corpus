@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-08-26T10:02:40.756608+00:00",
+  "logical_workbooks": 489,
+  "by_format": {
+    "XLS": 42,
+    "XLSX": 447
+  },
+  "by_classification": {
+    "application_or_form": 72,
+    "official_list_or_disclosure": 6,
+    "other_workbook": 2,
+    "published_data": 120,
+    "regulatory_reporting_template": 112,
+    "regulatory_taxonomy_or_validation": 47,
+    "research_supporting_data": 130
+  },
+  "read_status": {
+    "readable": 489
+  },
+  "total_sheets": 5404,
+  "hidden_sheets": 91,
+  "caveat": "Classification is deterministic from URL/filename. Dimensions are workbook metadata; apparent cell counts may include formatted but empty ranges. Samples cover at most the first 25 rows by 15 columns of each sheet."
+}

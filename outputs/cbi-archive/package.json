@@ -1,0 +1,14 @@
+{
+  "name": "cbi-public-archive",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Respectful, resumable archiver for public Central Bank of Ireland documents and open datasets",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "probe": "node cbi-archive.mjs probe",
+    "test": "node --test"
+  }
+}
