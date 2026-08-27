@@ -71,9 +71,9 @@ documents and 88,782 pages.
 
 The PDF corpus contains **88,106 source pages or recovered pseudo-pages**. Of 5,246
 documents, 5,237 raised no conversion error. A separate extraction-fidelity pass,
-which structural validation cannot perform, grades 5,456 of 5,568 unique converted
-documents as clean and flags 112: 63 with substantially blank pages, 26 garbled by
-encoding damage, 16 thin and seven empty. Nine low-text results are explainable:
+which structural validation cannot perform, grades 5,486 of 5,568 unique converted
+documents as clean and flags 82: 30 with substantially blank pages, 26 garbled by
+encoding damage, 19 thin and seven empty. Nine low-text results are explainable:
 two heavily redacted notices and seven one-page video placeholders. Four Office files
 served with a `.pdf` suffix were recovered. All source and Markdown hashes, page-marker
 sequences and logical-document mappings passed validation with zero unexplained orphans.
@@ -86,14 +86,14 @@ every structured file as a statistical series would be a category error.
 
 The page index separates **1,656 stakeholder consultation and discussion
 submissions** from Central Bank research, findings, rules and feedback, and marks a
-further 105 documents `unresolved` rather than defaulting them to the Bank.
+further 103 documents `unresolved` rather than defaulting them to the Bank.
 
 The original figure was 1,134, and it was wrong. A consultation-hosted document was
 treated as a stakeholder submission only if its filename contained the substring
 `response`, so 289 files named `...-submission-from-...`, 123 named
 `...-feedback-from-...` and an unknown number published under the responder's bare
 name were all recorded as Central Bank material. Classification is now two-pass,
-filename then document text, with 94 regression tests (including all 55 known
+filename then document text, with 97 regression tests (including all 55 known
 generic-document-type/explicit-attribution conflicts) and a stored basis and
 confidence for every label. Stakeholder submissions can reveal pain or objections;
 being hosted on centralbank.ie does not turn them into Central Bank conclusions, and

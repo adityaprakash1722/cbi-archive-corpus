@@ -79,7 +79,7 @@ documents that need a human decision before wider sharing.
 
 **`EXTRACTION-REVIEW.md`** reads the 33 flagged stakeholder documents and says
 which of the bad extractions actually matter, and records the recovery pass
-that cut them from 112 to 82. One document is 94% unreadable; the rest were
+that cut them from 112 to 82. One document is 94% unreadable; the rest were  <!-- historical -->
 mostly scanned cover pages.
 
 **`STORAGE.md` is the full map**: every artifact, where it lives, why, the Parquet

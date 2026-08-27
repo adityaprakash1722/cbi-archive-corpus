@@ -115,7 +115,7 @@ effectively empty. 143 documents contain Unicode replacement characters, the wor
 carrying 11,371. Chart-heavy statistical releases extract with visible damage: the
 Q1 2026 arrears release renders "March" as "~~M~~ arch" in places. Every figure
 quoted from that release was rechecked against the page and is correct, but the
-prose around it is unreliable. The 112 flagged documents are listed in
+prose around it is unreliable. The 82 flagged documents are listed in
 `qa/extraction-quality-flagged.csv`.
 
 ## Search and provenance model
@@ -152,12 +152,12 @@ Corrected counts:
 |---|---:|---:|
 | Central Bank documents | 4,112 | 3,809 |
 | Stakeholder submissions | 1,134 | 1,656 |
-| Unresolved | 0 | 105 |
+| Unresolved | 0 | 103 |
 
-`unresolved` is a real answer. Those 105 documents are genuinely ambiguous and must
+`unresolved` is a real answer. Those 103 documents are genuinely ambiguous and must
 not be counted as Central Bank material, which is precisely the default that caused
 the original error. Every document now stores the rule that classified it
-(`classification_basis`) and a confidence (high 5,340, medium 123, low 105). The
+(`classification_basis`) and a confidence (high 5,340, medium 125, low 103). The
 full before-and-after trail is in `qa/provenance-classification.csv`.
 
 The first-pass topic scan is a discovery layer only. Examples:
@@ -232,7 +232,7 @@ The scripts and machine-readable results are in the `cbi-research` output direct
 - `scripts/qa_extraction_quality.py`
 - `scripts/export_provenance_qa.py`
 
-Key result directories are `qa`, `index`, `analysis-v3`, and `structured`.
+Key result directories are `qa`, `index`, `analysis-v4`, and `structured`.
 
 All scripts now run on Linux as well as Windows. Manifest paths are written with
 Windows separators, and seven scripts joined them to a root without normalising, so
@@ -243,14 +243,14 @@ differences in `key-dataset-analysis.json` are the absolute source paths.
 ## Limitations
 
 - The crawl is a dated snapshot and cannot include inaccessible or later-published files.
-- 105 consultation-hosted documents could not be attributed to the Bank or to a
+- 103 consultation-hosted documents could not be attributed to the Bank or to a
   respondent and are labelled `unresolved`. Any count that needs a clean Central Bank
   denominator should exclude them rather than absorb them.
 - Office and archive documents mostly have no page structure. 179 of 323 are a single
   pseudo-page, so they are searchable but not page-citable.
 - ZIP taxonomy packages are inventoried and profiled, not transcribed. A claim that
   depends on the contents of a specific schema file needs that file opened.
-- 82 documents are graded below `ok` for extraction fidelity, down from 112
+- 82 documents are graded below `ok` for extraction fidelity, down from 112  <!-- historical -->
   after the v4 recovery pass recovered 441,610 characters the converter had
   dropped from pages carrying a full-page background image. Material claims from
   any of them require source-page review.

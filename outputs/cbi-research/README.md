@@ -149,12 +149,12 @@ python .\outputs\cbi-research\scripts\build_search_index.py `
 python .\outputs\cbi-research\scripts\run_topic_scan.py `
   --database .\outputs\cbi-research\index\cbi-corpus-v4-5568docs.sqlite `
   --queries .\outputs\cbi-research\topic_queries.json `
-  --output .\outputs\cbi-research\analysis-v3
+  --output .\outputs\cbi-research\analysis-v4
 
 python .\outputs\cbi-research\scripts\export_evidence_candidates.py `
   --database .\outputs\cbi-research\index\cbi-corpus-v4-5568docs.sqlite `
   --queries .\outputs\cbi-research\topic_queries.json `
-  --output .\outputs\cbi-research\analysis-v3
+  --output .\outputs\cbi-research\analysis-v4
 
 python .\outputs\cbi-research\scripts\export_provenance_qa.py `
   --database .\outputs\cbi-research\index\cbi-corpus-v4-5568docs.sqlite `

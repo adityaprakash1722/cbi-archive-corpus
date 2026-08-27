@@ -173,7 +173,7 @@ The pain scan was run against the **v2 index (1,601 stakeholder)**. Codex's v3
 raised that to **1,656**. The percentages above are therefore slightly stale.
 
 **Task: re-run `scripts/mine_industry_pain.py` against the v3 index** and
-regenerate `analysis-v3/industry-pain-scan.*`. Expect small movements, not a
+regenerate `analysis-v4/industry-pain-scan.*`. Expect small movements, not a
 different conclusion.
 
 ---

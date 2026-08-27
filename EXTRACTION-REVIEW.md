@@ -11,7 +11,7 @@ quantitative half was run the same day.
 Section 7 records what changed. The figures below are the pre-recovery ones and
 are kept because the reasoning depends on them.**
 
-`qa/extraction-quality.csv` then graded 112 documents as extracting badly: 63
+`qa/extraction-quality.csv` then graded 112 documents as extracting badly: 63  <!-- historical -->
 `gappy`, 26 `garbled`, 16 `thin`, 7 `empty`. **33 of those were stakeholder
 documents**, and the stakeholder pile is what drives Finding 2's industry pain
 scan. It now grades 82.
@@ -170,7 +170,7 @@ letterhead image.
 | **Total** | **1,425** | **441,610** | **609** |
 
 Corpus-wide, empty pages fell from **1,723 to 298**, a reduction of 83%.
-Documents graded below `ok` fell from **112 to 82**, with `gappy` more than
+Documents graded below `ok` fell from **112 to 82**, with `gappy` more than  <!-- historical -->
 halving from 63 to 30.
 
 An honest note on the first row: about 95% of those 1,167 pages yield under 200

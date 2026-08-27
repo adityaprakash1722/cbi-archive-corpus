@@ -17,7 +17,7 @@ Four SQLite databases sit in this directory, and a fifth, stale one exists under
    empty string for any page carrying a full-page background image, even where a
    readable text layer sits underneath. 1,167 pages were re-extracted directly
    and 258 image-only pages by OCR. Empty pages fell from 1,723 to 298 and
-   documents graded below `ok` from 112 to 82.
+   documents graded below `ok` from 112 to 82.  <!-- historical -->
 
 2. **One classifier correction.** The Bank's own *Central Credit Register
    Feedback Response to CP93* was labelled `stakeholder` because it contains

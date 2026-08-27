@@ -283,7 +283,7 @@ how this project proves things.
 
 | Item | Size | Reason |
 |---|---:|---|
-| `cbi-corpus-v3-5568docs.sqlite` | 663 MB | rebuilds in 8 seconds |
+| `cbi-corpus-v4-5568docs.sqlite` | 664 MB | rebuilds via materialize then index |
 | v2 and v1 indices | 1.28 GB | superseded, kept locally for audit history |
 | `work/live-index/` | 423 MB | partial build from an interrupted run |
 | `corpus/markdown/` | 202 MB | superseded by the Parquet |

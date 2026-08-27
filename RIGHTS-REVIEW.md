@@ -178,7 +178,7 @@ position.
 
 ```bash
 python outputs/cbi-research/scripts/scan_personal_data.py \
-  --database outputs/cbi-research/index/cbi-corpus-v3-5568docs.sqlite \
+  --database outputs/cbi-research/index/cbi-corpus-v4-5568docs.sqlite \
   --output outputs/cbi-research/qa
 ```
 

@@ -55,7 +55,7 @@ outputs/
     corpus/office/conversion-manifest.csv  323 rows, Office and ZIP record
     qa/                                  validation, provenance, extraction grades
     structured/                          CSV, workbook and XML profiling
-    analysis-v3/                         current topic scan and evidence candidates
+    analysis-v4/                         current topic scan and evidence candidates
     index/README.md                      which database to use
 publish/                                 publishing scripts and the dataset card
 work/                                    working notes: ledger, system map, screens
@@ -284,7 +284,7 @@ https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/main/e5/da/e5d
 ```bash
 make index      # Tier 2 Markdown -> SQLite index, about 8 seconds
 make dataset    # SQLite index -> Parquet, about 4 seconds
-make test       # 94 classifier regression assertions
+make test       # 97 classifier regression assertions
 make verify     # re-hash every source and output, check page markers
 ```
 
@@ -319,7 +319,7 @@ Every layer is hash-verified, and the hashes chain.
 | `conversion-manifest.csv` `markdown_sha256` | the extracted text has not changed |
 | `validate_corpus.py` | re-reads every source and output from disk and re-hashes |
 | Tier 3 filename | any fetched blob verifies against its own name |
-| v3 index SHA-256 | `a89923ba64a121792ba2f2776edb66fa9e8179f1914492cdfb17165efecd29ca` |
+| v4 index SHA-256 | `a89923ba64a121792ba2f2776edb66fa9e8179f1914492cdfb17165efecd29ca` |
 
 `publish/verify_dataset.py` checks the published corpus end to end without
 downloading it: authorship split, row totals, a real join query, and the

@@ -59,6 +59,41 @@ COMPARED_COLUMNS = ["title", "authorship", "classification_basis",
                     "quality_empty_pages"]
 
 
+def page_text_mismatches(connection, user: str) -> int:
+    """Compare every page row, text included, against the published pages table.
+
+    The document table is not the corpus. A rebuild could match all nineteen
+    document columns and still hand back different text, and until this existed
+    nothing in CI would have noticed. It is the expensive check, roughly 190
+    million characters on each side, and it is the one that actually protects
+    the thing the corpus is for.
+    """
+    try:
+        import duckdb
+    except ImportError:
+        print("   (duckdb not installed, skipping the page comparison)")
+        return 0
+    remote = duckdb.connect()
+    remote.execute("INSTALL httpfs; LOAD httpfs;")
+    url = ("https://huggingface.co/datasets/" + user +
+           "/cbi-archive-corpus/resolve/main/data/pages.parquet")
+    published = {
+        (row[0], row[1]): (row[2], row[3]) for row in remote.execute(
+            "SELECT document_id, page_number, text, characters "
+            "FROM read_parquet('" + url + "')").fetchall()}
+    mismatched = 0
+    seen = 0
+    for did, number, text, characters in connection.execute(
+            "SELECT document_id, page_number, text, characters FROM pages"):
+        seen += 1
+        want = published.get((did, number))
+        if want is None or (text or "") != (want[0] or "") or characters != want[1]:
+            mismatched += 1
+    if seen != len(published):
+        mismatched += abs(seen - len(published))
+    return mismatched
+
+
 def manifest_mismatches(connection, field: str) -> int:
     """Compare a rebuilt column against the tracked conversion manifests.
 
@@ -221,6 +256,15 @@ def main() -> int:
              manifest_mismatches(connection, "engine_version"), 0),
             ("source_file differing from the manifests",
              manifest_mismatches(connection, "source_file"), 0),
+            # The whole point of the corpus. 88,782 rows, text included.
+            ("page rows differing from published",
+             page_text_mismatches(connection, args.user), 0),
+            # markdown_sha256 is deliberately NOT checked here. It records the
+            # hash of the original conversion, and the materialised Markdown is
+            # documented as not byte-identical to that, so it can never match in
+            # a rebuild. The invariant that caught the real stale-hash bug is
+            # "the index agrees with the local corpus", which needs the corpus
+            # and so lives in check_manifest_invariants.py.
         ]
 
         # Column-by-column comparison against the published Parquet, which is the

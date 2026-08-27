@@ -28,7 +28,7 @@ it.
 
 ```bash
 make fetch DATASET=aditya487/cbi-archive-corpus   # 47 MB, no build required
-make test                                      # 94 classifier assertions
+make test                                      # 97 classifier assertions
 ```
 
 Or query the corpus without downloading it at all:
