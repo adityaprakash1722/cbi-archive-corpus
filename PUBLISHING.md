@@ -90,7 +90,7 @@ corpus alone would consume it, and bandwidth burns every time a machine clones.
 
 ### Decision 4: GitHub for the code
 
-**Chosen:** a public GitHub repository, 196 files, 10 MB.
+**Chosen:** a public GitHub repository, <!-- fact:repo.tracked_files -->222<!-- /fact --> files, about 10 MB on GitHub.
 
 Both Claude Code and Codex have first-class GitHub integration, and it is where
 anyone looks for code by default.
@@ -137,7 +137,7 @@ The required attribution is in the dataset card and in `ATTRIBUTION.md`:
 
 | Service | Account | Holds |
 |---|---|---|
-| GitHub | `adityaprakash1722` | `cbi-archive-corpus`, the code, 196 files, 10 MB |
+| GitHub | `adityaprakash1722` | `cbi-archive-corpus`, the code, <!-- fact:repo.tracked_files -->222<!-- /fact --> files, about 10 MB on GitHub |
 | Hugging Face | `aditya487` | `cbi-archive-corpus` dataset, the text, 48 MB |
 | Hugging Face | `aditya487` | `cbi-archive-raw` dataset, the source files, 6.56 GB |
 
@@ -154,7 +154,7 @@ one for the right service.
 
 | Item | State |
 |---|---|
-| GitHub repo | published. `master` at `a1474b2` |
+| GitHub repo | published from `master`; follow the repository for the current revision |
 | Hugging Face corpus | published. 11 files: two Parquet, five manifests, card, attribution |
 | Hugging Face raw archive | published. 6,309 blobs plus card, catalogue and summary, 6.56 GB |
 
@@ -216,17 +216,20 @@ python publish\verify_dataset.py aditya487
 Always run `verify_dataset.py` afterwards: it catches a stale or half-uploaded
 dataset immediately.
 
-### Publishing the raw archive, still outstanding
+### After changing the published raw archive
+
+The raw archive is already published. To update it after changing the blob tree,
+catalogue or summary:
 
 ```powershell
 python publish\build_blob_tree.py
-hf upload-large-folder aditya487/cbi-archive-raw publish/blobs --repo-type=dataset
+hf upload aditya487/cbi-archive-raw publish/blobs . --repo-type=dataset
 hf upload aditya487/cbi-archive-raw publish/blob-catalog.csv blob-catalog.csv --repo-type=dataset
 python publish\get_source.py --search "operational resilience" --limit 1 --fetch
 ```
 
-`upload-large-folder` rather than `upload`: it parallelises and resumes, so an
-interrupted 6.56 GB transfer is not a restart.
+`hf upload` is the current CLI command for both files and folders. Re-running it
+after an interruption skips content that is already present on the Hub.
 
 ### Setting up a new machine
 

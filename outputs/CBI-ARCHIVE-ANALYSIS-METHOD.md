@@ -104,13 +104,15 @@ holds. `scripts/qa_extraction_quality.py` adds that missing test and grades all
 
 | Grade | Documents | Meaning |
 |---|---:|---|
-| ok | 5,486 | nothing anomalous |
-| gappy | 30 | at least 30% of pages hold almost no text |
-| garbled | 26 | 200 or more replacement characters, or one per 500 characters |
-| thin | 19 | under 200 non-space characters per page |
-| empty | 7 | no usable extractable text |
+| ok | <!-- fact:quality.grade.ok -->5,486<!-- /fact --> | nothing anomalous |
+| gappy | <!-- fact:quality.grade.gappy -->30<!-- /fact --> | at least 30% of pages hold almost no text |
+| garbled | <!-- fact:quality.grade.garbled -->26<!-- /fact --> | 200 or more replacement characters, or one per 500 characters |
+| thin | <!-- fact:quality.grade.thin -->19<!-- /fact --> | under 200 non-space characters per page |
+| empty | <!-- fact:quality.grade.empty -->7<!-- /fact --> | no usable extractable text |
 
-Median density is 1,624 non-space characters per page and 0.34% of all pages are
+Median density is <!-- fact:quality.median_nonspace_per_page -->1,624<!-- /fact -->
+non-space characters per page and
+<!-- fact:quality.empty_page_share_percent -->0.61<!-- /fact -->% of all pages are
 effectively empty, down from 2.44% before the recovery pass. 143 documents
 contain Unicode replacement characters, the worst
 carrying 11,371. Chart-heavy statistical releases extract with visible damage: the

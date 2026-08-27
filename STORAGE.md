@@ -32,7 +32,9 @@ irreplaceable without re-running a multi-hour pipeline.
 
 ### Tier 1: the project
 
-**GitHub, `adityaprakash1722/cbi-archive-corpus`. 196 files, 10.0 MB.**
+**GitHub, `adityaprakash1722/cbi-archive-corpus`.** The repository contains
+<!-- fact:repo.tracked_files -->222<!-- /fact --> tracked files and occupies about
+10 MB on GitHub.
 
 The whole pipeline, every manifest, every analysis output, and the documents.
 Small enough that a full clone is instant.
@@ -338,7 +340,10 @@ central-bank versus stakeholder separation.
    at `work/live-index/`, is a partial build covering 3,259 of 5,568 documents
    and carries no warning of its own.
 4. **82 documents extract badly**, graded in `qa/extraction-quality.csv`:
-   30 `gappy`, 26 `garbled`, 19 `thin`, 7 `empty`. Chart-heavy statistical
+   <!-- fact:quality.grade.gappy -->30<!-- /fact --> `gappy`,
+   <!-- fact:quality.grade.garbled -->26<!-- /fact --> `garbled`,
+   <!-- fact:quality.grade.thin -->19<!-- /fact --> `thin`, and
+   <!-- fact:quality.grade.empty -->7<!-- /fact --> `empty`. Chart-heavy statistical
    releases are the worst and can render "March" as "~~M~~ arch" while their
    numbers survive intact. Check the grade before quoting prose.
 5. **Counting is discovery, not evidence.** Topic frequency mostly measures how
