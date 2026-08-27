@@ -39,6 +39,10 @@ RESEARCH = ROOT / "outputs" / "cbi-research"
 # Dated records describe what was true on a day. Rewriting them to match the
 # present would destroy the audit trail, so they are exempt by name.
 EXEMPT_FILES = ("outputs/REMEDIATION-2026-08-26.md",)
+
+# Converted corpus text is source material, not documentation. A statistical
+# release that happens to say "16%" near the word "thin" is a coincidence.
+EXEMPT_DIRECTORIES = ("/markdown/", "/corpus/")
 HISTORICAL = "<!-- historical -->"
 
 # How far from a number a keyword may sit and still be about it.
@@ -60,7 +64,8 @@ def tracked_markdown() -> list[Path]:
         print("  WARNING: git unavailable, falling back to a filesystem walk")
         return [p for p in sorted(ROOT.rglob("*.md")) if "/corpus/" not in p.as_posix()]
     return [ROOT / line for line in out.splitlines()
-            if line and line not in EXEMPT_FILES]
+            if line and line not in EXEMPT_FILES
+            and not any(part in "/" + line for part in EXEMPT_DIRECTORIES)]
 
 
 def number_near(text: str, value: int, keywords: list[str]) -> list[int]:
@@ -115,8 +120,15 @@ def main() -> int:
     for row in provenance:
         key = row.get("classification_confidence") or ""
         confidence[key] = confidence.get(key, 0) + 1
-    flagged = sum(1 for r in quality if r["extraction_grade"] != "ok")
-    clean = sum(1 for r in quality if r["extraction_grade"] == "ok")
+    # The whole distribution, not two numbers from it. Checking `ok` and the
+    # flagged total let two documents keep a breakdown that read
+    # "63 gappy, 26 garbled, 16 thin, 7 empty", which sums to 112 while the
+    # sentence above it said 82. Every grade is now its own fact.
+    grades: dict[str, int] = {}
+    for row in quality:
+        grades[row["extraction_grade"]] = grades.get(row["extraction_grade"], 0) + 1
+    flagged = sum(count for grade, count in grades.items() if grade != "ok")
+    clean = grades.get("ok", 0)
     scripts = sorted(p.name for p in (RESEARCH / "scripts").glob("*.py"))
     assertions = 97
 
@@ -144,8 +156,17 @@ def main() -> int:
          assertions, "assertion count"),
         (112, ["flag", "graded", "extraction", "extract badly", "below `ok`"],
          flagged, "documents graded below ok"),
-        (5456, ["clean", "graded", "extraction"], clean, "documents graded ok"),
+        (5456, ["clean", "graded", "extraction", "| ok |"], clean, "documents graded ok"),
     ]
+    # Every superseded per-grade count, derived rather than listed. The keyword is
+    # the grade name itself, so a breakdown table cannot drift without failing.
+    SUPERSEDED_GRADES = {"gappy": [63], "garbled": [], "thin": [16], "empty": [],
+                         "ok": [5456]}
+    for grade, olds in SUPERSEDED_GRADES.items():
+        for old in olds:
+            if old != grades.get(grade, 0):
+                facts.append((old, [grade], grades.get(grade, 0),
+                              f"`{grade}` document count"))
 
     print("\nno tracked document may contradict the data")
     scanned = tracked_markdown()
@@ -185,14 +206,18 @@ def main() -> int:
                 hits += 1
     check(f"contradictions across {len(scanned)} git-tracked documents", hits, 0)
 
-    # The Markdown corpus is not tracked, so this runs locally and skips in CI.
-    # It is the check that would have caught the 132 stale markdown_sha256 values
-    # the live index carried after the OCR pass rebuilt it before its manifest
-    # was synced. It cannot live in test_fresh_rebuild.py, because materialised
-    # Markdown is deliberately not byte-identical to the original conversion.
-    print("\nlocal corpus, when present")
-    import hashlib
-    stale = missing = 0
+    # The Markdown corpus and the built index are both untracked, so this runs
+    # locally and skips in CI.
+    #
+    # The first version of this compared the Markdown files against the manifest
+    # only. That would have passed during the exact failure it claimed to
+    # prevent: the real defect was file == manifest but index != either, because
+    # the OCR pass rebuilt the index before the manifest was synced. Both edges
+    # of the triangle are checked now.
+    print("\nlocal corpus and index, when present")
+    import hashlib, sqlite3
+    file_hash: dict[str, str] = {}
+    stale_manifest = missing = 0
     for where, rows in (("", pdf), ("office", office)):
         root = RESEARCH / "corpus" / where if where else RESEARCH / "corpus"
         for row in rows:
@@ -200,13 +225,29 @@ def main() -> int:
             if not path.is_file():
                 missing += 1
                 continue
-            if hashlib.sha256(path.read_bytes()).hexdigest() != row.get("markdown_sha256"):
-                stale += 1
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            file_hash.setdefault(row["source_sha256"], digest)
+            if digest != row.get("markdown_sha256"):
+                stale_manifest += 1
     if missing == len(pdf) + len(office):
         print("  corpus not present, skipped (this is normal in CI)")
     else:
-        check("Markdown files whose hash differs from the manifest", stale, 0)
+        check("Markdown files whose hash differs from the manifest", stale_manifest, 0)
         check("manifest rows with no Markdown file on disk", missing, 0)
+
+    index = RESEARCH / "index" / "cbi-corpus-v4-5568docs.sqlite"
+    if not index.is_file() or not file_hash:
+        print("  index not present, skipped (this is normal in CI)")
+    else:
+        connection = sqlite3.connect(index)
+        stale_index = 0
+        for sha, stored in connection.execute(
+                "SELECT source_sha256, markdown_sha256 FROM documents"):
+            expected = file_hash.get(sha)
+            if expected is not None and stored != expected:
+                stale_index += 1
+        connection.close()
+        check("index rows whose markdown_sha256 is stale", stale_index, 0)
 
     print()
     if problems:

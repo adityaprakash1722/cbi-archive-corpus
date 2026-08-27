@@ -334,11 +334,11 @@ central-bank versus stakeholder separation.
    `.replace("\\", "/")`. Omitting it silently finds nothing on Linux and macOS.
 2. **`pdf-audit.csv` contains NUL bytes** from PDF metadata. Strip them on read
    or Python's `csv` module raises `_csv.Error: line contains NUL`.
-3. **Three SQLite files exist, one is current.** See `index/README.md`. A fourth,
+3. **Four SQLite files exist, one is current.** See `index/README.md`. A fifth,
    at `work/live-index/`, is a partial build covering 3,259 of 5,568 documents
    and carries no warning of its own.
 4. **82 documents extract badly**, graded in `qa/extraction-quality.csv`:
-   63 `gappy`, 26 `garbled`, 16 `thin`, 7 `empty`. Chart-heavy statistical
+   30 `gappy`, 26 `garbled`, 19 `thin`, 7 `empty`. Chart-heavy statistical
    releases are the worst and can render "March" as "~~M~~ arch" while their
    numbers survive intact. Check the grade before quoting prose.
 5. **Counting is discovery, not evidence.** Topic frequency mostly measures how

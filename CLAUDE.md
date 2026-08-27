@@ -27,7 +27,8 @@ document, say so in the sentence.
 
 ## Which index to use
 
-There are three SQLite files. Only one is current.
+There are four SQLite files in `index/`, plus a partial one under `work/`.
+Only one is current.
 
 | File | Documents | Use |
 |---|---:|---|
@@ -60,7 +61,7 @@ outputs/
     index/                             SQLite build artifacts             [not tracked]
     qa/                                validation, provenance and extraction grades
     structured/                        CSV, workbook and XML profiling
-    analysis-v2/                       topic scan and evidence candidates
+    analysis-v4/                       current topic scan and evidence candidates
 publish/hf/                            the public dataset, ready to upload
 ```
 
