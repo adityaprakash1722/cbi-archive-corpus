@@ -34,7 +34,7 @@ Exit code 0 means a fresh clone would work.
 """
 from __future__ import annotations
 
-import argparse, json, sqlite3, subprocess, sys, tempfile, urllib.request
+import argparse, csv, json, sqlite3, subprocess, sys, tempfile, urllib.request
 from pathlib import Path
 
 SUMMARY = ("https://huggingface.co/datasets/{user}/cbi-archive-corpus"
@@ -47,10 +47,49 @@ EXPECTED_NON_DEFAULT_PAGE_BASIS = 320
 EXPECTED_NON_PDF_FORMAT = 326
 
 
+# Every column the published documents.parquet carries. Comparing a hand-picked
+# subset is how the last two rounds of defects survived a passing test: the
+# columns nobody thought to list were exactly the ones that were wrong.
 COMPARED_COLUMNS = ["title", "authorship", "classification_basis",
                     "classification_confidence", "page_basis", "source_format",
                     "document_class", "consultation_id", "page_count",
-                    "extraction_engine", "ocr_enabled"]
+                    "extraction_engine", "ocr_enabled", "source_url",
+                    "source_alias_count", "source_bytes", "source_sha256",
+                    "pdf_author", "pdf_creation_date", "quality_low_text",
+                    "quality_empty_pages"]
+
+
+def manifest_mismatches(connection, field: str) -> int:
+    """Compare a rebuilt column against the tracked conversion manifests.
+
+    `extraction_engine_version` and `source_file` are dropped from the published
+    Parquet, so the published data cannot referee them. The manifests can, and
+    both of these were wrong in a rebuild that a passing test had blessed: the
+    engine version because the Office manifest records it in a different column
+    from the PDF one, and source_file because the one hash present in both
+    manifests was keyed without regard to which corpus it came from.
+    """
+    manifests = Path(__file__).resolve().parents[1] / "corpus"
+    csv.field_size_limit(1 << 27)
+    canonical: dict[str, str] = {}
+    for path in (manifests / "conversion-manifest.csv",
+                 manifests / "office" / "conversion-manifest.csv"):
+        if not path.is_file():
+            continue
+        with path.open(encoding="utf-8-sig", newline="") as stream:
+            for row in csv.DictReader(line.replace("\x00", "") for line in stream):
+                value = (row.get(field) or row.get("engine") if field == "engine_version"
+                         else row.get(field))
+                # First writer wins, matching how the indexer dedupes by hash.
+                canonical.setdefault(row["source_sha256"], value or "")
+    column = "extraction_engine_version" if field == "engine_version" else field
+    mismatched = 0
+    for sha, got in connection.execute(
+            "SELECT source_sha256, " + column + " FROM documents"):
+        want = canonical.get(sha)
+        if want is not None and (got or "") != want:
+            mismatched += 1
+    return mismatched
 
 
 def untitled_in_published(user: str) -> int:
@@ -174,6 +213,14 @@ def main() -> int:
             ("documents missing engine version",
              scalar("SELECT COUNT(*) FROM documents WHERE extraction_engine_version IS NULL "
                     "OR trim(extraction_engine_version)=''"), 0),
+            # extraction_engine_version and source_file are not in the published
+            # Parquet, so they cannot be compared against it. They are compared
+            # against the tracked manifests instead, which is where a rebuild
+            # gets them and where both were silently wrong.
+            ("engine versions differing from the manifests",
+             manifest_mismatches(connection, "engine_version"), 0),
+            ("source_file differing from the manifests",
+             manifest_mismatches(connection, "source_file"), 0),
         ]
 
         # Column-by-column comparison against the published Parquet, which is the

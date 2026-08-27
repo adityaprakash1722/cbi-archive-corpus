@@ -4,7 +4,7 @@ A crawl of the Central Bank of Ireland's public archive, turned into a
 page-anchored, provenance-classified research corpus, plus the analysis built on
 it.
 
-**5,568 documents. 88,782 source pages. 190.5 million characters.**
+**5,568 documents. 88,782 source pages. 190.9 million characters.**
 
 | | |
 |---|---|

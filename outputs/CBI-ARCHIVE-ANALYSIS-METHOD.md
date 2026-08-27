@@ -142,7 +142,7 @@ explicit stakeholder attribution then wins over generic words such as
 `discussion-paper`, `consultation-on` and `rulebook`. This keeps
 `note-from-the-financial-regulator-in-relation-to-submissions-received-on-cp43`
 correctly classed as Bank material without misclassifying stakeholder responses
-that name the document they answer. 94 regression assertions, including all 55
+that name the document they answer. 97 regression assertions, including all 55
 conflict filenames found in the follow-up audit, in
 `scripts/test_classify_provenance.py` cover all of the above.
 

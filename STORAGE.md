@@ -198,7 +198,7 @@ lets a reader skip most of the file when filtering.
 |---|---:|---|
 | `central-bank` | 3,809 | the regulator speaking: a rule, finding or expectation |
 | `stakeholder` | 1,656 | a firm or trade body writing **to** the regulator. Advocacy. |
-| `unresolved` | 105 | genuinely ambiguous. **Never treat as `central-bank`.** |
+| `unresolved` | 103 | genuinely ambiguous. **Never treat as `central-bank`.** |
 
 Defaulting ambiguity to the regulator is the exact bug that put AIB's and Bank of
 Ireland's lobbying positions into the Central Bank pile in an earlier version.
@@ -319,7 +319,7 @@ Every layer is hash-verified, and the hashes chain.
 | `conversion-manifest.csv` `markdown_sha256` | the extracted text has not changed |
 | `validate_corpus.py` | re-reads every source and output from disk and re-hashes |
 | Tier 3 filename | any fetched blob verifies against its own name |
-| v3 index SHA-256 | `e92274b5adcc5cb97d2477bc93abc4094da82809c836fb4a68b76be5a0d9e0c2` |
+| v3 index SHA-256 | `a89923ba64a121792ba2f2776edb66fa9e8179f1914492cdfb17165efecd29ca` |
 
 `publish/verify_dataset.py` checks the published corpus end to end without
 downloading it: authorship split, row totals, a real join query, and the

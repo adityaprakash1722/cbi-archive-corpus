@@ -250,7 +250,7 @@ real contributions and both have made real errors.
 **Codex** built the original pipeline: the crawler, PDF conversion, validation,
 indexing, structured-data profiling, and the first thesis. Later it produced the
 v3 index, fixed 55 remaining provenance errors taking stakeholder from 1,601 to
-1,656, expanded the classifier suite to 94 assertions, recovered two DOCX tables
+1,656, expanded the classifier suite to 97 assertions, recovered two DOCX tables
 via an XML fallback, and corrected the PSR, vendor and DORA claims.
 
 **Claude** audited that work and found three material defects: the stakeholder

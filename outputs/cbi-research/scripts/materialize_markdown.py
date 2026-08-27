@@ -70,7 +70,7 @@ def frontmatter(document: dict, aliases: list, extra: dict) -> str:
     lines.append("document_id: " + yaml_value(document["document_id"]))
     lines.append("source_url: " + yaml_value(document["source_url"]))
     lines.append("source_urls: " + json.dumps(aliases))
-    lines.append("source_alias_count: " + str(document["source_alias_count"]))
+    lines.append("source_alias_count: " + str(len(aliases) or document["source_alias_count"]))
     if extra.get("source_file"):
         lines.append("source_file: " + yaml_value(extra["source_file"]))
     lines.append("source_sha256: " + yaml_value(document["source_sha256"]))
@@ -158,18 +158,29 @@ def from_remote(user: str):
                 position = index.get(name_)
                 return row[position] if position is not None else None
 
-            # The two manifests record the engine version in different columns,
-            # and the Office one records it nowhere useful: `engine_version` is
-            # absent and `pipeline_version` is blank, while the value the index
-            # carries is the engine name itself. Fall through all three.
-            version = column("engine_version") or column("pipeline_version") or column("engine")
+            # The two manifests record the engine version in different columns.
+            # The PDF one uses `engine_version`. The Office one has no such
+            # column, and its `pipeline_version` is the pipeline's version, not
+            # the engine's: for the 322 Office documents the value the index
+            # carries is the `engine` column, which reads like
+            # "python-docx 1.2.0+xml-table-fallback". `pipeline_version` must
+            # therefore come last, or the two rows that have both end up with
+            # "office-0.2.0" where the canonical value is the engine string.
+            version = column("engine_version") or column("engine") or column("pipeline_version")
             # Keyed by corpus as well as hash. One SHA-256 sits in both
             # manifests with a different source_file in each, a .pdf and a
             # .docx, so a hash-only key lets whichever manifest is read last
             # overwrite the other.
+            # Aliases come from the manifest, not from files.csv. files.csv maps
+            # every URL to its hash, so aggregating it by hash gives the union
+            # across both corpora: the one document converted by both pipelines
+            # was served as .pdf and .docx, and the union says two aliases where
+            # each corpus canonically records one.
+            urls = [u.strip() for u in (column("source_urls") or "").split("|") if u.strip()]
             extra[(sha, where)] = {
                 "source_file": column("source_file"),
                 "engine_version": version,
+                "urls": urls or [column("url")] if column("url") else urls,
             }
             corpus_of.setdefault(sha, set()).add(where)
             manifest_rows.setdefault(where, []).append(dict(zip(columns, row)))
@@ -183,7 +194,15 @@ def from_remote(user: str):
     return documents, aliases, extra, pages, corpus_of, manifest_rows
 
 
-def from_local(database: Path):
+def from_local(database: Path, corpus: Path):
+    """Read a local index, taking the corpus split from the local manifests.
+
+    The obvious shortcut, reading `markdown_file` and looking for an `office/`
+    prefix, does not work: every row records its path relative to its own corpus
+    root, so all 5,568 begin with `markdown/` and the split is invisible. Taking
+    it from the two manifests is both correct and the same rule the remote path
+    uses.
+    """
     connection = sqlite3.connect(database)
     connection.row_factory = sqlite3.Row
     query = ("SELECT " + ", ".join(FIELDS) +
@@ -191,23 +210,36 @@ def from_local(database: Path):
              "FROM documents")
     documents = [dict(row) for row in connection.execute(query)]
     aliases = {d["source_sha256"]: json.loads(d["source_urls_json"] or "[]") for d in documents}
-    extra = {}
-    # Locally the split is recoverable from the recorded Markdown path: the
-    # Office pipeline writes under corpus/office.
-    corpus_of = {}
-    for d in documents:
-        path = (d.get("markdown_file") or "").replace("\\", "/")
-        where = "office" if path.startswith("office/") else "pdf"
-        corpus_of.setdefault(d["source_sha256"], set()).add(where)
-        extra[(d["source_sha256"], where)] = {
-            "source_file": d["source_file"],
-            "engine_version": d["extraction_engine_version"],
-        }
+
+    extra: dict = {}
+    corpus_of: dict = {}
+    manifest_rows: dict = {}
+    csv.field_size_limit(1 << 27)
+    for where, path in (("pdf", corpus / "conversion-manifest.csv"),
+                        ("office", corpus / "office" / "conversion-manifest.csv")):
+        if not path.is_file():
+            print("  no manifest at " + str(path) + ", skipped", flush=True)
+            continue
+        with path.open(encoding="utf-8-sig", newline="") as stream:
+            rows = list(csv.DictReader(line.replace("\x00", "") for line in stream))
+        for row in rows:
+            sha = row["source_sha256"]
+            urls = [u.strip() for u in (row.get("source_urls") or "").split("|") if u.strip()]
+            corpus_of.setdefault(sha, set()).add(where)
+            extra[(sha, where)] = {
+                "source_file": row.get("source_file"),
+                "engine_version": (row.get("engine_version") or row.get("engine")
+                                   or row.get("pipeline_version")),
+                "urls": urls or ([row["url"]] if row.get("url") else []),
+            }
+            manifest_rows.setdefault(where, []).append(row)
+        print("  read " + str(path) + ": " + str(len(rows)) + " rows", flush=True)
+
     pages = {}
     for row in connection.execute("SELECT document_id, page_number, text FROM pages "
                                   "ORDER BY document_id, page_number"):
         pages.setdefault(row["document_id"], []).append((row["page_number"], row["text"]))
-    return documents, aliases, extra, pages, corpus_of, {}
+    return documents, aliases, extra, pages, corpus_of, manifest_rows
 
 
 def write_manifests(output: Path, manifest_rows: dict) -> None:
@@ -233,14 +265,18 @@ def write_manifests(output: Path, manifest_rows: dict) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--user", default="aditya487", help="Hugging Face namespace to read from")
-    parser.add_argument("--database", type=Path, help="read a local v3 SQLite index instead")
+    parser.add_argument("--database", type=Path, help="read a local SQLite index instead")
+    parser.add_argument("--corpus", type=Path,
+                        default=Path("outputs/cbi-research/corpus"),
+                        help="with --database, where the local conversion manifests live")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--limit", type=int, help="stop after this many documents, for spot checks")
     args = parser.parse_args()
 
     if args.database:
         print("reading local index " + str(args.database), flush=True)
-        documents, aliases, extra, pages, corpus_of, manifest_rows = from_local(args.database)
+        documents, aliases, extra, pages, corpus_of, manifest_rows = from_local(
+            args.database, args.corpus)
     else:
         print("reading published Parquet for " + args.user, flush=True)
         documents, aliases, extra, pages, corpus_of, manifest_rows = from_remote(args.user)
@@ -255,7 +291,7 @@ def main() -> int:
         if not document_pages:
             missing += 1
             continue
-        known = sorted(set(aliases.get(sha) or [document["source_url"]]))
+        fallback_aliases = aliases.get(sha) or [document["source_url"]]
         # The two corpora are indexed separately, so each document has to land in
         # the one its manifest describes. One SHA-256 appears in both manifests,
         # having been converted by both pipelines, and it needs a file in each:
@@ -264,6 +300,7 @@ def main() -> int:
             detail = extra.get((sha, where), {})
             if not detail.get("source_file"):
                 thin += 1
+            known = sorted(set(detail.get("urls") or fallback_aliases))
             text = frontmatter(document, known, detail) + body(document_pages)
             counts[where] += 1
             root = args.output if where == "pdf" else args.output / "office"
