@@ -39,8 +39,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
-          cache-dependency-path: outputs/cbi-archive/package-lock.json
       - name: Run the crawler tests
         run: npm test
         working-directory: outputs/cbi-archive
