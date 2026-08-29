@@ -90,8 +90,11 @@ It searches the Parquet text, resolves the hash, downloads the original, and
 verifies the SHA-256 before writing it. Or fetch directly:
 
 ```
-https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/24e8bf7443f6c3831a02ceb477b9335bdfddc384/ae/0a/<sha256>.pdf
+https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/main/ae/0a/<sha256>.pdf
 ```
+
+For a reproducible citation, replace `main` with the immutable `raw_revision`
+recorded in `RELEASE.lock.json` in the GitHub repository.
 
 Every file's SHA-256 is also exposed in the Hub's own LFS metadata, so integrity
 can be checked through the API without downloading a byte.

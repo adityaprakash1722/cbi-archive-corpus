@@ -7,9 +7,9 @@ Code running locally.
 > not the storage/runbook authority. Corpus v5 is now the local current index:
 > 3,807 Central Bank, 1,671 stakeholder, 89 unresolved and one mixed document;
 > page-level voice, safe analysis years, a preferred DOCX extraction and a
-> recovered CP76 submission. The public release remains pinned as v4 in
-> `RELEASE.lock.json` until v5 is uploaded. `AGENTS.md` and `STORAGE.md` own the
-> current operational facts.
+> recovered CP76 submission. The public v5 release is pinned by immutable Git
+> and Hugging Face revisions in `RELEASE.lock.json`. `AGENTS.md` and `STORAGE.md`
+> own the current operational facts.
 
 `CLAUDE.md`, `STORAGE.md` and `PUBLISHING.md` describe the corpus and the
 infrastructure. **This document describes the research**: what has been found,
@@ -276,12 +276,9 @@ Treat neither as authoritative. Verify.
 
 1. **Read `consumer_protection.txt` and resolve the 2025 supervisory change.**
    Together these decide whether Finding 1 is current or historical. Highest value.
-2. **Release the already-built v5 candidate.** Run every local and clean-room
-   proof, commit the build inputs, upload the HF corpus, advance the immutable
-   release lock, then tag/push. The raw archive is already public.
-3. **Read the remaining nine bundles.**
-4. **Re-score DORA and regulatory reporting** against the now-complete corpus.
-5. **Then, and only then, the problem hunt**, followed by solution design.
+2. **Read the remaining nine bundles.**
+3. **Re-score DORA and regulatory reporting** against the now-complete corpus.
+4. **Then, and only then, the problem hunt**, followed by solution design.
 
 ---
 
@@ -292,7 +289,7 @@ Treat neither as authoritative. Verify.
 ```python
 import duckdb
 con = duckdb.connect(); con.execute("INSTALL httpfs; LOAD httpfs;")
-BASE = "https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/934e86ab7f59f5a4028f7da98492b0a995b731c0/data"
+BASE = "https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/bcbd2e84bff7655794eb9985b5f6bd1e428d263e/data"
 con.execute(f"SELECT authorship, count(*) FROM read_parquet('{BASE}/documents.parquet') GROUP BY 1").fetchall()
 ```
 

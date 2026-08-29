@@ -90,7 +90,7 @@ corpus alone would consume it, and bandwidth burns every time a machine clones.
 
 ### Decision 4: GitHub for the code
 
-**Chosen:** a public GitHub repository, <!-- fact:repo.tracked_files -->239<!-- /fact --> files, about 13 MB before generated data artifacts.
+**Chosen:** a public GitHub repository, <!-- fact:repo.tracked_files -->238<!-- /fact --> files, about 13 MB before generated data artifacts.
 
 Both Claude Code and Codex have first-class GitHub integration, and it is where
 anyone looks for code by default.
@@ -141,7 +141,7 @@ and in `ATTRIBUTION.md`:
 
 | Service | Account | Holds |
 |---|---|---|
-| GitHub | `adityaprakash1722` | `cbi-archive-corpus`, the code, <!-- fact:repo.tracked_files -->239<!-- /fact --> files, about 13 MB before generated data artifacts |
+| GitHub | `adityaprakash1722` | `cbi-archive-corpus`, the code, <!-- fact:repo.tracked_files -->238<!-- /fact --> files, about 13 MB before generated data artifacts |
 | Hugging Face | `aditya487` | `cbi-archive-corpus` dataset, the text, 48 MB |
 | Hugging Face | `aditya487` | `cbi-archive-raw` dataset, the source files, 6.56 GB |
 
@@ -159,17 +159,14 @@ one for the right service.
 | Item | State |
 |---|---|
 | GitHub repo | published from `master`; follow the repository for the current revision |
-| Hugging Face corpus | published. 11 files: two Parquet, five manifests, card, attribution |
-| Hugging Face raw archive | published. 6,309 blobs plus card, catalogue and summary, 6.56 GB |
+| Hugging Face corpus | published. 10 files: two Parquet, five manifests, summary, card and attribution |
+| Hugging Face raw archive | published. 6,309 blobs plus four metadata files, 6.56 GB |
 
-`RELEASE.lock.json` identifies the current public v4 release by immutable Git and
-Hugging Face revisions and hashes every published artifact. Its verified split
-is 3,809 / 1,656 / 103 and it contains 5,568 documents / 88,782 pages.  <!-- historical -->
-
-The local v5 candidate is not yet public. It contains 3,807 Central Bank, 1,671
-stakeholder, 89 unresolved and one mixed document; 5,568 documents / 88,783
-pages. Publishing it is a release operation, not an ordinary push, and the lock
-must be advanced only after the immutable Hub revision exists.
+`RELEASE.lock.json` identifies the current public v5 release by immutable Git
+and Hugging Face revisions and hashes every published artifact. Its verified
+split is 3,807 Central Bank, 1,671 stakeholder, 89 unresolved and one mixed
+document; 5,568 documents / 88,783 pages. The lock records the build-input Git
+commit separately from the final lock-and-tag commit.
 
 The raw archive is uploaded, so `get_source.py --fetch` works end to end. Note
 that files sit at `<ab>/<cd>/<sha256><ext>` in the repository root, with no

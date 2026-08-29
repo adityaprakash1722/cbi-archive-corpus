@@ -23,7 +23,7 @@ public data, and is designed for files far larger than git handles comfortably.
 It is where the 47 MB corpus goes.
 
 **GitHub** hosts code. It is where the pipeline, the manifests and the analysis
-go: 239 repository files, about 13 MB before generated data artifacts.
+go: 238 repository files, about 13 MB before generated data artifacts.
 
 They are separate because the two kinds of content have different needs. Code is
 small, changes constantly, and benefits from line-by-line diffs. A 46 MB Parquet
@@ -164,7 +164,7 @@ git add .
 git status --short | Measure-Object -Line
 ```
 
-Expect roughly **239 files** in a clean release candidate. If you see thousands, stop: something
+Expect roughly **238 files** in a clean release candidate. If you see thousands, stop: something
 slipped past the ignore rules.
 
 ```powershell

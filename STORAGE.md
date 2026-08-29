@@ -33,7 +33,7 @@ irreplaceable without re-running a multi-hour pipeline.
 ### Tier 1: the project
 
 **GitHub, `adityaprakash1722/cbi-archive-corpus`.** The repository contains
-<!-- fact:repo.tracked_files -->239<!-- /fact --> repository files and occupies about
+<!-- fact:repo.tracked_files -->238<!-- /fact --> repository files and occupies about
 13 MB before generated data artifacts.
 
 The whole pipeline, every manifest, every analysis output, and the documents.
@@ -82,9 +82,8 @@ README.md                   dataset card, drives the HF viewer
 ATTRIBUTION.md              attribution used where the Irish PSI terms apply
 ```
 
-Those figures describe the local v5 publication candidate. Until it is uploaded,
-`RELEASE.lock.json` deliberately continues to identify the immutable public v4
-release; the two states must not be conflated.
+Those figures describe the published v5 release. `RELEASE.lock.json` identifies
+its immutable Git and Hugging Face revisions and hashes the published artifacts.
 
 ### Tier 3: the source
 
@@ -259,8 +258,8 @@ Choose by what you need, not by what is convenient.
 ```sql
 INSTALL httpfs; LOAD httpfs;
 SELECT d.title, p.page_number
-FROM  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/934e86ab7f59f5a4028f7da98492b0a995b731c0/data/pages.parquet' p
-JOIN  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/934e86ab7f59f5a4028f7da98492b0a995b731c0/data/documents.parquet' d
+FROM  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/bcbd2e84bff7655794eb9985b5f6bd1e428d263e/data/pages.parquet' p
+JOIN  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/bcbd2e84bff7655794eb9985b5f6bd1e428d263e/data/documents.parquet' d
   USING (document_id)
 WHERE d.authorship = 'central-bank'
   AND lower(p.text) LIKE '%operational resilience%'
@@ -296,7 +295,7 @@ python publish/get_source.py --sha e5dabf14e1e876c484b3fd0d9b4fe86925befc868391e
 Or construct the URL directly, since the hash is the address:
 
 ```
-https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/24e8bf7443f6c3831a02ceb477b9335bdfddc384/e5/da/e5dabf14....pdf
+https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/e0f660cca8335ae0ffe000b45b04d07116f9ebec/e5/da/e5dabf14....pdf
 ```
 
 ---

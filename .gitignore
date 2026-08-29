@@ -51,6 +51,14 @@ work/live-evidence/
 work/key-index/
 work/pilot-index*/
 work/materialize-*/
+work/codex-publish-v5/
+work/gh-config/
+work/github-known-hosts
+work/raw-fetch-check/
+
+# Tool caches created while publishing and verifying. Credentials and caches
+# are machine-local and must never become release inputs.
+.cache/
 
 # A 60,196-line `tree /f` dump. Regenerable, goes stale immediately, and
 # CLAUDE.md documents the layout properly.

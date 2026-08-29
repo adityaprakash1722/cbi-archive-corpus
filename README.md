@@ -11,12 +11,12 @@ it.
 | Crawl snapshot | 25 August 2026 |
 | Downloaded | 6,963 files, 7.476 GB, 21 URLs failed (all 404, all recorded) |
 | Unique by SHA-256 | 6,309 files, 6.559 GB |
-| Corpus candidate v5 | 5,568 documents, 88,783 pages, zero conversion errors |
+| Corpus release v5 | 5,568 documents, 88,783 pages, zero conversion errors |
 | Published as | 47 MB of Parquet |
 
-The working tree contains the corrected v5 candidate. `RELEASE.lock.json` still
-pins the currently published v4 artifacts until v5 is committed and uploaded as
-one release; scripts never silently substitute Hugging Face `main` for that pin.
+`RELEASE.lock.json` pins the published v5 Git and Hugging Face revisions plus
+the artifact hashes; scripts never silently substitute Hugging Face `main` for
+that immutable release.
 
 ## Start here
 
@@ -39,7 +39,7 @@ Or query the corpus without downloading it at all:
 
 ```sql
 SELECT authorship, count(*)
-FROM 'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/934e86ab7f59f5a4028f7da98492b0a995b731c0/data/documents.parquet'
+FROM 'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/bcbd2e84bff7655794eb9985b5f6bd1e428d263e/data/documents.parquet'
 GROUP BY 1;
 ```
 

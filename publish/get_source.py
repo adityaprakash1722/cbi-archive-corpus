@@ -25,7 +25,7 @@ an ordered list of candidates and the first one that resolves wins.
 """
 from __future__ import annotations
 
-import argparse, hashlib, sys, urllib.error, urllib.request
+import argparse, hashlib, sys, tempfile, urllib.error, urllib.request
 from pathlib import Path
 
 from release_lock import load as load_release
@@ -70,7 +70,7 @@ def resolve(user: str, revision: str, sha: str, source_format: str | None) -> st
     return None
 
 
-def download(url: str, destination: Path, expected_sha: str) -> int:
+def download(url: str, destination: Path, expected_sha: str | None = None) -> int:
     """Download to a temporary name, verify the hash, then move into place.
 
     A half-written or corrupted file must never be left sitting at the final
@@ -90,7 +90,7 @@ def download(url: str, destination: Path, expected_sha: str) -> int:
                 print(f"\r  {total/1e6:6.1f} MB", end="", flush=True)
         print()
         actual = digest.hexdigest()
-        if actual != expected_sha:
+        if expected_sha is not None and actual != expected_sha:
             partial.unlink(missing_ok=True)
             raise ValueError(f"hash mismatch: expected {expected_sha[:16]}..., got {actual[:16]}...")
         partial.replace(destination)
@@ -98,6 +98,11 @@ def download(url: str, destination: Path, expected_sha: str) -> int:
     except BaseException:
         partial.unlink(missing_ok=True)
         raise
+
+
+def sql_path(path: Path) -> str:
+    """Return a local path safe to embed in a DuckDB SQL string."""
+    return path.resolve().as_posix().replace("'", "''")
 
 
 def main() -> int:
@@ -121,11 +126,41 @@ def main() -> int:
         print("pip install duckdb")
         return 1
 
-    documents = f"{CORPUS.format(user=args.user, revision=args.corpus_revision)}/documents.parquet"
-    pages = f"{CORPUS.format(user=args.user, revision=args.corpus_revision)}/pages.parquet"
+    corpus_base = CORPUS.format(user=args.user, revision=args.corpus_revision)
+    locked = args.corpus_revision == release["hugging_face"]["corpus_revision"]
+    cache = tempfile.TemporaryDirectory(prefix="cbi-source-lookup-")
+    cache_path = Path(cache.name)
+
+    documents_file = cache_path / "documents.parquet"
+    download(
+        f"{corpus_base}/documents.parquet",
+        documents_file,
+        release["artifacts"]["data/documents.parquet"] if locked else None,
+    )
+    documents = sql_path(documents_file)
+
+    pages = None
+    if args.search:
+        pages_file = cache_path / "pages.parquet"
+        download(
+            f"{corpus_base}/pages.parquet",
+            pages_file,
+            release["artifacts"]["data/pages.parquet"] if locked else None,
+        )
+        pages = sql_path(pages_file)
+
+    manifest = None
+    if args.url:
+        manifest_file = cache_path / "files.csv.zst"
+        download(
+            MANIFEST.format(user=args.user, revision=args.corpus_revision),
+            manifest_file,
+            release["artifacts"]["manifests/files.csv.zst"] if locked else None,
+        )
+        manifest = sql_path(manifest_file)
+
     columns = ("source_sha256, title, source_url, source_bytes, source_format, authorship")
     connection = duckdb.connect()
-    connection.execute("INSTALL httpfs; LOAD httpfs;")
 
     if args.sha:
         matches = connection.execute(
@@ -138,7 +173,7 @@ def main() -> int:
         # returns nothing.
         matches = connection.execute(
             f"SELECT {columns} FROM read_parquet('{documents}') WHERE source_sha256 IN "
-            f"(SELECT sha256 FROM read_csv_auto('{MANIFEST.format(user=args.user, revision=args.corpus_revision)}') WHERE url = ?)",
+            f"(SELECT sha256 FROM read_csv_auto('{manifest}') WHERE url = ?)",
             [args.url]).fetchall()
     elif args.search:
         clause = f"AND p.authorship = '{args.authorship}'" if args.authorship else ""
@@ -149,8 +184,13 @@ def main() -> int:
             WHERE lower(p.text) LIKE '%' || lower(?) || '%' {clause}
             LIMIT {args.limit}""", [args.search]).fetchall()
     else:
+        connection.close()
+        cache.cleanup()
         ap.print_help()
         return 2
+
+    connection.close()
+    cache.cleanup()
 
     if not matches:
         print("no matches")

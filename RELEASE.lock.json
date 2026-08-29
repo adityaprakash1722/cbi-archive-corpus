@@ -1,32 +1,34 @@
 {
   "schema_version": 1,
-  "release": "corpus-v4-2026-08-26",
+  "release": "corpus-v5-2026-08-29",
   "crawl_snapshot_date": "2026-08-25",
-  "git_commit": "1a7e880bf8cfc4e3473aa31ecb8f5051e24fdfe0",
+  "git_commit": "1f64cb72bfd2063d38974eb8f8c61e30d733dd1c",
   "hugging_face": {
     "corpus_repo": "aditya487/cbi-archive-corpus",
-    "corpus_revision": "934e86ab7f59f5a4028f7da98492b0a995b731c0",
+    "corpus_revision": "bcbd2e84bff7655794eb9985b5f6bd1e428d263e",
     "raw_repo": "aditya487/cbi-archive-raw",
-    "raw_revision": "24e8bf7443f6c3831a02ceb477b9335bdfddc384"
+    "raw_revision": "e0f660cca8335ae0ffe000b45b04d07116f9ebec"
   },
   "expected": {
     "documents": 5568,
-    "pages": 88782,
+    "pages": 88783,
     "authorship": {
-      "central-bank": 3809,
-      "stakeholder": 1656,
-      "unresolved": 103
+      "central-bank": 3807,
+      "stakeholder": 1671,
+      "mixed": 1,
+      "unresolved": 89
     }
   },
   "artifacts": {
-    "data/documents.parquet": "605681d58b96b56af3e8a0b2f84e23aa75663b1644cba8554cc213b17063c1e6",
-    "data/pages.parquet": "317c85f4d62d0bc593c669fc40d57f94115055ee7a90efaaf1caf7e26b0961e5",
-    "manifests/files.csv.zst": "4dfc22ef47eb3e8ba82125c3e0775b8c2646291bfdee4e1040c71b5875388db4",
-    "manifests/provenance-classification.csv.zst": "abe4615135c5ee87378dcd521a171f3f95d1b75b3892a7ab77482a8029c78b83",
-    "manifests/extraction-quality.csv.zst": "6d69c32cd13e44322489a25d3df208f748f7b6a446fa47e5e85ff401822bfbb5",
-    "manifests/conversion-manifest.csv.zst": "3d9c284b0b86b9cdfa9a336528877c7c8616d73ac421ed4ac0a59d1719488433",
-    "manifests/conversion-manifest-office.csv.zst": "520b4f022b7fae26242a7f082257e67f5551d529be3abd25823d15c83acff7e3",
-    "publish/blob-catalog.csv": "d8287597de933fd1cb10cb0c0391e31b6e3c60fc998ed6285e064adbdee286a2",
-    "publish/blob-summary.json": "27f57974d422128abeefd30d4b1702a83c316cacf3fd15d2579d0fdb7be22451"
+    "data/documents.parquet": "d03e04460e49d6f7aae1d0dfc1245ba0665b930082b4caa97551f646132674a0",
+    "data/pages.parquet": "f1c86ffd0d7206652d3b4e17541ec290c9320849e3150f7ddf7a8ec72f0960c5",
+    "manifests/files.csv.zst": "cf6b922233a3c25c4b72c39fedcb9df2061293cdfb36d248b6976c24fe79a6bc",
+    "manifests/provenance-classification.csv.zst": "ec16cd470280f56e5c7113f5a7d92730136876fcf7d25b4a3f5b46415ec6c867",
+    "manifests/extraction-quality.csv.zst": "2f8bcfb426e3de79b63e25ed71c6f501941e9fe2bdf8e66dd8f3cfba627f9cd3",
+    "manifests/conversion-manifest.csv.zst": "3945e542c9ed61b946e8544cd57a88e7db5aea9441276f026f42e4525c1b1751",
+    "manifests/conversion-manifest-office.csv.zst": "c4aa686ffad01baace1aecae807a428d1fa5267750b2d0449d94e4b6df8fef3f",
+    "publish/blob-catalog.csv": "3c81b01016edf6a085a369c68dbca617b5d934139a9f5f3c7770fc90419568c5",
+    "publish/blob-summary.json": "b1ce93df5563c1e44df16c81f7b4067977bbfc1e1bb04356ad7d91df4723f4a1",
+    "publish/page-catalog.csv": "fd017038333dbeca94fc639a2f666b71ab06bad4ccaa9472d1c9669af5e9c90e"
   }
 }
