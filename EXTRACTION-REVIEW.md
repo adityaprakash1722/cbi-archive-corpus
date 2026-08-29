@@ -14,7 +14,8 @@ are kept because the reasoning depends on them.**
 `qa/extraction-quality.csv` then graded 112 documents as extracting badly: 63  <!-- historical -->
 `gappy`, 26 `garbled`, 16 `thin`, 7 `empty`. **33 of those were stakeholder  <!-- historical -->
 documents**, and the stakeholder pile is what drives Finding 2's industry pain
-scan. It now grades 82.
+scan. The first recovery pass reduced that to 82; the later targeted CP76 repair  <!-- historical -->
+reduced the current total to 81.
 
 I had claimed that extraction failure "can only cause false negatives, never
 false positives", and that its effect was uniform across themes. Codex pushed
@@ -200,7 +201,7 @@ from 14 consultations to 15, which is 14.4% to 15.5% of the 97-consultation base
 Fraud and scam handling stays at 25 consultations. Twelve themes gain between one
 and three documents.
 
-The stakeholder base is unchanged at 1,656, so Finding 2's denominator is intact
+The stakeholder base was then unchanged at 1,656, so Finding 2's denominator was intact  <!-- historical -->
 and its conclusion is unaffected: interpretation and proportionality still
 dominate, operational themes still sit at the bottom.
 
@@ -221,9 +222,31 @@ Fixed by giving four decision-maker phrases precedence over the generic
 stakeholder cue, on the reasoning that only the body making the decision counts
 the submissions it received, thanks the parties who made them, and sets out next
 steps. Three regression assertions cover it, including the mirror case of a
-genuine respondent citing the same consultation. The suite is now 97 assertions.
+genuine respondent citing the same consultation. The suite is now 104 assertions.
 
 *The general lesson is worth keeping: recovering data changed a classification,
 and a classifier that was correct on an empty document was wrong on a full one.
 Any future recovery pass should diff the authorship split before and after, and
 read every document that moves.*
+
+---
+
+## 8. Second recovery: the CP76 font-encoding failure was recoverable
+
+Written 27 August 2026. This supersedes section 7's conclusion that `Submission
+Chpt 13 re CP76 31.3.14.pdf` was absent.
+
+The earlier attempt assumed OCR had nothing to render because the page had no
+embedded raster image. That confused “no image object” with “nothing visible”.
+Rendering the complete PDF page and passing that bitmap to RapidOCR recovered
+all five affected pages: **11,206 readable characters, zero Unicode replacement
+characters**. The Markdown and conversion-manifest hash were updated together.
+
+This pass also made the recovery mode explicit: ordinary runs fill only empty
+pages; overwriting a garbled extraction requires both a targeted SHA and
+`--replace-garbled`. The cumulative `recovered-pages.csv` contains the 258
+earlier image-only OCR pages plus these five replacements. Its companion JSON is
+a report for the most recent run, not a cumulative total.
+
+After rebuilding, the current extraction grades are 5,487 `ok`, 30 `gappy`, 25
+`garbled`, 19 `thin` and 7 `empty`: 81 documents below `ok` in total.

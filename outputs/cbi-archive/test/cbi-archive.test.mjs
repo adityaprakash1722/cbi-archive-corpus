@@ -10,10 +10,12 @@ import {
   extractLinks,
   extractSitemapLocations,
   filePathForUrl,
+  htmlSnapshotKey,
   isFileCandidate,
   parseArgs,
   parseBytes,
   parseRobots,
+  portablePath,
   repairMalformedUrl,
   robotsAllows,
   safeSegment,
@@ -112,4 +114,18 @@ test("normalizes URLs and produces safe bounded paths", () => {
     filePathForUrl("C:\\archive", "https://www.centralbank.ie/docs/Report.pdf"),
     filePathForUrl("C:\\archive", "https://www.centralbank.ie/docs/report.pdf"),
   );
+});
+
+test("emits manifest paths with portable separators", () => {
+  assert.equal(portablePath("files\\www.centralbank.ie\\report.pdf"),
+    "files/www.centralbank.ie/report.pdf");
+});
+
+test("content-addresses HTML snapshots deterministically", () => {
+  const first = htmlSnapshotKey("<html>one</html>");
+  const second = htmlSnapshotKey("<html>one</html>");
+  const changed = htmlSnapshotKey("<html>two</html>");
+  assert.deepEqual(first, second);
+  assert.notEqual(first.sha256, changed.sha256);
+  assert.equal(first.key, `pages/${first.sha256.slice(0, 2)}/${first.sha256}.html`);
 });

@@ -23,7 +23,7 @@ public data, and is designed for files far larger than git handles comfortably.
 It is where the 47 MB corpus goes.
 
 **GitHub** hosts code. It is where the pipeline, the manifests and the analysis
-go: 193 files, 40 MB.
+go: 239 repository files, about 13 MB before generated data artifacts.
 
 They are separate because the two kinds of content have different needs. Code is
 small, changes constantly, and benefits from line-by-line diffs. A 46 MB Parquet
@@ -41,18 +41,11 @@ see in public.
 
 Free. No card. No paid tier needed for anything here.
 
-## Step 2. Create an access token
+## Step 2. Authenticate
 
-A token is a long password that lets a program act on your behalf, so you never
-type your real password into a terminal.
-
-1. Go to https://huggingface.co/settings/tokens
-2. Click **Create new token**
-3. Under token type choose **Write**. Read-only cannot upload.
-4. Name it something like `laptop-upload`
-5. Click Create, then **copy it immediately**. Hugging Face shows it once.
-
-Paste it somewhere temporary. You need it in step 4 and never again after that.
+The current CLI supports the browser OAuth device flow, which issues a
+refreshable credential with write access to your own namespace. Prefer that to
+copying a long-lived token into a terminal.
 
 ## Step 3. Install the command line tool
 
@@ -77,9 +70,8 @@ that name everywhere below. If `pip` itself is not recognised, use
 hf auth login
 ```
 
-It asks for your token. Paste it and press Enter. **The screen will not show the
-characters as you paste.** That is deliberate, not a frozen terminal. If it asks
-about adding the token as a git credential, yes is fine.
+Follow the browser/device-flow prompt and approve the sign-in. Confirm the
+identity before uploading with `hf auth whoami`.
 
 Success looks like: `Login successful`.
 
@@ -107,7 +99,7 @@ root of the repository (`.`), and make it a dataset rather than a model.
 
 The repository is created automatically. You do not need to make it first.
 
-It uploads 9 files totalling 48 MB. The 46.6 MB `pages.parquet` is most of it.
+It uploads 10 files totalling about 48 MB. The 46.8 MB `pages.parquet` is most of it.
 Expect a progress bar and under a minute on a normal connection.
 
 ## Step 7. Check it worked
@@ -129,9 +121,10 @@ duckdb -c "SELECT authorship, count(*) FROM 'https://huggingface.co/datasets/YOU
 Expect exactly:
 
 ```
-central-bank   3809
-stakeholder    1656
-unresolved      103
+central-bank   3807
+stakeholder    1671
+mixed             1
+unresolved       89
 ```
 
 If you get those three numbers, the corpus is live and reachable from any
@@ -171,7 +164,7 @@ git add .
 git status --short | Measure-Object -Line
 ```
 
-Expect roughly **193 lines**. If you see thousands, stop and tell me: something
+Expect roughly **239 files** in a clean release candidate. If you see thousands, stop: something
 slipped past the ignore rules.
 
 ```powershell
@@ -245,11 +238,9 @@ LIMIT 20;
 **`hf` is not recognised.** Older `huggingface_hub`. Use `huggingface-cli`
 instead, or upgrade with `pip install -U huggingface_hub`.
 
-**Nothing appears when pasting the token.** Correct behaviour. Terminals hide
-secret input. Paste and press Enter.
-
-**401 or 403 on upload.** The token is Read, not Write. Make a new Write token
-and run `hf auth login` again.
+**401 or 403 on upload.** Run `hf auth whoami`. If the account is wrong or the
+OAuth credential is stale, run `hf auth login --force` and approve the browser
+flow again.
 
 **The dataset page shows files but no table viewer.** Give it a few minutes.
 If it still does not appear, the `configs:` block at the top of

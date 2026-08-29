@@ -1,15 +1,38 @@
 # Which index file to use
 
-Four SQLite databases sit in this directory, and a fifth, stale one exists under
+Five SQLite databases sit in this directory, and a sixth, stale one exists under
 `work/live-index/`. They are not interchangeable.
 
 | File | Documents | Pages | Use it? |
 |---|---:|---:|---|
-| `cbi-corpus-v4-5568docs.sqlite` | 5,568 | 88,782 | **Yes.** Current. Adds 441,610 characters of page text the converter had dropped. |
+| `cbi-corpus-v5-5568docs.sqlite` | 5,568 | 88,783 | **Yes.** Current. Page-level voice, validated time fields and explicit duplicate selection. |
+| `cbi-corpus-v4-5568docs.sqlite` | 5,568 | 88,782 | Superseded. Adds 441,610 characters of page text the converter had dropped. |
 | `cbi-corpus-v3-5568docs.sqlite` | 5,568 | 88,782 | Superseded. Correct provenance, but 1,425 pages are blank that should not be. |
 | `cbi-corpus-v2-5568docs.sqlite` | 5,568 | 88,782 | Superseded. Includes office files, but 55 stakeholder documents are misattributed. |
 | `cbi-corpus.sqlite` | 5,246 | 88,106 | Superseded. PDF only, and its provenance classes are wrong (see below). |
 | `../../../work/live-index/cbi-corpus.sqlite` | 3,259 | 57,368 | **No.** Partial build from a run that was still converting. |
+
+## What changed in v5
+
+1. **Mixed authorship is modelled at page level.** One 114-page engagement
+   compilation has Central Bank framing on pages 1–5 and stakeholder/public
+   submissions on pages 6–114. The container is `mixed`; every page carries its
+   actual voice and the audit basis.
+2. **Time-series fields are safe to use.** Raw `pdf_creation_date` remains
+   available, but `analysis_year` excludes future timestamps and
+   `published_at` requires explicit source/referrer evidence.
+3. **Duplicate extraction selection is explicit.** SHA `6d106f8c…` now selects
+   the canonical two-page DOCX extraction instead of silently taking the
+   inferior one-page PDF-pipeline alias. The extra page explains the row-count
+   increase.
+4. **The CP76 encoding failure is OCR-recovered.** Five pages that were 94%
+   replacement characters now hold 11,206 readable characters.
+5. **Provenance is 3,807 Central Bank / 1,671 stakeholder / 89 unresolved / one
+   mixed document.** 104 classifier regressions and a small 32-document human
+   audit sample cover the known failure modes.
+
+v5 SHA-256:
+`3dbd6a91e33969475e07d02cb106259e9041dab86b0041524cffee36e66f2d34`.
 
 ## What changed in v4
 
@@ -25,7 +48,7 @@ Four SQLite databases sit in this directory, and a fifth, stale one exists under
    body making the decision counts the submissions it received, thanks the
    parties who made them, and sets out next steps.
 
-   Authorship is **3,809 / 1,656 / 103**. Two documents moved from `unresolved`
+   Authorship was **3,809 / 1,656 / 103**. Two documents moved from `unresolved`  <!-- historical -->
    to `central-bank` once their opening pages had text to classify.
 
 ## What changed in v3
@@ -43,8 +66,8 @@ Four SQLite databases sit in this directory, and a fifth, stale one exists under
    `rulebook` outrank explicit response/submission attribution. v3 reverses that
    precedence while retaining narrow issuer-specific exceptions.
 
-   Stakeholder documents: **1,134 in v1, 1,601 in v2, 1,656 in v3 and v4.** 103
-   documents are labelled `unresolved`, which means the evidence is genuinely
+   Stakeholder documents: **1,134 in v1, 1,601 in v2, 1,656 in v3 and v4.** 103  <!-- historical -->
+   documents were labelled `unresolved`, which means the evidence was genuinely
    ambiguous and the document must not be counted as Central Bank material.
 
 2. **323 documents were missing.** The PDF pipeline filtered `format == "PDF"`,

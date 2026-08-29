@@ -10,13 +10,15 @@ the analysis built on top of it. Read this before touching anything.
 This archive contains two kinds of document that read alike and mean the
 opposite:
 
-- `authorship = 'central-bank'` (3,809 docs) is the regulator speaking. A
+- `authorship = 'central-bank'` (3,807 docs) is the regulator speaking. A
   finding, a rule, a supervisory expectation.
-- `authorship = 'stakeholder'` (1,656 docs) is a bank, insurer or trade body
+- `authorship = 'stakeholder'` (1,671 docs) is a bank, insurer or trade body
   writing **to** the regulator during a consultation. This is advocacy. These
   firms have a standing incentive to claim that requirements are burdensome and
   disproportionate.
-- `authorship = 'unresolved'` (103 docs) is genuinely ambiguous. It is a real
+- `authorship = 'mixed'` (1 document) is a composite whose pages have different
+  authors. Filter the page rows, not the container label.
+- `authorship = 'unresolved'` (89 docs) is genuinely ambiguous. It is a real
   answer. **Never fold it into `central-bank`** — defaulting ambiguity to the
   regulator is the exact bug that put AIB's and Bank of Ireland's lobbying
   positions into the Central Bank pile in an earlier version.
@@ -27,20 +29,21 @@ document, say so in the sentence.
 
 ## Which index to use
 
-There are four SQLite files in `index/`, plus a partial one under `work/`.
+There are five SQLite files in `index/`, plus a partial one under `work/`.
 Only one is current.
 
 | File | Documents | Use |
 |---|---:|---|
-| `outputs/cbi-research/index/cbi-corpus-v4-5568docs.sqlite` | 5,568 | **Yes. This one.** |
+| `outputs/cbi-research/index/cbi-corpus-v5-5568docs.sqlite` | 5,568 | **Yes. This one.** |
+| `cbi-corpus-v4-5568docs.sqlite` | 5,568 | Superseded. Document-level authorship only; one inferior duplicate extraction. |
 | `cbi-corpus-v3-5568docs.sqlite` | 5,568 | Superseded. 441,610 characters of page text missing. |
 | `cbi-corpus-v2-5568docs.sqlite` | 5,568 | Superseded. 55 provenance errors. |
 | `cbi-corpus.sqlite` | 5,246 | Superseded. Wrong provenance, missing the office corpus. |
 | `work/live-index/cbi-corpus.sqlite` | 3,259 | Never. Partial build from an interrupted run. |
 
-v4 SHA-256: `a89923ba64a121792ba2f2776edb66fa9e8179f1914492cdfb17165efecd29ca`
+v5 SHA-256: `3dbd6a91e33969475e07d02cb106259e9041dab86b0041524cffee36e66f2d34`
 
-None of these are in git. Run `make index` to build v4 locally, or `make fetch`
+None of these are in git. Run `make index` to build v5 locally, or `make fetch`
 to pull the Parquet corpus, which is usually what you actually want.
 
 ## Layout
@@ -55,13 +58,13 @@ outputs/
     cbi-data/manifests/files.csv       every URL, SHA-256, bytes, referrers  [tracked]
     cbi-data/files/                    6.56 GB of raw source              [not tracked]
   cbi-research/
-    scripts/                           the whole pipeline, 25 Python files
+    scripts/                           the whole pipeline, 27 Python files
     corpus/conversion-manifest.csv     per-document conversion record     [tracked]
     corpus/markdown/                   202 MB of page-anchored Markdown   [not tracked]
     index/                             SQLite build artifacts             [not tracked]
     qa/                                validation, provenance and extraction grades
     structured/                        CSV, workbook and XML profiling
-    analysis-v4/                       current topic scan and evidence candidates
+    analysis-v5/                       current topic scan and evidence candidates
 publish/hf/                            the public dataset, ready to upload
 ```
 
@@ -79,9 +82,9 @@ corpus actually contains, why the PPSN hits were all VAT numbers, and the 18
 documents that need a human decision before wider sharing.
 
 **`EXTRACTION-REVIEW.md`** reads the 33 flagged stakeholder documents and says
-which of the bad extractions actually matter, and records the recovery pass
-that cut them from 112 to 82. One document is 94% unreadable; the rest were  <!-- historical -->
-mostly scanned cover pages.
+which of the bad extractions actually matter, and records both recovery passes.
+The formerly 94%-garbled CP76 submission is now OCR-recovered; 81 documents
+remain below `ok`, mostly because of scanned cover pages or genuinely thin files.
 
 **`STORAGE.md` is the full map**: every artifact, where it lives, why, the Parquet
 schemas, access patterns and rebuild commands. Read it before moving or fetching
@@ -113,7 +116,7 @@ search the text  ->  source_sha256  ->  ab/cd/abcd....pdf
 
 `publish/get_source.py` does this end to end. Reach for it when you need the
 document as a human would see it, which mainly means charts, diagrams, scanned
-pages, and any of the 82 documents graded as extracting badly.
+pages, and any of the 81 documents graded as extracting badly.
 
 For everything else, query the Parquet over HTTPS and download nothing. DuckDB
 reads the file's footer, finds which byte ranges hold the columns you asked for,
@@ -121,16 +124,15 @@ and fetches only those.
 
 ## Gotchas that will cost you an hour
 
-1. **Manifest paths use Windows separators.** `files.csv` and
-   `conversion-manifest.csv` were written on Windows and contain backslashes.
-   Every script normalises with `.replace("\\", "/")`. If you write a new one
-   that joins a manifest path to a root, do the same or it will silently find
-   nothing on Linux and macOS.
+1. **Conversion-manifest paths may use Windows separators.** `files.csv` is now
+   portable, but historical `conversion-manifest.csv` rows can contain
+   backslashes. Any script joining those paths to a root must normalise with
+   `.replace("\\", "/")`.
 2. **`page_basis` is not always a page.** PDFs have true page anchors. Office
    documents mostly do not: 179 of 323 are `single-pseudo-page`, meaning the
    anchor identifies the document, not a position in it. Only `source-page` and
    `slide` are citable as locations.
-3. **82 documents extract badly.** Graded `gappy`, `garbled`, `thin` or `empty`
+3. **81 documents extract below `ok`.** Graded `gappy`, `garbled`, `thin` or `empty`
    in `qa/extraction-quality.csv`. Chart-heavy statistical releases are the worst
    offenders and can render "March" as "~~M~~ arch" while their numbers survive
    intact. Check the grade before quoting prose from one.
@@ -146,8 +148,8 @@ and fetches only those.
 ```bash
 make fetch      # pull the Parquet corpus (47 MB), no build needed
 make materialize # regenerate the Markdown corpus from the Parquet, for a fresh clone
-make index      # rebuild the v4 SQLite from the Markdown corpus (~15s)
-make test       # classifier regression suite, 97 assertions
+make index      # rebuild the v5 SQLite from the Markdown corpus (~15s)
+make test       # classifier regression suite, 104 assertions
 make test-fresh-rebuild   # prove a clone can rebuild the index from published data
 make verify     # re-hash every source and output, check page markers
 ```

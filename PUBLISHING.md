@@ -90,7 +90,7 @@ corpus alone would consume it, and bandwidth burns every time a machine clones.
 
 ### Decision 4: GitHub for the code
 
-**Chosen:** a public GitHub repository, <!-- fact:repo.tracked_files -->222<!-- /fact --> files, about 10 MB on GitHub.
+**Chosen:** a public GitHub repository, <!-- fact:repo.tracked_files -->239<!-- /fact --> files, about 13 MB before generated data artifacts.
 
 Both Claude Code and Codex have first-class GitHub integration, and it is where
 anyone looks for code by default.
@@ -120,13 +120,17 @@ The 256 top-level directories hold about 25 files each, well under the
 **Rejected: uploading in the original URL-shaped layout.** Keeps the 0.92 GB of
 duplication and exports the meaningless `_long` paths to everyone else.
 
-### Decision 6: make it public
+### Decision 6: publish with mixed-rights metadata
 
-The Central Bank's re-use terms permit re-use under a licence consistent with
-CC BY 4.0, so publishing is allowed. Public also means free on Hugging Face, no
-tokens needed to read, and the dataset viewer works for anyone.
+Only 71 open-data resources carry explicit CC BY 4.0 metadata. The remaining
+material relies on the Central Bank's PSI reuse terms, whose exclusions include
+personal information and third-party rights. Because the corpus also contains
+stakeholder submissions, neither dataset is labelled blanket CC BY. Both use
+`license: other` and `license_name: mixed-see-rights-and-reuse`; the factual
+screen and preservation decisions are in `RIGHTS-REVIEW.md`.
 
-The required attribution is in the dataset card and in `ATTRIBUTION.md`:
+Where the PSI licence applies, the required attribution is in the dataset card
+and in `ATTRIBUTION.md`:
 
 > Contains Irish Public Sector Information licensed under a Creative Commons
 > Attribution 4.0 International (CC BY 4.0) licence.
@@ -137,7 +141,7 @@ The required attribution is in the dataset card and in `ATTRIBUTION.md`:
 
 | Service | Account | Holds |
 |---|---|---|
-| GitHub | `adityaprakash1722` | `cbi-archive-corpus`, the code, <!-- fact:repo.tracked_files -->222<!-- /fact --> files, about 10 MB on GitHub |
+| GitHub | `adityaprakash1722` | `cbi-archive-corpus`, the code, <!-- fact:repo.tracked_files -->239<!-- /fact --> files, about 13 MB before generated data artifacts |
 | Hugging Face | `aditya487` | `cbi-archive-corpus` dataset, the text, 48 MB |
 | Hugging Face | `aditya487` | `cbi-archive-raw` dataset, the source files, 6.56 GB |
 
@@ -158,9 +162,14 @@ one for the right service.
 | Hugging Face corpus | published. 11 files: two Parquet, five manifests, card, attribution |
 | Hugging Face raw archive | published. 6,309 blobs plus card, catalogue and summary, 6.56 GB |
 
-`verify_dataset.py` was run against the live corpus and passed: authorship
-3,809 / 1,656 / 103, totals 5,568 documents and 88,782 pages, plus a working
-cross-file join query.
+`RELEASE.lock.json` identifies the current public v4 release by immutable Git and
+Hugging Face revisions and hashes every published artifact. Its verified split
+is 3,809 / 1,656 / 103 and it contains 5,568 documents / 88,782 pages.  <!-- historical -->
+
+The local v5 candidate is not yet public. It contains 3,807 Central Bank, 1,671
+stakeholder, 89 unresolved and one mixed document; 5,568 documents / 88,783
+pages. Publishing it is a release operation, not an ordinary push, and the lock
+must be advanced only after the immutable Hub revision exists.
 
 The raw archive is uploaded, so `get_source.py --fetch` works end to end. Note
 that files sit at `<ab>/<cd>/<sha256><ext>` in the repository root, with no
@@ -204,17 +213,25 @@ git commit -m "what changed"
 git push
 ```
 
-### After rebuilding the index, so the published corpus reflects it
+### Publishing a new corpus release
 
 ```powershell
+make test
+make test-invariants
 make dataset
+git commit -m "prepare corpus v5"
 hf upload aditya487/cbi-archive-corpus publish/hf . --repo-type=dataset
-python publish\verify_dataset.py aditya487
+hf repo-files ls aditya487/cbi-archive-corpus --repo-type dataset
+# Record the immutable HF revision, artifact hashes and build-input Git commit
+# in RELEASE.lock.json, commit that lock, then create the v5 tag.
+python publish\verify_dataset.py aditya487 --revision <immutable-hf-revision>
 ```
 
-`make dataset` regenerates the two Parquet files from the current v4 index.
-Always run `verify_dataset.py` afterwards: it catches a stale or half-uploaded
-dataset immediately.
+`make dataset` regenerates the two Parquet files from the current v5 index.
+Never replace the release lock with `main`; a mutable URL destroys the ability
+to reconstruct an older Git checkout. `verify_dataset.py` derives its expected
+facts from the pinned release rather than assuming whichever dataset happens to
+be live.
 
 ### After changing the published raw archive
 
@@ -225,8 +242,14 @@ catalogue or summary:
 python publish\build_blob_tree.py
 hf upload aditya487/cbi-archive-raw publish/blobs . --repo-type=dataset
 hf upload aditya487/cbi-archive-raw publish/blob-catalog.csv blob-catalog.csv --repo-type=dataset
+hf upload aditya487/cbi-archive-raw publish/page-catalog.csv page-catalog.csv --repo-type=dataset
 python publish\get_source.py --search "operational resilience" --limit 1 --fetch
 ```
+
+On future crawls, `publish/blobs/page-context/` contains content-addressed HTML
+source-page snapshots and `page-catalog.csv` maps them back to page URLs. The
+August 2026 crawl predates body preservation, so its catalogue is empty and only
+URL/status/fetch-time context survives in `page-snapshots.csv`.
 
 `hf upload` is the current CLI command for both files and folders. Re-running it
 after an interruption skips content that is already present on the Hub.
@@ -286,7 +309,8 @@ how this project proves things.
 
 | Item | Size | Reason |
 |---|---:|---|
-| `cbi-corpus-v4-5568docs.sqlite` | 664 MB | rebuilds via materialize then index |
+| `cbi-corpus-v5-5568docs.sqlite` | 673 MB | current build artifact; rebuilds via materialize then index |
+| `cbi-corpus-v4-5568docs.sqlite` | 664 MB | superseded after v5 is published |
 | v2 and v1 indices | 1.28 GB | superseded, kept locally for audit history |
 | `work/live-index/` | 423 MB | partial build from an interrupted run |
 | `corpus/markdown/` | 202 MB | superseded by the Parquet |

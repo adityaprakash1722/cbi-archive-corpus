@@ -1,0 +1,27 @@
+{
+  "sample_design": "Deterministic pseudo-random SHA ordering, stratified across the v4 labels, plus the discovered mixed composite and two audited non-consultation stakeholder submissions. Labels were assigned by opening the text.",
+  "documents": 32,
+  "correct": 32,
+  "accuracy": 1.0,
+  "confusion": {
+    "central-bank": {
+      "central-bank": 12
+    },
+    "stakeholder": {
+      "stakeholder": 19
+    },
+    "mixed": {
+      "mixed": 1
+    }
+  },
+  "by_confidence": {
+    "high": {
+      "correct": 25
+    },
+    "medium": {
+      "correct": 7
+    }
+  },
+  "errors": [],
+  "caution": "This small audit sample is an error detector, not a population accuracy estimate."
+}

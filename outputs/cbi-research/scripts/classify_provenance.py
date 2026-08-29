@@ -19,7 +19,7 @@ Output contract
 ---------------
 ``classify(url, first_pages_text)`` returns a ``Provenance`` with:
 
-  authorship      central-bank | stakeholder | unresolved
+  authorship      central-bank | stakeholder | mixed | unresolved
   document_class  the original 15-class taxonomy, corrected
   consultation_id e.g. cp158, or None
   basis           the rule that fired, so every label is auditable
@@ -84,6 +84,8 @@ CBI_DOCTYPE = re.compile(
       | administrative-sanctions
       | consumer-protection-code
       | macroprudential-framework
+      | macro-prudential-policy
+      | frequently-asked-questions
       | minimum-competency
     )""",
     re.VERBOSE,
@@ -110,6 +112,38 @@ CP_PREFIXED = re.compile(r"^(?:cp|dp)-?\d+[a-z]?[-_ ]+\S")
 
 CONSULTATION_ID = re.compile(r"/(cp[-_ ]?\d+[a-z]?)/")
 CONSULTATION_PATHS = ("/consultation-papers/", "/discussion-papers/")
+
+# These are not guesses based on a word in the filename. Each exception names a
+# composite that has been opened and page-audited. Page-level ownership lives in
+# qa/page-authorship-overrides.csv; this rule only labels the container.
+MIXED_DOCUMENTS = {
+    "/publications/corporate-reports/strategic-plan/submissions/"
+    "strategic-plan2019-2021-public-engagement-submissions.pdf": (
+        "cbi-corporate-report",
+        "audited-composite:cbi-framing-pages-1-5;stakeholder-submissions-pages-6-114",
+    ),
+}
+
+# These stakeholder submissions sit under a sector-engagement directory rather
+# than the consultation archive, so the normal consultation filename rules do
+# not see them. Each file has been opened and its authorship manually verified.
+# Keep this list exact: generic words such as "submission" also occur in genuine
+# Central Bank submissions and correspondence elsewhere in the archive.
+AUDITED_NON_CONSULTATION_STAKEHOLDER = {
+    "/sector-stakeholder-dialogues/"
+    "lending-framework-review-2024-joint-submission-from-cuda-cuma-ilcu-and-nsf.pdf":
+        "joint-credit-union-sector-submission",
+    "/sector-stakeholder-dialogues/"
+    "lending-framework-review-2024-submission-from-collaborative-finance-clg.pdf":
+        "collaborative-finance-submission",
+}
+
+# The CBI directory is misnumbered: every document under /cp71/ describes CP70,
+# including feedback-statement-on-cp70.pdf and respondent letters headed CP70.
+# The actual CP71 material is stored separately under /cp071/.
+CONSULTATION_PATH_OVERRIDES = {
+    "/consultation-papers/cp71/": "cp70",
+}
 
 
 @dataclass
@@ -177,6 +211,15 @@ STAKEHOLDER_TEXT_MARKERS = (
     ("we would like to thank the central bank", 3),
     ("in response to the central bank", 3),
     ("appreciate the opportunity", 2),
+    ("appreciates the opportunity", 3),
+    ("welcomes the opportunity to comment", 3),
+    ("welcomes the opportunity to provide", 3),
+    ("response to the consultation", 3),
+    ("submission to the financial regulator", 3),
+    ("mabs submission", 3),
+    ("the following comments", 3),
+    ("i attended the session", 3),
+    ("i am a member", 2),
 )
 
 
@@ -192,6 +235,9 @@ def _score(text: str, markers) -> tuple[int, list[str]]:
 
 
 def consultation_id_for(path: str) -> str | None:
+    for marker, consultation_id in CONSULTATION_PATH_OVERRIDES.items():
+        if marker in path:
+            return consultation_id
     match = CONSULTATION_ID.search(path)
     if not match:
         return None
@@ -240,6 +286,26 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
     is_consultation = any(marker in path for marker in CONSULTATION_PATHS)
     consultation = consultation_id_for(path)
     discussion = "/discussion-papers/" in path
+
+    for marker, (document_class, basis) in MIXED_DOCUMENTS.items():
+        if marker in path:
+            return Provenance(
+                authorship="mixed",
+                document_class=document_class,
+                consultation_id=consultation,
+                basis=basis,
+                confidence="high",
+            )
+
+    for marker, evidence in AUDITED_NON_CONSULTATION_STAKEHOLDER.items():
+        if marker in path:
+            return Provenance(
+                authorship="stakeholder",
+                document_class="stakeholder-consultation-submission",
+                consultation_id=None,
+                basis=f"audited-non-consultation-stakeholder:{evidence}",
+                confidence="high",
+            )
 
     if not is_consultation:
         return Provenance(

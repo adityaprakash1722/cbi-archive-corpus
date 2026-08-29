@@ -28,9 +28,11 @@ from __future__ import annotations
 import argparse, hashlib, sys, urllib.error, urllib.request
 from pathlib import Path
 
-CORPUS = "https://huggingface.co/datasets/{user}/cbi-archive-corpus/resolve/main/data"
-MANIFEST = "https://huggingface.co/datasets/{user}/cbi-archive-corpus/resolve/main/manifests/files.csv.zst"
-RAW = "https://huggingface.co/datasets/{user}/cbi-archive-raw/resolve/main"
+from release_lock import load as load_release
+
+CORPUS = "https://huggingface.co/datasets/{user}/cbi-archive-corpus/resolve/{revision}/data"
+MANIFEST = "https://huggingface.co/datasets/{user}/cbi-archive-corpus/resolve/{revision}/manifests/files.csv.zst"
+RAW = "https://huggingface.co/datasets/{user}/cbi-archive-raw/resolve/{revision}"
 
 # source_format -> extensions to try, in order. Verified against the published
 # blob catalogue: every one of the 6,309 files resolves through this table.
@@ -46,8 +48,8 @@ EXTENSIONS = {
 }
 
 
-def blob_url(user: str, sha: str, extension: str) -> str:
-    return f"{RAW.format(user=user)}/{sha[:2]}/{sha[2:4]}/{sha}.{extension}"
+def blob_url(user: str, revision: str, sha: str, extension: str) -> str:
+    return f"{RAW.format(user=user, revision=revision)}/{sha[:2]}/{sha[2:4]}/{sha}.{extension}"
 
 
 def exists(url: str) -> bool:
@@ -58,11 +60,11 @@ def exists(url: str) -> bool:
         return False
 
 
-def resolve(user: str, sha: str, source_format: str | None) -> str | None:
+def resolve(user: str, revision: str, sha: str, source_format: str | None) -> str | None:
     """Return the live blob URL, or None if nothing resolves."""
     candidates = EXTENSIONS.get(source_format or "pdf", ["pdf", "docx", "doc", "zip", "pptx"])
     for extension in candidates:
-        url = blob_url(user, sha, extension)
+        url = blob_url(user, revision, sha, extension)
         if exists(url):
             return url
     return None
@@ -99,12 +101,15 @@ def download(url: str, destination: Path, expected_sha: str) -> int:
 
 
 def main() -> int:
+    release = load_release()
     ap = argparse.ArgumentParser()
     ap.add_argument("--user", default="aditya487")
     ap.add_argument("--sha")
     ap.add_argument("--url")
     ap.add_argument("--search", help="find documents whose text contains this")
-    ap.add_argument("--authorship", choices=["central-bank", "stakeholder", "unresolved"])
+    ap.add_argument("--corpus-revision", default=release["hugging_face"]["corpus_revision"])
+    ap.add_argument("--raw-revision", default=release["hugging_face"]["raw_revision"])
+    ap.add_argument("--authorship", choices=["central-bank", "stakeholder", "mixed", "unresolved"])
     ap.add_argument("--limit", type=int, default=10)
     ap.add_argument("--out", type=Path, default=Path("downloaded-sources"))
     ap.add_argument("--fetch", action="store_true", help="download the matches, not just list them")
@@ -116,8 +121,8 @@ def main() -> int:
         print("pip install duckdb")
         return 1
 
-    documents = f"{CORPUS.format(user=args.user)}/documents.parquet"
-    pages = f"{CORPUS.format(user=args.user)}/pages.parquet"
+    documents = f"{CORPUS.format(user=args.user, revision=args.corpus_revision)}/documents.parquet"
+    pages = f"{CORPUS.format(user=args.user, revision=args.corpus_revision)}/pages.parquet"
     columns = ("source_sha256, title, source_url, source_bytes, source_format, authorship")
     connection = duckdb.connect()
     connection.execute("INSTALL httpfs; LOAD httpfs;")
@@ -133,10 +138,10 @@ def main() -> int:
         # returns nothing.
         matches = connection.execute(
             f"SELECT {columns} FROM read_parquet('{documents}') WHERE source_sha256 IN "
-            f"(SELECT sha256 FROM read_csv_auto('{MANIFEST.format(user=args.user)}') WHERE url = ?)",
+            f"(SELECT sha256 FROM read_csv_auto('{MANIFEST.format(user=args.user, revision=args.corpus_revision)}') WHERE url = ?)",
             [args.url]).fetchall()
     elif args.search:
-        clause = f"AND d.authorship = '{args.authorship}'" if args.authorship else ""
+        clause = f"AND p.authorship = '{args.authorship}'" if args.authorship else ""
         matches = connection.execute(f"""
             SELECT DISTINCT d.source_sha256, d.title, d.source_url, d.source_bytes,
                    d.source_format, d.authorship
@@ -154,7 +159,7 @@ def main() -> int:
     print(f"{len(matches)} match(es)\n")
     failures = 0
     for sha, title, url, size, fmt, authorship in matches:
-        blob = resolve(args.user, sha, fmt)
+        blob = resolve(args.user, args.raw_revision, sha, fmt)
         print(f"  {(title or '(untitled)')[:66]}")
         print(f"    authorship : {authorship}")
         print(f"    size       : {(size or 0)/1e6:.1f} MB")

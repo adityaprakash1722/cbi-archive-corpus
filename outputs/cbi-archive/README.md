@@ -5,7 +5,7 @@ This is a zero-dependency Node.js CLI for inventorying and downloading public ma
 1. The official CKAN Open Data API for structured CSV datasets.
 2. The official sitemap plus public page links for PDFs, spreadsheets, Word files, ZIPs, and other documents.
 
-The tool is resumable, rate-limited, robots-aware, bounded by optional page/file/byte caps, and produces CSV and JSONL manifests with checksums and source metadata. It deliberately stays away from login portals and non-public systems.
+The tool is resumable, rate-limited, robots-aware, bounded by optional page/file/byte caps, and produces CSV and JSONL manifests with checksums and source metadata. It also preserves each fetched HTML source page by content hash, unless `--no-archive-pages` is set. It deliberately stays away from login portals and non-public systems.
 
 ## Requirements
 
@@ -89,12 +89,21 @@ cbi-data/
   manifests/files.csv            spreadsheet-friendly inventory
   manifests/files.jsonl          full machine-readable inventory
   manifests/failed-urls.csv      source links that returned final errors
+  manifests/page-snapshots.csv   page URL/status plus immutable HTML hash/path
   manifests/summary.json         counts and byte totals
+  pages/<sha-prefix>/<sha>.html  content-addressed source-page context
   files/<host>/...                downloaded files, preserving URL paths
   duplicate-alias-files/         recoverable duplicate copies from URL repair
 ```
 
 Every completed file gets a SHA-256 checksum, HTTP content type, ETag, last-modified value, local path, dataset/resource metadata when available, and referring page(s). Local filenames contain a short URL hash so query-string versions and paths differing only by letter case do not overwrite one another on Windows. Very long URL paths are shortened deterministically for Windows compatibility.
+
+The August 2026 crawl predates HTML-body preservation. Its
+`page-snapshots.csv` therefore retains 11,371 page URLs, statuses and fetch
+times, but its HTML hash/path fields are empty: the original wording cannot be
+recovered retroactively. A refreshed or future crawl writes the bodies by
+default; `publish/build_blob_tree.py` includes them under `page-context/` in the
+raw tier without counting them as source documents.
 
 ## Operational notes
 

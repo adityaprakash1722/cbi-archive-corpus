@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-26T23:39:04Z",
-  "source_index": "cbi-corpus-v4-5568docs.sqlite",
+  "generated_at": "2026-08-29T21:31:58Z",
+  "source_index": "cbi-corpus-v5-5568docs.sqlite",
   "documents": 5568,
-  "pages": 88782,
-  "documents_parquet_bytes": 736523,
-  "pages_parquet_bytes": 46754123,
-  "elapsed_seconds": 3.8
+  "pages": 88783,
+  "documents_parquet_bytes": 778011,
+  "pages_parquet_bytes": 46779369,
+  "elapsed_seconds": 3.6
 }

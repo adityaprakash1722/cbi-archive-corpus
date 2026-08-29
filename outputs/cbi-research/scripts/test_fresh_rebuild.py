@@ -34,33 +34,37 @@ Exit code 0 means a fresh clone would work.
 """
 from __future__ import annotations
 
-import argparse, csv, json, sqlite3, subprocess, sys, tempfile, urllib.request
+import argparse, csv, json, shutil, sqlite3, subprocess, sys, tempfile, urllib.request
 from pathlib import Path
 
+from release_lock import corpus_revision
+
 SUMMARY = ("https://huggingface.co/datasets/{user}/cbi-archive-corpus"
-           "/resolve/main/data/dataset-summary.json")
+           "/resolve/{revision}/data/dataset-summary.json")
 
-# Structural facts a correct rebuild must reproduce. Counts that come from the
-# published summary are checked against it rather than hardcoded; these are the
-# ones the summary does not carry.
-EXPECTED_NON_DEFAULT_PAGE_BASIS = 320
-EXPECTED_NON_PDF_FORMAT = 326
-
-
-# Every column the published documents.parquet carries. Comparing a hand-picked
-# subset is how the last two rounds of defects survived a passing test: the
-# columns nobody thought to list were exactly the ones that were wrong.
-COMPARED_COLUMNS = ["title", "authorship", "classification_basis",
-                    "classification_confidence", "page_basis", "source_format",
-                    "document_class", "consultation_id", "page_count",
-                    "extraction_engine", "ocr_enabled", "source_url",
-                    "source_alias_count", "source_bytes", "source_sha256",
-                    "pdf_author", "pdf_creation_date", "quality_low_text",
-                    "quality_empty_pages"]
+def sql_parquet(path: Path) -> str:
+    """Return a DuckDB read_parquet expression for a verified local download."""
+    escaped = path.resolve().as_posix().replace("'", "''")
+    return "read_parquet('" + escaped + "')"
 
 
-def page_text_mismatches(connection, user: str) -> int:
-    """Compare every page row, text included, against the published pages table.
+def download(url: str, target: Path) -> None:
+    """Download through Python's verified HTTPS client for Windows portability."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    request = urllib.request.Request(url, headers={"User-Agent": "cbi-fresh-rebuild-test/1"})
+    with urllib.request.urlopen(request) as source, target.open("wb") as destination:
+        shutil.copyfileobj(source, destination)
+
+
+def remote_scalar(documents: Path, query: str) -> int:
+    """Evaluate one scalar against a verified copy of the pinned table."""
+    import duckdb
+    remote = duckdb.connect()
+    return remote.execute(query.replace("{documents}", sql_parquet(documents))).fetchone()[0]
+
+
+def page_row_mismatches(connection, pages: Path) -> tuple[int, list[str]]:
+    """Compare every common page column against the published pages table.
 
     The document table is not the corpus. A rebuild could match all nineteen
     document columns and still hand back different text, and until this existed
@@ -74,27 +78,36 @@ def page_text_mismatches(connection, user: str) -> int:
         print("   (duckdb not installed, skipping the page comparison)")
         return 0
     remote = duckdb.connect()
-    remote.execute("INSTALL httpfs; LOAD httpfs;")
-    url = ("https://huggingface.co/datasets/" + user +
-           "/cbi-archive-corpus/resolve/main/data/pages.parquet")
+    table = sql_parquet(pages)
+    remote_columns = [row[0] for row in remote.execute(
+        "DESCRIBE SELECT * FROM " + table).fetchall()]
+    local_columns = [row[1] for row in connection.execute("PRAGMA table_info(pages)")]
+    columns = [column for column in remote_columns if column in local_columns]
+    required = {"document_id", "page_number", "text", "characters"}
+    if not required.issubset(columns):
+        missing = sorted(required - set(columns))
+        raise RuntimeError("page comparison lacks required columns: " + ", ".join(missing))
+    value_columns = [column for column in columns
+                     if column not in ("document_id", "page_number")]
+    select = "document_id, page_number, " + ", ".join(value_columns)
     published = {
-        (row[0], row[1]): (row[2], row[3]) for row in remote.execute(
-            "SELECT document_id, page_number, text, characters "
-            "FROM read_parquet('" + url + "')").fetchall()}
+        (row[0], row[1]): row[2:] for row in remote.execute(
+            "SELECT " + select + " FROM " + table).fetchall()}
     mismatched = 0
     seen = 0
-    for did, number, text, characters in connection.execute(
-            "SELECT document_id, page_number, text, characters FROM pages"):
+    for row in connection.execute("SELECT " + select + " FROM pages"):
+        did, number, values = row[0], row[1], row[2:]
         seen += 1
         want = published.get((did, number))
-        if want is None or (text or "") != (want[0] or "") or characters != want[1]:
+        if want is None or tuple(values) != tuple(want):
             mismatched += 1
     if seen != len(published):
         mismatched += abs(seen - len(published))
-    return mismatched
+    return mismatched, ["document_id", "page_number"] + value_columns
 
 
-def manifest_mismatches(connection, field: str) -> int:
+def manifest_mismatches(connection, field: str, manifests: Path,
+                        preferences: Path) -> int:
     """Compare a rebuilt column against the tracked conversion manifests.
 
     `extraction_engine_version` and `source_file` are dropped from the published
@@ -104,19 +117,31 @@ def manifest_mismatches(connection, field: str) -> int:
     from the PDF one, and source_file because the one hash present in both
     manifests was keyed without regard to which corpus it came from.
     """
-    manifests = Path(__file__).resolve().parents[1] / "corpus"
     csv.field_size_limit(1 << 27)
-    canonical: dict[str, str] = {}
-    for path in (manifests / "conversion-manifest.csv",
-                 manifests / "office" / "conversion-manifest.csv"):
+    preferred = {}
+    if preferences.is_file():
+        with preferences.open(encoding="utf-8-sig", newline="") as stream:
+            preferred = {row["source_sha256"]: row["preferred_corpus"]
+                         for row in csv.DictReader(stream)}
+    candidates: dict[str, dict[str, str]] = {}
+    for corpus_name, path in (("pdf", manifests / "conversion-manifest.csv"),
+                              ("office", manifests / "office" / "conversion-manifest.csv")):
         if not path.is_file():
             continue
         with path.open(encoding="utf-8-sig", newline="") as stream:
             for row in csv.DictReader(line.replace("\x00", "") for line in stream):
-                value = (row.get(field) or row.get("engine") if field == "engine_version"
-                         else row.get(field))
-                # First writer wins, matching how the indexer dedupes by hash.
-                canonical.setdefault(row["source_sha256"], value or "")
+                value = ((row.get(field) or row.get("engine") or row.get("pipeline_version"))
+                         if field == "engine_version" else row.get(field))
+                candidates.setdefault(row["source_sha256"], {})[corpus_name] = value or ""
+    canonical = {}
+    for sha, by_corpus in candidates.items():
+        if len(by_corpus) == 1:
+            canonical[sha] = next(iter(by_corpus.values()))
+        else:
+            choice = preferred.get(sha)
+            if choice not in by_corpus:
+                raise RuntimeError("duplicate manifest row has no valid extraction preference: " + sha)
+            canonical[sha] = by_corpus[choice]
     column = "extraction_engine_version" if field == "engine_version" else field
     mismatched = 0
     for sha, got in connection.execute(
@@ -127,22 +152,19 @@ def manifest_mismatches(connection, field: str) -> int:
     return mismatched
 
 
-def untitled_in_published(user: str) -> int:
+def untitled_in_published(documents: Path) -> int:
     """How many published documents carry no title, so the rebuild can match it."""
     try:
         import duckdb
     except ImportError:
         return 0
     remote = duckdb.connect()
-    remote.execute("INSTALL httpfs; LOAD httpfs;")
-    url = ("https://huggingface.co/datasets/" + user +
-           "/cbi-archive-corpus/resolve/main/data/documents.parquet")
     return remote.execute(
-        "SELECT COUNT(*) FROM read_parquet('" + url + "') "
+        "SELECT COUNT(*) FROM " + sql_parquet(documents) + " "
         "WHERE title IS NULL OR trim(title) = ''").fetchone()[0]
 
 
-def compare_against_published(connection, user: str):
+def compare_against_published(connection, documents: Path):
     """Compare the rebuilt index row by row against the published documents table."""
     try:
         import duckdb
@@ -150,18 +172,25 @@ def compare_against_published(connection, user: str):
         print("   (duckdb not installed, skipping the column comparison)")
         return []
     remote = duckdb.connect()
-    remote.execute("INSTALL httpfs; LOAD httpfs;")
-    url = ("https://huggingface.co/datasets/" + user +
-           "/cbi-archive-corpus/resolve/main/data/documents.parquet")
+    table = sql_parquet(documents)
+    remote_columns = [row[0] for row in remote.execute(
+        "DESCRIBE SELECT * FROM " + table).fetchall()]
+    local_columns = {row[1] for row in connection.execute("PRAGMA table_info(documents)")}
+    compared_columns = [column for column in remote_columns
+                        if column != "document_id" and column in local_columns]
+    missing_columns = [column for column in remote_columns
+                       if column != "document_id" and column not in local_columns]
     published = {
         row[0]: row[1:] for row in remote.execute(
-            "SELECT document_id, " + ", ".join(COMPARED_COLUMNS) +
-            " FROM read_parquet('" + url + "')").fetchall()}
+            "SELECT document_id, " + ", ".join(compared_columns) +
+            " FROM " + table).fetchall()}
     local = {
         row[0]: row[1:] for row in connection.execute(
-            "SELECT document_id, " + ", ".join(COMPARED_COLUMNS) + " FROM documents")}
+            "SELECT document_id, " + ", ".join(compared_columns) + " FROM documents")}
     results = []
-    for position, column in enumerate(COMPARED_COLUMNS):
+    for column in missing_columns:
+        results.append(("missing published column: " + column, len(published)))
+    for position, column in enumerate(compared_columns):
         differing = sum(
             1 for did, values in published.items()
             if did in local and str(local[did][position]) != str(values[position]))
@@ -184,11 +213,14 @@ def run(command: list[str]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--user", default="aditya487")
+    parser.add_argument("--revision", default=corpus_revision(),
+                        help="immutable HF revision (defaults to RELEASE.lock.json)")
     parser.add_argument("--keep", action="store_true", help="do not delete the temp tree")
     args = parser.parse_args()
 
     scripts = Path(__file__).resolve().parent
-    published = json.loads(urllib.request.urlopen(SUMMARY.format(user=args.user)).read())
+    published = json.loads(urllib.request.urlopen(
+        SUMMARY.format(user=args.user, revision=args.revision)).read())
     print(f"published summary: {published['documents']} documents, {published['pages']} pages")
 
     workspace = Path(tempfile.mkdtemp(prefix="cbi-fresh-"))
@@ -196,7 +228,8 @@ def main() -> int:
     try:
         print("1. materialise the Markdown corpus from the published Parquet")
         run([sys.executable, scripts / "materialize_markdown.py",
-             "--user", args.user, "--output", workspace / "corpus"])
+             "--user", args.user, "--revision", args.revision,
+             "--output", workspace / "corpus"])
 
         print("\n2. build an index from it")
         (workspace / "index").mkdir(parents=True, exist_ok=True)
@@ -208,7 +241,9 @@ def main() -> int:
                    "--corpus", workspace / "corpus",
                    "--corpus", workspace / "corpus" / "office",
                    "--output", workspace / "index",
-                   "--database-name", "fresh.sqlite"]
+                   "--database-name", "fresh.sqlite",
+                   "--page-authorship-csv", workspace / "corpus" / "page-authorship-overrides.csv",
+                   "--extraction-preferences-csv", workspace / "corpus" / "extraction-preferences.csv"]
         if audit.is_file():
             command += ["--audit-csv", audit]
         else:
@@ -219,19 +254,36 @@ def main() -> int:
         failures = json.loads((workspace / "index" / "index-failures.json").read_text())
         connection = sqlite3.connect(workspace / "index" / "fresh.sqlite")
 
+        print("   downloading pinned Parquet for row-by-row comparison")
+        published_dir = workspace / "published"
+        documents_parquet = published_dir / "documents.parquet"
+        pages_parquet = published_dir / "pages.parquet"
+        data_url = ("https://huggingface.co/datasets/" + args.user +
+                    "/cbi-archive-corpus/resolve/" + args.revision + "/data/")
+        download(data_url + "documents.parquet", documents_parquet)
+        download(data_url + "pages.parquet", pages_parquet)
+
         def scalar(query: str) -> int:
             return connection.execute(query).fetchone()[0] or 0
 
+        expected_non_default_page_basis = remote_scalar(
+            documents_parquet,
+            "SELECT COUNT(*) FROM {documents} WHERE page_basis != 'source-page'")
+        expected_non_pdf = remote_scalar(
+            documents_parquet,
+            "SELECT COUNT(*) FROM {documents} WHERE source_format != 'pdf'")
+        page_mismatches, compared_page_columns = page_row_mismatches(
+            connection, pages_parquet)
         checks = [
             ("index failures", len(failures), 0),
             ("documents", scalar("SELECT COUNT(*) FROM documents"), published["documents"]),
             ("pages", scalar("SELECT COUNT(*) FROM pages"), published["pages"]),
             ("non-default page_basis",
              scalar("SELECT COUNT(*) FROM documents WHERE page_basis != 'source-page'"),
-             EXPECTED_NON_DEFAULT_PAGE_BASIS),
+             expected_non_default_page_basis),
             ("non-pdf source_format",
              scalar("SELECT COUNT(*) FROM documents WHERE source_format != 'pdf'"),
-             EXPECTED_NON_PDF_FORMAT),
+             expected_non_pdf),
             # Metadata the earlier version of this test never looked at. Each of
             # these was silently wrong at some point and nothing caught it.
             #
@@ -242,7 +294,7 @@ def main() -> int:
             # Parquet at all, so those two are absolute.
             ("documents missing a title",
              scalar("SELECT COUNT(*) FROM documents WHERE title IS NULL OR trim(title)=''"),
-             untitled_in_published(args.user)),
+             untitled_in_published(documents_parquet)),
             ("documents missing source_file",
              scalar("SELECT COUNT(*) FROM documents WHERE source_file IS NULL OR trim(source_file)=''"), 0),
             ("documents missing engine version",
@@ -253,12 +305,15 @@ def main() -> int:
             # against the tracked manifests instead, which is where a rebuild
             # gets them and where both were silently wrong.
             ("engine versions differing from the manifests",
-             manifest_mismatches(connection, "engine_version"), 0),
+             manifest_mismatches(connection, "engine_version", workspace / "corpus",
+                                 workspace / "corpus" / "extraction-preferences.csv"), 0),
             ("source_file differing from the manifests",
-             manifest_mismatches(connection, "source_file"), 0),
-            # The whole point of the corpus. 88,782 rows, text included.
+             manifest_mismatches(connection, "source_file", workspace / "corpus",
+                                 workspace / "corpus" / "extraction-preferences.csv"), 0),
+            # The whole point of the corpus: every published page row, text and
+            # page-level provenance included.
             ("page rows differing from published",
-             page_text_mismatches(connection, args.user), 0),
+             page_mismatches, 0),
             # markdown_sha256 is deliberately NOT checked here. It records the
             # hash of the original conversion, and the materialised Markdown is
             # documented as not byte-identical to that, so it can never match in
@@ -269,7 +324,8 @@ def main() -> int:
 
         # Column-by-column comparison against the published Parquet, which is the
         # thing a fresh clone is actually trying to reproduce.
-        compared = compare_against_published(connection, args.user)
+        compared = compare_against_published(connection, documents_parquet)
+        print("   page columns compared: " + ", ".join(compared_page_columns))
 
         bad = []
         for label, got, want in checks:

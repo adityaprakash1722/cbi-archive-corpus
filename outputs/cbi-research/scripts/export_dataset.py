@@ -16,7 +16,7 @@ to move something you can regenerate. Parquet is different:
 Two tables are written:
 
   documents.parquet   one row per logical document, 5,568 rows
-  pages.parquet       one row per source page, 88,782 rows, carrying the text
+  pages.parquet       one row per source page, carrying the text
 
 The split matters. Most questions ("how many stakeholder submissions mention
 outsourcing") need only the small table plus a join, and never touch the 170 MB
@@ -33,15 +33,19 @@ import pyarrow.parquet as pq
 DOC_COLUMNS = [
     "document_id", "source_sha256", "source_url", "source_alias_count",
     "source_bytes", "title", "pdf_author", "pdf_creation_date",
+    "published_at", "published_at_basis", "analysis_year", "analysis_year_basis",
+    "retrieved_at", "source_page_url", "source_last_modified_at",
     "document_class", "authorship", "classification_basis",
     "classification_confidence", "page_basis", "source_format",
     "consultation_id", "page_count", "extraction_engine", "ocr_enabled",
-    "quality_low_text", "quality_empty_pages",
+    "quality_low_text", "quality_empty_pages", "extraction_selection_basis",
+    "alternate_extraction_count",
 ]
 
 PAGE_SCHEMA = pa.schema([
     ("document_id", pa.string()), ("source_sha256", pa.string()),
     ("page_number", pa.int32()), ("authorship", pa.string()),
+    ("authorship_basis", pa.string()),
     ("document_class", pa.string()), ("page_basis", pa.string()),
     ("consultation_id", pa.string()), ("title", pa.string()),
     ("source_url", pa.string()), ("characters", pa.int32()),
@@ -69,8 +73,8 @@ def write_pages(connection: sqlite3.Connection, out: Path, batch: int = 4000) ->
     writer = None
     total = 0
     query = """
-        SELECT p.document_id, d.source_sha256, p.page_number, d.authorship,
-               d.document_class, d.page_basis, d.consultation_id, d.title,
+        SELECT p.document_id, d.source_sha256, p.page_number, p.authorship,
+               p.authorship_basis, d.document_class, d.page_basis, d.consultation_id, d.title,
                d.source_url, p.characters, p.text
         FROM pages AS p JOIN documents AS d USING(document_id)
         ORDER BY d.source_sha256, p.page_number

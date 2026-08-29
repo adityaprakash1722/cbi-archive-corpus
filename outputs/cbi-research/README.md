@@ -144,21 +144,25 @@ python .\outputs\cbi-research\scripts\build_search_index.py `
   --corpus .\outputs\cbi-research\corpus\office `
   --output .\outputs\cbi-research\index `
   --audit-csv .\outputs\cbi-research\audit\pdf-audit.csv `
-  --database-name cbi-corpus-v4-5568docs.sqlite
+  --files-csv .\outputs\cbi-archive\cbi-data\manifests\files.csv `
+  --snapshot-date 2026-08-25 `
+  --page-authorship-csv .\outputs\cbi-research\qa\page-authorship-overrides.csv `
+  --extraction-preferences-csv .\outputs\cbi-research\qa\extraction-preferences.csv `
+  --database-name cbi-corpus-v5-5568docs.sqlite
 
 python .\outputs\cbi-research\scripts\run_topic_scan.py `
-  --database .\outputs\cbi-research\index\cbi-corpus-v4-5568docs.sqlite `
+  --database .\outputs\cbi-research\index\cbi-corpus-v5-5568docs.sqlite `
   --queries .\outputs\cbi-research\topic_queries.json `
-  --output .\outputs\cbi-research\analysis-v4
+  --output .\outputs\cbi-research\analysis-v5
 
 python .\outputs\cbi-research\scripts\export_evidence_candidates.py `
-  --database .\outputs\cbi-research\index\cbi-corpus-v4-5568docs.sqlite `
+  --database .\outputs\cbi-research\index\cbi-corpus-v5-5568docs.sqlite `
   --queries .\outputs\cbi-research\topic_queries.json `
-  --output .\outputs\cbi-research\analysis-v4
+  --output .\outputs\cbi-research\analysis-v5
 
 python .\outputs\cbi-research\scripts\export_provenance_qa.py `
-  --database .\outputs\cbi-research\index\cbi-corpus-v4-5568docs.sqlite `
-  --previous-database .\outputs\cbi-research\index\cbi-corpus.sqlite `
+  --database .\outputs\cbi-research\index\cbi-corpus-v5-5568docs.sqlite `
+  --previous-database .\outputs\cbi-research\index\cbi-corpus-v4-5568docs.sqlite `
   --output .\outputs\cbi-research\qa
 ```
 
@@ -172,6 +176,7 @@ Run extraction-density QA over both manifests (the script deduplicates by SHA-25
 python .\outputs\cbi-research\scripts\qa_extraction_quality.py `
   --manifest .\outputs\cbi-research\corpus\conversion-manifest.csv `
   --manifest .\outputs\cbi-research\corpus\office\conversion-manifest.csv `
+  --extraction-preferences-csv .\outputs\cbi-research\qa\extraction-preferences.csv `
   --output .\outputs\cbi-research\qa
 ```
 

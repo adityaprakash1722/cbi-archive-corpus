@@ -41,22 +41,24 @@ the whole reason this review exists.
 
 ## 3. What the screen found
 
-`scripts/scan_personal_data.py` pattern-screened all 88,782 pages. It stores
+`scripts/scan_personal_data.py` pattern-screened all 88,783 v5 pages. It stores
 counts and truncated hashes, never values.
 
 | Signal | Documents | Stakeholder | Central Bank |
 |---|---:|---:|---:|
 | Irish PPS number shape | 17 | 13 | 4 |
 | IBAN shape | 4 | 0 | 4 |
-| Email, personal-looking local part | 508 | 151 | 349 |
-| Email, any | 2,372 | 607 | 1,732 |
-| Irish phone number shape | 223 | 119 | 98 |
+| Email, personal-looking local part | 509 | 152 | 348 |
+| Email, any | 2,406 | 618 | 1,758 |
+| Irish phone number shape | 226 | 124 | 97 |
 | Date of birth label | 2 | 0 | 2 |
-| Signature block | 1,806 | 713 | 1,056 |
+| Signature block | 1,827 | 731 | 1,065 |
 | Home address label | 14 | 3 | 11 |
 | Written as a private individual | 39 | 20 | 19 |
 
-3,169 of 5,568 documents carry at least one signal. That number is alarming and
+3,196 of 5,568 documents carry at least one signal. The remaining signal rows
+are 29 unresolved documents and one mixed composite; column totals can overlap.
+That number is alarming and
 almost entirely meaningless on its own, which is why every high-severity
 category was then read individually.
 
@@ -89,7 +91,7 @@ documents where a name, an occupation, a personal circumstance and an opinion
 appear together, which is what makes them sensitive in aggregate.
 
 `qa/individual-submission-review.csv` lists **18 candidates**: 11 stakeholder,
-6 central-bank, 1 unresolved. That is **0.66% of the 1,656 stakeholder
+6 central-bank, 1 unresolved. That is **0.66% of the 1,671 stakeholder
 documents**.
 
 They were found three ways: a title styled as a personal name, a URL styled the
@@ -170,7 +172,7 @@ position.
 4. **Do not treat the screen as a clearance.** It is a pattern screen with known
    noise. `scan_personal_data.py` should be re-run after any corpus change, and
    the PPSN-versus-VAT finding kept in mind.
-5. **Leave the 2,372 documents containing email addresses alone.** They are
+5. **Leave the 2,406 documents containing email addresses alone.** They are
    overwhelmingly corporate contact points on letterheads, already published, and
    redacting them would damage the corpus for no meaningful privacy gain.
 
@@ -178,7 +180,7 @@ position.
 
 ```bash
 python outputs/cbi-research/scripts/scan_personal_data.py \
-  --database outputs/cbi-research/index/cbi-corpus-v4-5568docs.sqlite \
+  --database outputs/cbi-research/index/cbi-corpus-v5-5568docs.sqlite \
   --output outputs/cbi-research/qa
 ```
 

@@ -4,7 +4,7 @@ r"""Check tracked data, explicitly marked facts, and known documentation regress
     python outputs\cbi-research\scripts\check_manifest_invariants.py
 
 Runs in CI on every push. Its CI checks need no network or built index. When the
-untracked Markdown corpus and v4 index are present locally, it also verifies the
+untracked Markdown corpus and v5 index are present locally, it also verifies the
 hash chain from each Markdown file through its manifest to the index.
 
 Two earlier versions of this script were not worth their name
@@ -72,6 +72,19 @@ REQUIRED_FACT_COUNTS = {
     ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "quality.grade.empty"): 1,
     ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "quality.median_nonspace_per_page"): 1,
     ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "quality.empty_page_share_percent"): 1,
+    ("STORAGE.md", "authorship.central-bank"): 1,
+    ("STORAGE.md", "authorship.stakeholder"): 1,
+    ("STORAGE.md", "authorship.unresolved"): 1,
+    ("STORAGE.md", "authorship.mixed"): 1,
+    ("STORAGE.md", "classifier.assertions"): 1,
+    ("STORAGE.md", "audit.documents"): 1,
+    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "authorship.central-bank"): 1,
+    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "authorship.stakeholder"): 1,
+    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "authorship.unresolved"): 1,
+    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "authorship.mixed"): 1,
+    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "classifier.assertions"): 1,
+    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "audit.documents"): 1,
+    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "audit.correct"): 1,
 }
 
 # How far from a number a keyword may sit and still be about it.
@@ -85,10 +98,15 @@ def read_csv(path: Path) -> list[dict]:
 
 
 def git_tracked_paths(pattern: str | None = None) -> list[str] | None:
-    """Return git's file list, or None when git is unavailable."""
-    command = ["git", "ls-files"]
+    """Return files that would be present after a commit, or None without git.
+
+    Including non-ignored untracked files makes canonical repository-file counts
+    checkable before a commit as well as after it. It also catches exactly the
+    accidental-artifact escape that the count is intended to guard.
+    """
+    command = ["git", "ls-files", "--cached", "--others", "--exclude-standard"]
     if pattern:
-        command.append(pattern)
+        command += ["--", pattern]
     try:
         out = subprocess.run(command, cwd=ROOT, capture_output=True, text=True,
                              check=True).stdout
@@ -173,6 +191,17 @@ def main() -> int:
         (ROOT / "publish" / "blob-summary.json").read_text(encoding="utf-8"))
     quality_summary = json.loads(
         (RESEARCH / "qa" / "extraction-quality-summary.json").read_text(encoding="utf-8"))
+    authorship_gold = read_csv(RESEARCH / "qa" / "authorship-gold.csv")
+    authorship_evaluation = json.loads(
+        (RESEARCH / "qa" / "authorship-evaluation.json").read_text(encoding="utf-8"))
+    release = json.loads((ROOT / "RELEASE.lock.json").read_text(encoding="utf-8"))
+    page_overrides = read_csv(RESEARCH / "qa" / "page-authorship-overrides.csv")
+    extraction_preferences = read_csv(RESEARCH / "qa" / "extraction-preferences.csv")
+    file_manifest = read_csv(ROOT / "outputs" / "cbi-archive" / "cbi-data" /
+                             "manifests" / "files.csv")
+    page_manifest = read_csv(ROOT / "outputs" / "cbi-archive" / "cbi-data" /
+                             "manifests" / "page-snapshots.csv")
+    page_catalog = read_csv(ROOT / "publish" / "page-catalog.csv")
     tracked = git_tracked_paths()
     tracked_file_count = len(tracked) if tracked is not None else None
 
@@ -191,6 +220,37 @@ def main() -> int:
     check("catalogue keys carrying a blobs/ prefix",
           sum(1 for r in catalog if r["key"].startswith("blobs/")), 0)
     check("summary layout string", blob_summary["layout"], "<sha[0:2]>/<sha[2:4]>/<sha256><ext>")
+    check("files.csv local paths using backslashes",
+          sum("\\" in (row.get("localPath") or "") for row in file_manifest), 0)
+    check("page snapshot manifest rows", len(page_manifest), 11371)
+    check("page snapshot catalogue agrees with raw summary", len(page_catalog),
+          blob_summary.get("page_snapshots_laid_out", 0))
+    check("archived page keys are deterministic",
+          sum(1 for row in page_manifest if row.get("htmlSha256") and
+              row.get("archiveKey") !=
+              f"page-context/{row['htmlSha256'][:2]}/{row['htmlSha256']}.html"), 0)
+    check("release-lock schema version", release.get("schema_version"), 1)
+    check("release-lock corpus revision is immutable",
+          bool(re.fullmatch(r"[0-9a-f]{40}",
+                            release.get("hugging_face", {}).get("corpus_revision", ""))), True)
+    check("release-lock raw revision is immutable",
+          bool(re.fullmatch(r"[0-9a-f]{40}",
+                            release.get("hugging_face", {}).get("raw_revision", ""))), True)
+    check("release-lock artifact hashes are SHA-256",
+          all(re.fullmatch(r"[0-9a-f]{64}", value or "")
+              for value in release.get("artifacts", {}).values()), True)
+    check("release-lock expected document count",
+          release.get("expected", {}).get("documents"), 5568)
+    overlap = {row["source_sha256"] for row in pdf} & {
+        row["source_sha256"] for row in office}
+    check("duplicate extractions with explicit preferences",
+          {row["source_sha256"] for row in extraction_preferences}, overlap)
+    check("mixed documents with page-authorship overrides",
+          len({row["source_sha256"] for row in page_overrides}), 1)
+    check("authorship audit covers every gold row",
+          authorship_evaluation.get("documents"), len(authorship_gold))
+    check("authorship audit has no detected errors",
+          authorship_evaluation.get("correct"), len(authorship_gold))
 
     authorship: dict[str, int] = {}
     for row in provenance:
@@ -243,6 +303,10 @@ def main() -> int:
 
     expected_facts: dict[str, int | float | Decimal] = {
         **{f"quality.grade.{grade}": count for grade, count in grades.items()},
+        **{f"authorship.{label}": count for label, count in authorship.items()},
+        "classifier.assertions": assertions,
+        "audit.documents": len(authorship_gold),
+        "audit.correct": authorship_evaluation.get("correct", 0),
         "quality.median_nonspace_per_page": quality_summary["median_nonspace_per_page"],
         "quality.empty_page_share_percent": (
             Decimal(str(quality_summary["empty_page_share"])) * Decimal(100)),
@@ -256,15 +320,32 @@ def main() -> int:
     facts: list[tuple[int, list[str], int, str]] = [
         (3807, ["central-bank", "central bank document"], authorship.get("central-bank", 0),
          "central-bank count"),
+        (3809, ["central-bank", "central bank document"], authorship.get("central-bank", 0),
+         "central-bank count"),
+        (1656, ["stakeholder"], authorship.get("stakeholder", 0), "stakeholder count"),
+        (103, ["unresolved"], authorship.get("unresolved", 0), "unresolved count"),
         (105, ["unresolved"], authorship.get("unresolved", 0), "unresolved count"),
         (105, ["confidence", "low "], confidence.get("low", 0), "low-confidence count"),
+        (125, ["confidence", "medium"], confidence.get("medium", 0), "medium-confidence count"),
+        (5340, ["confidence", "high"], confidence.get("high", 0), "high-confidence count"),
         (123, ["confidence", "medium"], confidence.get("medium", 0), "medium-confidence count"),
+        (97, ["assertion", "regression test", "classifier", "test_classify"],
+         assertions, "assertion count"),
         (94, ["assertion", "regression test", "classifier", "test_classify"],
          assertions, "assertion count"),
+        (102, ["assertion", "regression test", "classifier", "test_classify"],
+         assertions, "assertion count"),
+        (30, ["audit sample", "human-reviewed sample", "human-labelled audit", "30/30"],
+         len(authorship_gold), "human-audit sample size"),
+        (82, ["flag", "graded", "extraction", "extract badly", "below `ok`"],
+         flagged, "documents graded below ok"),
         (112, ["flag", "graded", "extraction", "extract badly", "below `ok`"],
          flagged, "documents graded below ok"),
+        (5486, ["clean", "graded", "extraction", "| ok |"], clean,
+         "documents graded ok"),
         (5456, ["clean", "graded", "extraction", "| ok |"], clean, "documents graded ok"),
         (63, ["gappy"], grades.get("gappy", 0), "`gappy` document count"),
+        (26, ["garbled"], grades.get("garbled", 0), "`garbled` document count"),
         (16, ["thin"], grades.get("thin", 0), "`thin` document count"),
     ]
 
@@ -358,8 +439,9 @@ def main() -> int:
     # of the triangle are checked now.
     print("\nlocal corpus and index, when present")
     file_hash: dict[str, str] = {}
+    file_candidates: dict[str, dict[str, str]] = {}
     stale_manifest = missing = 0
-    for where, rows in (("", pdf), ("office", office)):
+    for corpus_name, where, rows in (("pdf", "", pdf), ("office", "office", office)):
         root = RESEARCH / "corpus" / where if where else RESEARCH / "corpus"
         for row in rows:
             path = root / (row["markdown_file"] or "").replace("\\", "/")
@@ -367,29 +449,52 @@ def main() -> int:
                 missing += 1
                 continue
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
-            file_hash.setdefault(row["source_sha256"], digest)
+            file_candidates.setdefault(row["source_sha256"], {})[corpus_name] = digest
             if digest != row.get("markdown_sha256"):
                 stale_manifest += 1
+    preferred = {row["source_sha256"]: row["preferred_corpus"]
+                 for row in extraction_preferences}
+    for sha, candidates in file_candidates.items():
+        if len(candidates) == 1:
+            file_hash[sha] = next(iter(candidates.values()))
+            continue
+        choice = preferred.get(sha)
+        if choice not in candidates:
+            problems.append(f"duplicate extraction {sha} has no valid preference")
+            continue
+        file_hash[sha] = candidates[choice]
     if missing == len(pdf) + len(office):
         print("  corpus not present, skipped (this is normal in CI)")
     else:
         check("Markdown files whose hash differs from the manifest", stale_manifest, 0)
         check("manifest rows with no Markdown file on disk", missing, 0)
 
-    index = RESEARCH / "index" / "cbi-corpus-v4-5568docs.sqlite"
+    index = RESEARCH / "index" / "cbi-corpus-v5-5568docs.sqlite"
     if not index.is_file() or not file_hash:
         print("  index not present, skipped (this is normal in CI)")
     else:
         connection = sqlite3.connect(index)
         index_rows = list(connection.execute(
             "SELECT source_sha256, markdown_sha256 FROM documents"))
-        connection.close()
         stale_index, unexpected_index, missing_index = index_hash_counts(
             index_rows, file_hash)
         check("index document rows", len(index_rows), len(file_hash))
         check("index source hashes absent from the corpus", unexpected_index, 0)
         check("corpus source hashes absent from the index", missing_index, 0)
         check("index rows whose markdown_sha256 is stale", stale_index, 0)
+        check("index documents with a future analysis year",
+              connection.execute(
+                  "SELECT COUNT(*) FROM documents WHERE analysis_year > 2026").fetchone()[0], 0)
+        check("index documents still assigned to erroneous cp71",
+              connection.execute(
+                  "SELECT COUNT(*) FROM documents WHERE consultation_id = 'cp71'").fetchone()[0], 0)
+        check("index mixed-document count",
+              connection.execute(
+                  "SELECT COUNT(*) FROM documents WHERE authorship = 'mixed'").fetchone()[0], 1)
+        check("index pages without page-level authorship",
+              connection.execute(
+                  "SELECT COUNT(*) FROM pages WHERE authorship IS NULL OR authorship = ''").fetchone()[0], 0)
+        connection.close()
 
     print()
     if problems:

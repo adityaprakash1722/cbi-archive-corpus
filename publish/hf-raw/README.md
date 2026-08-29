@@ -23,11 +23,11 @@ human would actually read.
 
 This is the **raw tier**. If you want the text, you almost certainly want
 [`aditya487/cbi-archive-corpus`](https://huggingface.co/datasets/aditya487/cbi-archive-corpus)
-instead: 5,568 documents and 88,782 pages as Parquet, 47 MB, queryable over
+instead: 5,568 documents and 88,783 pages as Parquet, about 48 MB, queryable over
 HTTPS without downloading anything.
 
 Come here when the text is not enough: charts, diagrams, scanned pages, tables
-that did not survive extraction, and the 82 documents graded as extracting
+that did not survive extraction, and the 81 documents graded below `ok`
 badly.
 
 ## How files are addressed
@@ -67,12 +67,16 @@ wrong.
 | XML | 5 |
 | PPTX | 2 |
 
-Plus two metadata files:
+Plus three metadata files:
 
 - **`blob-catalog.csv`** maps every hash to its path, format, byte count, and
   every URL that served it, including aliases. 6,309 rows.
 - **`blob-summary.json`** records how the tree was built, including the 654
   duplicate copies collapsed by content addressing, which saved 917 MB.
+- **`page-catalog.csv`** maps immutable HTML page-context snapshots to source
+  URLs. It is empty for the August 2026 snapshot because the original crawler
+  retained referrer URLs/statuses but not HTML bodies. Future refreshed pages
+  are stored under `page-context/<sha-prefix>/<sha256>.html` by default.
 
 ## Getting a file
 
@@ -86,7 +90,7 @@ It searches the Parquet text, resolves the hash, downloads the original, and
 verifies the SHA-256 before writing it. Or fetch directly:
 
 ```
-https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/main/ae/0a/<sha256>.pdf
+https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/24e8bf7443f6c3831a02ceb477b9335bdfddc384/ae/0a/<sha256>.pdf
 ```
 
 Every file's SHA-256 is also exposed in the Hub's own LFS metadata, so integrity
@@ -124,8 +128,9 @@ The corpus has been screened for personal data. Findings, in full:
   (seven digits and a letter). Every one appeared on a corporate letterhead.
 - **No personal payment details.** All 4 IBAN matches are the Central Bank's own
   published accounts for levy and fee payments.
-- **18 documents** are candidate submissions from identifiable private
-  individuals, about 0.66% of the stakeholder pile. These are under review.
+- **18 documents** are submissions from identifiable private individuals,
+  about 0.66% of the stakeholder pile. All 18 were manually reviewed and
+  preserved under the documented decision in `RIGHTS-REVIEW.md`.
 - Email addresses and phone numbers appear widely but are overwhelmingly
   corporate contact points already printed on letterheads.
 - The Central Bank applies its own redaction upstream: 206 documents reference
@@ -167,8 +172,9 @@ disproportionate is **advocacy**, not a regulatory finding, and treating it as
 one is the easiest way to produce confidently wrong analysis from this data.
 
 The `authorship` column in `documents.parquet` records which is which:
-`central-bank` (3,809), `stakeholder` (1,656), `unresolved` (103). Check it
-before you quote anything.
+`central-bank` (3,807), `stakeholder` (1,671), `mixed` (1) and `unresolved`
+(89). For the mixed composite, use the page-level label. Check it before you
+quote anything.
 
 ## Citation
 

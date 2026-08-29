@@ -47,9 +47,12 @@ def ranked_pages(
                snippet(pages_fts, 3, '<<', '>>', ' … ', 56) AS candidate_excerpt,
                d.title, d.source_url, d.markdown_file, d.source_sha256,
                d.pdf_creation_date, d.document_class, d.consultation_id,
+               d.published_at, d.analysis_year, pg.authorship AS page_authorship,
+               pg.authorship_basis AS page_authorship_basis,
                d.page_count, d.ocr_enabled,
                d.quality_low_text
         FROM pages_fts AS f
+        JOIN pages AS pg USING(document_id, page_number)
         JOIN documents AS d ON d.document_id = f.document_id
         WHERE pages_fts MATCH ?
         ORDER BY relevance, d.title, f.page_number
@@ -106,6 +109,10 @@ def main() -> int:
                             "source_page": row["page_number"],
                             "document_pages": row["page_count"],
                             "pdf_creation_date": row["pdf_creation_date"],
+                            "published_at": row["published_at"],
+                            "analysis_year": row["analysis_year"],
+                            "page_authorship": row["page_authorship"],
+                            "page_authorship_basis": row["page_authorship_basis"],
                             "document_class": row["document_class"],
                             "consultation_id": row["consultation_id"],
                             "ocr_enabled": bool(row["ocr_enabled"]),

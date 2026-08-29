@@ -12,6 +12,7 @@ name: checks
 on:
   push:
     branches: [master]
+    tags: ["v*"]
   pull_request:
   schedule:
     - cron: "0 6 * * 1"
@@ -29,6 +30,20 @@ jobs:
       - name: Run the suite
         run: python outputs/cbi-research/scripts/test_classify_provenance.py
         working-directory: ${{ github.workspace }}
+
+  crawler:
+    name: crawler regression suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: outputs/cbi-archive/package-lock.json
+      - name: Run the crawler tests
+        run: npm test
+        working-directory: outputs/cbi-archive
 
   compile:
     name: every script parses
@@ -55,9 +70,9 @@ jobs:
         run: python outputs/cbi-research/scripts/check_manifest_invariants.py
 
   fresh-rebuild:
-    # Compares all 19 published document columns, the two columns the Parquet
-    # does not carry (extraction_engine_version, source_file) against the
-    # manifests, and all 88,782 page rows including their text.
+    # Compares every published document and page column available in the pinned
+    # release, plus extraction_engine_version and source_file against the
+    # materialised manifests. Page text and page-level voice are included.
     #
     # It deliberately does NOT check markdown_sha256: that records the original
     # conversion's hash, and materialised Markdown is not byte-identical to it,
@@ -65,7 +80,7 @@ jobs:
     # against the local corpus and index instead, and skips when they are absent.
     name: fresh clone can rebuild the index
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -75,3 +90,12 @@ jobs:
         run: pip install --quiet duckdb
       - name: Materialise from the published data and index it
         run: python outputs/cbi-research/scripts/test_fresh_rebuild.py
+
+  release-gate:
+    name: immutable release gate
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [classifier, crawler, compile, manifest-invariants, fresh-rebuild]
+    steps:
+      - name: Confirm every release proof passed
+        run: echo "classifier, crawler, compile, invariants, and pinned fresh rebuild passed"

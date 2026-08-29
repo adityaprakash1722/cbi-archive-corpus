@@ -73,6 +73,7 @@ Inventory options:
   --path-prefix PATH    Only crawl sitemap pages under this URL path
   --types LIST          Comma-separated extensions to discover
   --include-assets      Also discover images, media, CSS, JS, and fonts
+  --no-archive-pages    Do not preserve fetched HTML page snapshots
   --refresh-pages       Re-fetch pages already inventoried
 
 Download options:
@@ -464,6 +465,11 @@ function atomicWrite(filename, contents) {
   renameSync(temporary, filename);
 }
 
+function htmlSnapshotKey(html) {
+  const sha256 = createHash("sha256").update(html, "utf8").digest("hex");
+  return { sha256, key: `pages/${sha256.slice(0, 2)}/${sha256}.html` };
+}
+
 function statePath(outDirectory) {
   return path.join(outDirectory, "archive-state.json");
 }
@@ -551,6 +557,10 @@ function csvEscape(value) {
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
+function portablePath(value) {
+  return value === null || value === undefined ? value : String(value).replaceAll("\\", "/");
+}
+
 function summarize(state) {
   const files = Object.values(state.files);
   const statuses = {};
@@ -596,8 +606,28 @@ function writeManifests(outDirectory, state) {
     "contentType", "etag", "lastModified", "referrers", "error",
   ];
   const rows = [fields.join(",")];
-  for (const file of files) rows.push(fields.map((field) => csvEscape(file[field])).join(","));
+  for (const file of files) {
+    rows.push(fields.map((field) => csvEscape(
+      field === "localPath" ? portablePath(file[field]) : file[field],
+    )).join(","));
+  }
   atomicWrite(path.join(manifestDirectory, "files.csv"), `${rows.join("\r\n")}\r\n`);
+  const pageFields = [
+    "url", "status", "httpStatus", "checkedAt", "finalUrl", "contentType",
+    "htmlSha256", "htmlPath", "archiveKey", "htmlBytes", "links", "filesDiscovered", "error",
+  ];
+  const pageRows = [pageFields.join(",")];
+  for (const [url, page] of Object.entries(state.pages).sort(([a], [b]) => a.localeCompare(b))) {
+    const record = {
+      url,
+      ...page,
+      archiveKey: page.htmlSha256
+        ? `page-context/${page.htmlSha256.slice(0, 2)}/${page.htmlSha256}.html`
+        : "",
+    };
+    pageRows.push(pageFields.map((field) => csvEscape(record[field])).join(","));
+  }
+  atomicWrite(path.join(manifestDirectory, "page-snapshots.csv"), `${pageRows.join("\r\n")}\r\n`);
   const failedFields = ["url", "error", "attempts", "referrers", "malformedSourceUrls"];
   const failedRows = [failedFields.join(",")];
   for (const file of files.filter((file) => file.status === "failed")) {
@@ -761,6 +791,16 @@ async function inventory(options) {
       }
       try {
         const { text, response } = await fetchText(url, context, { headers: { accept: "text/html,application/xhtml+xml" } });
+        let snapshot = {};
+        if (options.archivePages !== false) {
+          const identified = htmlSnapshotKey(text);
+          atomicWrite(path.join(outDirectory, identified.key), text);
+          snapshot = {
+            htmlSha256: identified.sha256,
+            htmlPath: identified.key,
+            htmlBytes: Buffer.byteLength(text, "utf8"),
+          };
+        }
         const links = extractLinks(text, response.url || url);
         let discovered = 0;
         for (const link of links) {
@@ -775,6 +815,9 @@ async function inventory(options) {
           status: "done",
           httpStatus: response.status,
           checkedAt: new Date().toISOString(),
+          finalUrl: response.url || url,
+          contentType: response.headers.get("content-type"),
+          ...snapshot,
           links: links.length,
           filesDiscovered: discovered,
         };
@@ -829,7 +872,7 @@ async function downloadOne(file, outDirectory, context, robotsByOrigin, maxNewBy
   if (existsSync(destination)) {
     const size = statSync(destination).size;
     file.status = "downloaded";
-    file.localPath = path.relative(outDirectory, destination);
+    file.localPath = portablePath(path.relative(outDirectory, destination));
     file.downloadedBytes = size;
     file.sha256 ||= await sha256File(destination);
     file.error = null;
@@ -864,7 +907,7 @@ async function downloadOne(file, outDirectory, context, robotsByOrigin, maxNewBy
   }
   const size = statSync(destination).size;
   file.status = "downloaded";
-  file.localPath = path.relative(outDirectory, destination);
+  file.localPath = portablePath(path.relative(outDirectory, destination));
   file.downloadedBytes = size;
   file.sha256 = await sha256File(destination);
   file.contentType = response.headers.get("content-type");
@@ -1089,10 +1132,12 @@ export {
   extractSitemapLocations,
   filePathForUrl,
   formatBytes,
+  htmlSnapshotKey,
   isFileCandidate,
   parseArgs,
   parseBytes,
   parseRobots,
+  portablePath,
   repairMalformedUrl,
   robotsAllows,
   safeSegment,

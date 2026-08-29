@@ -1,0 +1,2 @@
+source_sha256,preferred_corpus,basis,notes
+6d106f8c7c21455e087bc6ebb2f7116e087a7a917da2b3af898044ff510e7966,office,canonical-raw-format,"The raw blob is DOCX. Prefer the python-docx extraction with two explicit-page-break pages over the one-pseudo-page MarkItDown extraction reached through the mislabeled .pdf alias."

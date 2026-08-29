@@ -121,6 +121,57 @@ def main() -> int:
         writer.writeheader()
         writer.writerows(catalog)
 
+    # HTML source-page snapshots preserve the context in which a file appeared.
+    # They are a separate provenance layer and must not inflate the count or
+    # byte total for the 6,309 original downloadable files. Crawler versions
+    # used for the August 2026 snapshot did not keep bodies, so the current page
+    # catalogue is honestly empty; future refreshes flow through automatically.
+    page_linked = page_copied = page_missing = page_existing = 0
+    page_catalog = []
+    page_manifest = archive / "manifests" / "page-snapshots.csv"
+    if page_manifest.is_file():
+        with page_manifest.open(encoding="utf-8-sig", newline="") as stream:
+            page_rows = [row for row in csv.DictReader(stream) if row.get("htmlSha256")]
+        unique_pages: dict[str, dict] = {}
+        for row in page_rows:
+            sha = row["htmlSha256"]
+            entry = unique_pages.setdefault(sha, {
+                "sha256": sha,
+                "key": (row.get("archiveKey") or
+                        f"page-context/{sha[:2]}/{sha}.html"),
+                "bytes": int(row.get("htmlBytes") or 0),
+                "local_path": row["htmlPath"],
+                "urls": [],
+            })
+            entry["urls"].append(row["url"])
+        for entry in unique_pages.values():
+            source = archive / entry["local_path"].replace("\\", "/")
+            destination = output / entry["key"].replace("/", os.sep)
+            if not source.is_file():
+                page_missing += 1
+                continue
+            if destination.is_file():
+                page_existing += 1
+            else:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    os.link(source, destination)
+                    page_linked += 1
+                except OSError:
+                    shutil.copy2(source, destination)
+                    page_copied += 1
+            page_catalog.append({
+                "sha256": entry["sha256"], "key": entry["key"],
+                "bytes": entry["bytes"], "url_count": len(entry["urls"]),
+                "all_urls": " | ".join(sorted(entry["urls"])),
+            })
+    page_catalog_path = output.parent / "page-catalog.csv"
+    page_fields = ["sha256", "key", "bytes", "url_count", "all_urls"]
+    with page_catalog_path.open("w", encoding="utf-8-sig", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=page_fields)
+        writer.writeheader()
+        writer.writerows(page_catalog)
+
     total = sum(c["bytes"] for c in catalog)
     summary = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -134,6 +185,13 @@ def main() -> int:
         "hard_linked": linked, "copied": copied,
         "already_present": existing, "source_missing": missing,
         "layout": "<sha[0:2]>/<sha[2:4]>/<sha256><ext>",
+        "page_snapshots_laid_out": len(page_catalog),
+        "page_snapshot_bytes": sum(row["bytes"] for row in page_catalog),
+        "page_snapshot_layout": "page-context/<sha[0:2]>/<sha256>.html",
+        "page_snapshot_hard_linked": page_linked,
+        "page_snapshot_copied": page_copied,
+        "page_snapshot_already_present": page_existing,
+        "page_snapshot_source_missing": page_missing,
         "elapsed_seconds": round(time.time() - started, 1),
     }
     (output.parent / "blob-summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")

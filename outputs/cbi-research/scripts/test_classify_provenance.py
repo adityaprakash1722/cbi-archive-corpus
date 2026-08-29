@@ -55,6 +55,23 @@ CASES = [
      "central-bank", None),
     ("https://www.centralbank.ie/docs/default-source/statistics/data-and-analysis/mortgage-arrears/2026-q1-release.pdf",
      "central-bank", None),
+    # Audited stakeholder submissions filed outside the consultation archive.
+    ("https://www.centralbank.ie/docs/default-source/regulation/industry-market-sectors/credit-unions/"
+     "communications/sector-stakeholder-dialogues/lending-framework-review-2024-joint-submission-from-"
+     "cuda-cuma-ilcu-and-nsf.pdf", "stakeholder", None),
+    ("https://www.centralbank.ie/docs/default-source/regulation/industry-market-sectors/credit-unions/"
+     "communications/sector-stakeholder-dialogues/lending-framework-review-2024-submission-from-"
+     "collaborative-finance-clg.pdf", "stakeholder", None),
+    # A page-audited composite: Bank-authored framing followed by 22 public and
+    # stakeholder submissions. The page-level split is tested by the index test.
+    ("https://www.centralbank.ie/docs/default-source/publications/corporate-reports/strategic-plan/"
+     "submissions/strategic-plan2019-2021-public-engagement-submissions.pdf",
+     "mixed", None),
+    # The directory is named cp71, but both the proposal and its feedback
+    # statement identify this consultation as CP70. Actual CP71 is under cp071.
+    (f"{BASE}/cp71/feedback-statement-on-cp70.pdf", "central-bank", "cp70"),
+    (f"{BASE}/cp71/aema-submission.pdf", "stakeholder", "cp70"),
+    (f"{BASE}/cp071/cp71.pdf", "central-bank", "cp071"),
 ]
 
 # Complete regression set from the 2026-08-26 precedence audit: these 55 real
@@ -159,6 +176,9 @@ CLASS_CASES = [
     (f"{BASE}/cp117/feedback-statement-on-cp117.pdf", "cbi-consultation-feedback"),
     (f"{DISC}/dp11/irish-funds-response-to-dp11.pdf", "stakeholder-discussion-submission"),
     (f"{BASE}/cp23/stakeholder-protocol.pdf", "consultation-hosted-unresolved"),
+    ("https://www.centralbank.ie/docs/default-source/publications/corporate-reports/strategic-plan/"
+     "submissions/strategic-plan2019-2021-public-engagement-submissions.pdf",
+     "cbi-corporate-report"),
 ]
 
 def main() -> int:

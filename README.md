@@ -4,15 +4,19 @@ A crawl of the Central Bank of Ireland's public archive, turned into a
 page-anchored, provenance-classified research corpus, plus the analysis built on
 it.
 
-**5,568 documents. 88,782 source pages. 190.9 million characters.**
+**5,568 documents. 88,783 source pages. 190,941,651 characters.**
 
 | | |
 |---|---|
 | Crawl snapshot | 25 August 2026 |
 | Downloaded | 6,963 files, 7.476 GB, 21 URLs failed (all 404, all recorded) |
 | Unique by SHA-256 | 6,309 files, 6.559 GB |
-| Corpus | 5,568 documents, 88,782 pages, zero conversion errors |
+| Corpus candidate v5 | 5,568 documents, 88,783 pages, zero conversion errors |
 | Published as | 47 MB of Parquet |
+
+The working tree contains the corrected v5 candidate. `RELEASE.lock.json` still
+pins the currently published v4 artifacts until v5 is committed and uploaded as
+one release; scripts never silently substitute Hugging Face `main` for that pin.
 
 ## Start here
 
@@ -28,23 +32,25 @@ it.
 
 ```bash
 make fetch DATASET=aditya487/cbi-archive-corpus   # 47 MB, no build required
-make test                                      # 97 classifier assertions
+make test                                      # 104 classifier assertions
 ```
 
 Or query the corpus without downloading it at all:
 
 ```sql
 SELECT authorship, count(*)
-FROM 'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/main/data/documents.parquet'
+FROM 'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/934e86ab7f59f5a4028f7da98492b0a995b731c0/data/documents.parquet'
 GROUP BY 1;
 ```
 
-## Licence
+## Rights and reuse
 
-Source material is Irish Public Sector Information, re-usable under a licence
-consistent with CC BY 4.0.
+This is a mixed-rights corpus. Only 71 open-data resources carry explicit CC BY
+4.0 metadata; the rest includes Central Bank material under its PSI terms and
+stakeholder or personal submissions for which third-party rights may apply.
 
 > Contains Irish Public Sector Information licensed under a Creative Commons
 > Attribution 4.0 International (CC BY 4.0) licence.
 
 Unofficial. Not affiliated with or endorsed by the Central Bank of Ireland.
+Read `RIGHTS-REVIEW.md` before redistribution or commercial use.

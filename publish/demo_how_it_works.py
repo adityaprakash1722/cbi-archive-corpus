@@ -10,11 +10,14 @@ from __future__ import annotations
 
 import sys, time, urllib.request
 
+from release_lock import load as load_release
+
 
 def main() -> int:
     user = sys.argv[1] if len(sys.argv) == 2 else "aditya487"
+    revision = load_release()["hugging_face"]["corpus_revision"]
     url = (f"https://huggingface.co/datasets/{user}/cbi-archive-corpus"
-           f"/resolve/main/data/pages.parquet")
+           f"/resolve/{revision}/data/pages.parquet")
 
     try:
         import duckdb

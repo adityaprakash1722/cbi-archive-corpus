@@ -53,12 +53,12 @@ def main() -> int:
             ).fetchall()
             by_authorship = connection.execute(
                 """
-                SELECT d.authorship, COUNT(DISTINCT p.document_id) AS matching_documents,
+                SELECT pg.authorship, COUNT(DISTINCT p.document_id) AS matching_documents,
                        COUNT(*) AS matching_pages
                 FROM pages_fts AS p
-                JOIN documents AS d USING(document_id)
+                JOIN pages AS pg USING(document_id, page_number)
                 WHERE pages_fts MATCH ?
-                GROUP BY d.authorship
+                GROUP BY pg.authorship
                 ORDER BY matching_documents DESC
                 """,
                 (topic["query"],),
@@ -75,20 +75,19 @@ def main() -> int:
                 """,
                 (topic["query"],),
             ).fetchall()
-            by_pdf_creation_year = connection.execute(
+            by_analysis_year = connection.execute(
                 """
                 SELECT CASE
-                         WHEN substr(d.pdf_creation_date, 3, 4) GLOB '[12][0-9][0-9][0-9]'
-                           THEN substr(d.pdf_creation_date, 3, 4)
+                         WHEN d.analysis_year IS NOT NULL THEN CAST(d.analysis_year AS TEXT)
                          ELSE 'unknown'
-                       END AS pdf_creation_year,
+                       END AS analysis_year,
                        COUNT(DISTINCT p.document_id) AS matching_documents,
                        COUNT(*) AS matching_pages
                 FROM pages_fts AS p
                 JOIN documents AS d USING(document_id)
                 WHERE pages_fts MATCH ?
-                GROUP BY pdf_creation_year
-                ORDER BY pdf_creation_year
+                GROUP BY analysis_year
+                ORDER BY analysis_year
                 """,
                 (topic["query"],),
             ).fetchall()
@@ -104,7 +103,7 @@ def main() -> int:
                     (row["matching_documents"] for row in by_authorship if row["authorship"] == "unresolved"), 0
                 ),
                 "by_document_class": [dict(row) for row in by_document_class],
-                "by_pdf_creation_year": [dict(row) for row in by_pdf_creation_year],
+                "by_analysis_year": [dict(row) for row in by_analysis_year],
                 "top_documents": [dict(row) for row in top_documents],
             })
             print(

@@ -85,16 +85,20 @@ def counts(cur, query: str, authorship: str) -> dict:
         SELECT COUNT(DISTINCT d.document_id) AS documents,
                COUNT(*)                      AS pages,
                COUNT(DISTINCT d.consultation_id) AS consultations
-        FROM pages_fts AS p JOIN documents AS d USING(document_id)
-        WHERE pages_fts MATCH ? AND d.authorship = ?
+        FROM pages_fts AS p
+        JOIN pages AS pg USING(document_id, page_number)
+        JOIN documents AS d USING(document_id)
+        WHERE pages_fts MATCH ? AND pg.authorship = ?
         """, (query, authorship)).fetchone()
     years = [
         int(y) for (y,) in cur.execute(
             """
-            SELECT DISTINCT substr(d.pdf_creation_date, 3, 4) AS y
-            FROM pages_fts AS p JOIN documents AS d USING(document_id)
-            WHERE pages_fts MATCH ? AND d.authorship = ?
-              AND substr(d.pdf_creation_date, 3, 4) GLOB '[12][0-9][0-9][0-9]'
+            SELECT DISTINCT d.analysis_year AS y
+            FROM pages_fts AS p
+            JOIN pages AS pg USING(document_id, page_number)
+            JOIN documents AS d USING(document_id)
+            WHERE pages_fts MATCH ? AND pg.authorship = ?
+              AND d.analysis_year IS NOT NULL
             """, (query, authorship)).fetchall()
     ]
     return {"documents": row["documents"], "pages": row["pages"],
@@ -113,8 +117,14 @@ def main() -> int:
     con.row_factory = sqlite3.Row
     cur = con.cursor()
 
-    total_stake = cur.execute("SELECT COUNT(*) FROM documents WHERE authorship='stakeholder'").fetchone()[0]
-    total_cbi = cur.execute("SELECT COUNT(*) FROM documents WHERE authorship='central-bank'").fetchone()[0]
+    # A mixed container can contribute to both denominators, but only through
+    # pages whose audited page-level authorship matches the requested voice.
+    total_stake = cur.execute(
+        "SELECT COUNT(DISTINCT document_id) FROM pages WHERE authorship='stakeholder'"
+    ).fetchone()[0]
+    total_cbi = cur.execute(
+        "SELECT COUNT(DISTINCT document_id) FROM pages WHERE authorship='central-bank'"
+    ).fetchone()[0]
 
     rows = []
     for theme_id, label, query in THEMES:
@@ -149,7 +159,8 @@ def main() -> int:
         json.dumps({"generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     "stakeholder_documents_total": total_stake,
                     "central_bank_documents_total": total_cbi,
-                    "method": "Discovery layer only. Counts locate documents to read.",
+                    "method": "Discovery layer only. Counts locate documents to read. "
+                              "Authorship is page-level; mixed containers can contribute to both voices.",
                     "themes": rows}, indent=2) + "\n", encoding="utf-8")
 
     print(f"stakeholder corpus: {total_stake}   central bank corpus: {total_cbi}\n")

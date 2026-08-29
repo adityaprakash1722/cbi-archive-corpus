@@ -3,6 +3,14 @@
 Written 26 August 2026, at the point of moving from a Cowork session to Claude
 Code running locally.
 
+> **Current-state addendum, 29 August 2026.** This is a dated research handover,
+> not the storage/runbook authority. Corpus v5 is now the local current index:
+> 3,807 Central Bank, 1,671 stakeholder, 89 unresolved and one mixed document;
+> page-level voice, safe analysis years, a preferred DOCX extraction and a
+> recovered CP76 submission. The public release remains pinned as v4 in
+> `RELEASE.lock.json` until v5 is uploaded. `AGENTS.md` and `STORAGE.md` own the
+> current operational facts.
+
 `CLAUDE.md`, `STORAGE.md` and `PUBLISHING.md` describe the corpus and the
 infrastructure. **This document describes the research**: what has been found,
 what is unfinished, what was got wrong, and what to do next. Read it after
@@ -132,21 +140,23 @@ raise, across how many separate consultations, over how many years". Persistence
 across independent consultations is the signal, because it cannot be explained by
 one consultation's politics.
 
-Base: 1,656 stakeholder submissions across **96 distinct consultations**,
-roughly 2006 to 2026.
+Base: **1,672 documents containing stakeholder-authored pages** across **97
+distinct consultations**, roughly 2006 to 2026. The count is one above the
+1,671 stakeholder containers because the mixed compilation contributes
+stakeholder pages too.
 
-| What firms raise | Consultations of 96 |
+| What firms raise | Consultations of 97 |
 |---|---:|
-| Unclear requirements, need for clarity | 75% |
-| Outsourcing and third-party oversight | 71% |
-| Compliance cost and disproportionality | 65% |
-| Proportionality for smaller firms | 60% |
-| Duplicated effort and re-reporting | 47% |
-| Regulatory reporting mechanics | 38% |
+| Unclear requirements, need for clarity | 80% |
+| Proportionality for smaller firms | 73% |
+| Outsourcing and third-party oversight | 72% |
+| Compliance cost and disproportionality | 70% |
+| Duplicated effort and re-reporting | 54% |
+| Regulatory reporting mechanics | 48% |
 | Safeguarding client money | 33% |
 | **Fraud and scam handling** | **26%** |
-| Manual work and spreadsheets | 20% |
-| **Complaints handling operations** | **14%** |
+| Manual work and spreadsheets | 25% |
+| **Complaints handling operations** | **18%** |
 
 Interpretation and proportionality dominate. Operational topics do not. That is
 exactly what you would predict from a population holding obligations with no
@@ -167,14 +177,13 @@ A useful cross-check from the published corpus: 230 Central Bank documents and
 183 stakeholder documents contain "disproportionate". As rates that is 6.0% of
 the regulator's documents against 11.1% of industry submissions, nearly double.
 
-### Known defect in these numbers
+### Current status of these numbers
 
-The pain scan was run against the **v2 index (1,601 stakeholder)**. Codex's v3
-raised that to **1,656**. The percentages above are therefore slightly stale.
-
-**Task: re-run `scripts/mine_industry_pain.py` against the v3 index** and
-regenerate `analysis-v4/industry-pain-scan.*`. Expect small movements, not a
-different conclusion.
+The scan has been rerun against v5 and is in
+`analysis-v5/industry-pain-scan.*`. It uses page-level voice and validated
+`analysis_year`, so the mixed container is handled correctly and malformed 2031
+PDF timestamps no longer create future observations. These remain discovery
+counts, not evidence of prevalence, causality or buyer demand.
 
 ---
 
@@ -250,7 +259,7 @@ real contributions and both have made real errors.
 **Codex** built the original pipeline: the crawler, PDF conversion, validation,
 indexing, structured-data profiling, and the first thesis. Later it produced the
 v3 index, fixed 55 remaining provenance errors taking stakeholder from 1,601 to
-1,656, expanded the classifier suite to 97 assertions, recovered two DOCX tables
+1,656, expanded the classifier suite to 97 assertions, recovered two DOCX tables  <!-- historical -->
 via an XML fallback, and corrected the PSR, vendor and DORA claims.
 
 **Claude** audited that work and found three material defects: the stakeholder
@@ -267,13 +276,12 @@ Treat neither as authoritative. Verify.
 
 1. **Read `consumer_protection.txt` and resolve the 2025 supervisory change.**
    Together these decide whether Finding 1 is current or historical. Highest value.
-2. **Re-run the pain scan against v3.** Small task, removes a known staleness.
-3. **Publish the raw archive.** `publish/UPLOAD.md` Part 4, two commands, 6.56 GB.
-   You have network and the `hf` login, so you can just do this.
-4. **Commit the 11 uncommitted changes** (new docs and scripts) and push.
-5. **Read the remaining nine bundles.**
-6. **Re-score DORA and regulatory reporting** against the now-complete corpus.
-7. **Then, and only then, the problem hunt**, followed by solution design.
+2. **Release the already-built v5 candidate.** Run every local and clean-room
+   proof, commit the build inputs, upload the HF corpus, advance the immutable
+   release lock, then tag/push. The raw archive is already public.
+3. **Read the remaining nine bundles.**
+4. **Re-score DORA and regulatory reporting** against the now-complete corpus.
+5. **Then, and only then, the problem hunt**, followed by solution design.
 
 ---
 
@@ -284,28 +292,28 @@ Treat neither as authoritative. Verify.
 ```python
 import duckdb
 con = duckdb.connect(); con.execute("INSTALL httpfs; LOAD httpfs;")
-BASE = "https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/main/data"
+BASE = "https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/934e86ab7f59f5a4028f7da98492b0a995b731c0/data"
 con.execute(f"SELECT authorship, count(*) FROM read_parquet('{BASE}/documents.parquet') GROUP BY 1").fetchall()
 ```
 
 **Or use the local index**, which is faster for heavy work:
 
 ```bash
-make index    # rebuilds cbi-corpus-v4-5568docs.sqlite in about 15 seconds
+make index    # rebuilds cbi-corpus-v5-5568docs.sqlite in about 15 seconds
               # from a fresh clone, run make materialize first
 python outputs/cbi-research/scripts/search_corpus.py '"operational resilience"' \
-  --database outputs/cbi-research/index/cbi-corpus-v4-5568docs.sqlite --limit 10
+  --database outputs/cbi-research/index/cbi-corpus-v5-5568docs.sqlite --limit 10
 ```
 
 **Rebuild the reading bundles** after any classifier change:
 
 ```bash
 python outputs/cbi-research/scripts/build_learning_bundles.py \
-  --database outputs/cbi-research/index/cbi-corpus-v4-5568docs.sqlite \
+  --database outputs/cbi-research/index/cbi-corpus-v5-5568docs.sqlite \
   --output work/learning-bundles
 ```
 
-**Retrieve an original document** once the raw archive is published:
+**Retrieve an original document** from the published raw archive:
 
 ```bash
 python publish/get_source.py --search "operational resilience" --limit 3 --fetch

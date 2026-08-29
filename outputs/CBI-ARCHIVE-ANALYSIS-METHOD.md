@@ -5,6 +5,10 @@
 > 323 downloaded documents were never analysed, and "zero conversion errors"
 > described exception counts rather than extraction fidelity. Figures below are
 > the corrected ones. `REMEDIATION-2026-08-26.md` records what changed and why.
+>
+> **Revision, 29 August 2026.** v5 adds page-level voice for a mixed composite,
+> validated temporal fields, explicit duplicate-extraction selection and the
+> targeted CP76 OCR repair. Counts below describe v5 unless marked historical.
 
 ## Purpose
 
@@ -104,27 +108,27 @@ holds. `scripts/qa_extraction_quality.py` adds that missing test and grades all
 
 | Grade | Documents | Meaning |
 |---|---:|---|
-| ok | <!-- fact:quality.grade.ok -->5,486<!-- /fact --> | nothing anomalous |
+| ok | <!-- fact:quality.grade.ok -->5,487<!-- /fact --> | nothing anomalous |
 | gappy | <!-- fact:quality.grade.gappy -->30<!-- /fact --> | at least 30% of pages hold almost no text |
-| garbled | <!-- fact:quality.grade.garbled -->26<!-- /fact --> | 200 or more replacement characters, or one per 500 characters |
+| garbled | <!-- fact:quality.grade.garbled -->25<!-- /fact --> | 200 or more replacement characters, or one per 500 characters |
 | thin | <!-- fact:quality.grade.thin -->19<!-- /fact --> | under 200 non-space characters per page |
 | empty | <!-- fact:quality.grade.empty -->7<!-- /fact --> | no usable extractable text |
 
 Median density is <!-- fact:quality.median_nonspace_per_page -->1,624<!-- /fact -->
 non-space characters per page and
 <!-- fact:quality.empty_page_share_percent -->0.61<!-- /fact -->% of all pages are
-effectively empty, down from 2.44% before the recovery pass. 143 documents
+effectively empty, down from 2.44% before the recovery pass. 142 documents
 contain Unicode replacement characters, the worst
 carrying 11,371. Chart-heavy statistical releases extract with visible damage: the
 Q1 2026 arrears release renders "March" as "~~M~~ arch" in places. Every figure
 quoted from that release was rechecked against the page and is correct, but the
-prose around it is unreliable. The 82 flagged documents are listed in
+prose around it is unreliable. The 81 flagged documents are listed in
 `qa/extraction-quality-flagged.csv`.
 
 ## Search and provenance model
 
-The 663 MB SQLite index (`index/cbi-corpus-v4-5568docs.sqlite`) contains 5,568
-documents and 88,782 pages.
+The 673 MB SQLite index (`index/cbi-corpus-v5-5568docs.sqlite`) contains 5,568
+documents and 88,783 pages.
 
 **The original provenance model did not work, and this is the most serious error
 the audit found.** A consultation-hosted document was classed as a stakeholder
@@ -145,7 +149,9 @@ explicit stakeholder attribution then wins over generic words such as
 `discussion-paper`, `consultation-on` and `rulebook`. This keeps
 `note-from-the-financial-regulator-in-relation-to-submissions-received-on-cp43`
 correctly classed as Bank material without misclassifying stakeholder responses
-that name the document they answer. 97 regression assertions, including all 55
+that name the document they answer. Two manually audited stakeholder submissions
+outside the consultation archive are exact exceptions rather than a general
+filename guess. <!-- fact:classifier.assertions -->104<!-- /fact --> regression assertions, including all 55
 conflict filenames found in the follow-up audit, in
 `scripts/test_classify_provenance.py` cover all of the above.
 
@@ -153,25 +159,39 @@ Corrected counts:
 
 | | Original | Corrected |
 |---|---:|---:|
-| Central Bank documents | 4,112 | 3,809 |
-| Stakeholder submissions | 1,134 | 1,656 |
-| Unresolved | 0 | 103 |
+| Central Bank documents | 4,112 | <!-- fact:authorship.central-bank -->3,807<!-- /fact --> |
+| Stakeholder submissions | 1,134 | <!-- fact:authorship.stakeholder -->1,671<!-- /fact --> |
+| Mixed composite | 0 | <!-- fact:authorship.mixed -->1<!-- /fact --> |
+| Unresolved | 0 | <!-- fact:authorship.unresolved -->89<!-- /fact --> |
 
-`unresolved` is a real answer. Those 103 documents are genuinely ambiguous and must
+`unresolved` is a real answer. Those 89 documents are genuinely ambiguous and must
 not be counted as Central Bank material, which is precisely the default that caused
 the original error. Every document now stores the rule that classified it
-(`classification_basis`) and a confidence (high 5,340, medium 125, low 103). The
+(`classification_basis`) and a confidence (high 5,342, medium 137, low 89). The
 full before-and-after trail is in `qa/provenance-classification.csv`.
+
+One 114-page strategic-plan engagement compilation contains five pages of Bank
+framing followed by stakeholder/public submissions. It is labelled `mixed`, and
+the `pages` table records the actual voice on each page. A deterministic
+<!-- fact:audit.documents -->32<!-- /fact -->-document human-reviewed sample, stratified over the previous labels and
+including this composite, is stored in `qa/authorship-gold.csv`; its perfect
+<!-- fact:audit.correct -->32<!-- /fact -->/32 result is a small error-detection exercise, not a population accuracy claim.
+
+v5 also separates raw time metadata from analysis time. `pdf_creation_date` is
+preserved even when implausible; 27 documents contain a 2031 timestamp.
+`analysis_year` rejects anything after the 2026 crawl snapshot, while
+`published_at` is populated only from explicit publication evidence (72
+documents). All 5,568 rows retain `retrieved_at` and `source_page_url`.
 
 The first-pass topic scan is a discovery layer only. Examples:
 
 | Topic | Matching documents | Matching pages | Stakeholder submissions | Previously reported |
 |---|---:|---:|---:|---:|
-| Payments | 1,667 | 6,373 | 322 | 219 |
-| Complaints/redress | 1,117 | 3,190 | 274 | 136 |
-| Fraud/scams | 508 | 1,122 | 133 | 95 |
-| Consumer harm | 609 | 1,839 | 252 | 166 |
-| Data quality | 116 | 203 | 8 | 4 |
+| Payments | 1,669 | 6,390 | 326 | 219 |
+| Complaints/redress | 1,118 | 3,197 | 279 | 136 |
+| Fraud/scams | 510 | 1,135 | 137 | 95 |
+| Consumer harm | 610 | 1,849 | 254 | 166 |
+| Data quality | 116 | 204 | 8 | 4 |
 
 The stakeholder column was understated by 40% to 101% in these examples.
 Document totals also rise slightly because the office corpus is now included.
@@ -235,7 +255,7 @@ The scripts and machine-readable results are in the `cbi-research` output direct
 - `scripts/qa_extraction_quality.py`
 - `scripts/export_provenance_qa.py`
 
-Key result directories are `qa`, `index`, `analysis-v4`, and `structured`.
+Key result directories are `qa`, `index`, `analysis-v5`, and `structured`.
 
 All scripts now run on Linux as well as Windows. Manifest paths are written with
 Windows separators, and seven scripts joined them to a root without normalising, so
@@ -246,14 +266,14 @@ differences in `key-dataset-analysis.json` are the absolute source paths.
 ## Limitations
 
 - The crawl is a dated snapshot and cannot include inaccessible or later-published files.
-- 103 consultation-hosted documents could not be attributed to the Bank or to a
+- 89 consultation-hosted documents could not be attributed to the Bank or to a
   respondent and are labelled `unresolved`. Any count that needs a clean Central Bank
   denominator should exclude them rather than absorb them.
 - Office and archive documents mostly have no page structure. 179 of 323 are a single
   pseudo-page, so they are searchable but not page-citable.
 - ZIP taxonomy packages are inventoried and profiled, not transcribed. A claim that
   depends on the contents of a specific schema file needs that file opened.
-- 82 documents are graded below `ok` for extraction fidelity, down from 112  <!-- historical -->
+- 81 documents are graded below `ok` for extraction fidelity, down from 112  <!-- historical -->
   after the v4 recovery pass recovered 441,610 characters the converter had
   dropped from pages carrying a full-page background image. Material claims from
   any of them require source-page review.

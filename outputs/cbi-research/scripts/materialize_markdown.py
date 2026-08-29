@@ -26,13 +26,11 @@ original corpus, document by document:
     on ingest (zero pages corpus-wide contain one), so a source that carried
     Windows line endings inside its extracted text cannot get them back. 16 of
     the 18 are members of ZIP archives, which is where such text tends to live.
-  * The frontmatter always differs. `documents.parquet` drops four fields the
-    original carried: `source_file`, `extraction_engine_version`,
-    `extraction_pipeline_version` and `markdown_sha256`. Two are recoverable
-    from the published conversion manifest, but that manifest covers the 5,246
-    PDFs only, so the 322 Office documents get thinner frontmatter until it is
-    published too. A `materialized_from` line is added so no file can be
-    mistaken for an original.
+  * The frontmatter always differs. Both published conversion manifests are
+    read, covering 5,246 PDF-pipeline rows and 323 Office-pipeline rows, so
+    `source_file` and engine-version metadata can be restored. A
+    `materialized_from` line is added so no file can be mistaken for an
+    original conversion artefact.
 
 The page bodies themselves are exact: the same strings the index holds and the
 same strings extracted from the sources. If you need byte-identical artefacts,
@@ -40,11 +38,13 @@ you need the original files, not this script.
 """
 from __future__ import annotations
 
-import argparse, csv, json, sqlite3
+import argparse, csv, json, shutil, sqlite3, tempfile, urllib.request
 from pathlib import Path
 
-CORPUS = "https://huggingface.co/datasets/{user}/cbi-archive-corpus/resolve/main/data"
-MANIFEST = "https://huggingface.co/datasets/{user}/cbi-archive-corpus/resolve/main/manifests"
+from release_lock import corpus_revision
+
+CORPUS = "https://huggingface.co/datasets/{user}/cbi-archive-corpus/resolve/{revision}/data"
+MANIFEST = "https://huggingface.co/datasets/{user}/cbi-archive-corpus/resolve/{revision}/manifests"
 
 FIELDS = ["document_id", "source_url", "source_alias_count", "source_sha256",
           "source_bytes", "page_count", "extraction_engine", "ocr_enabled",
@@ -53,6 +53,13 @@ FIELDS = ["document_id", "source_url", "source_alias_count", "source_sha256",
           # and silently defaults them to "source-page" and "pdf" when they are
           # absent. Omitting them mislabels every Office and archive document.
           "page_basis", "source_format"]
+OPTIONAL_FIELDS = [
+    "title", "document_class", "authorship", "classification_basis",
+    "classification_confidence", "consultation_id", "published_at",
+    "published_at_basis", "analysis_year", "analysis_year_basis", "retrieved_at",
+    "source_page_url", "source_last_modified_at", "extraction_selection_basis",
+    "alternate_extraction_count",
+]
 
 
 def yaml_value(value) -> str:
@@ -84,6 +91,10 @@ def frontmatter(document: dict, aliases: list, extra: dict) -> str:
     lines.append("ocr_enabled: " + yaml_value(bool(document["ocr_enabled"])))
     lines.append("quality_low_text: " + yaml_value(bool(document["quality_low_text"])))
     lines.append("quality_empty_pages: " + str(document["quality_empty_pages"]))
+    # Preserve release-level semantics as data. Re-running today's classifier
+    # against an older release is not reconstruction; it is reclassification.
+    for key in OPTIONAL_FIELDS:
+        lines.append("published_" + key + ": " + json.dumps(document.get(key)))
     lines.append("materialized_from: " + json.dumps(
         "documents.parquet + pages.parquet; not byte-identical to the original conversion"))
     lines.append("---")
@@ -100,27 +111,61 @@ def body(pages: list) -> str:
     single newline, since the converter ends every file that way.
     """
     parts = []
-    for number, text in pages:
+    for page in pages:
+        number, text = page[:2]
         parts.append("<!-- source-page: " + str(number) + " -->\n" +
                      '<a id="page-' + str(number) + '"></a>\n\n' + text + "\n\n")
     return "\n\n" + "".join(parts).rstrip() + "\n"
 
 
-def from_remote(user: str):
+def from_remote(user: str, revision: str):
     import duckdb
+    # DuckDB's HTTPS extension does not consistently discover the Windows
+    # certificate store (notably behind managed TLS proxies). Python's HTTPS
+    # client does. A materialisation needs every row anyway, so download the two
+    # Parquet tables and three compressed manifests into a temporary verified
+    # cache, then let DuckDB read the local copies. TLS verification remains on.
+    cache = tempfile.TemporaryDirectory(prefix="cbi-published-")
+    cache_path = Path(cache.name)
+    base = CORPUS.format(user=user, revision=revision)
+    manifest_base = MANIFEST.format(user=user, revision=revision)
+    remote_files = {
+        "documents.parquet": base + "/documents.parquet",
+        "pages.parquet": base + "/pages.parquet",
+        "files.csv.zst": manifest_base + "/files.csv.zst",
+        "conversion-manifest.csv.zst": manifest_base + "/conversion-manifest.csv.zst",
+        "conversion-manifest-office.csv.zst":
+            manifest_base + "/conversion-manifest-office.csv.zst",
+    }
+    for name, url in remote_files.items():
+        target = cache_path / name
+        request = urllib.request.Request(url, headers={"User-Agent": "cbi-corpus-materializer/1"})
+        with urllib.request.urlopen(request) as source, target.open("wb") as destination:
+            shutil.copyfileobj(source, destination)
+        print("  downloaded " + name + ": " + f"{target.stat().st_size:,}" + " bytes",
+              flush=True)
+
+    def sql_path(name: str) -> str:
+        return (cache_path / name).resolve().as_posix().replace("'", "''")
+
     connection = duckdb.connect()
-    connection.execute("INSTALL httpfs; LOAD httpfs;")
-    base = CORPUS.format(user=user)
-    manifests = MANIFEST.format(user=user)
+    documents_url = sql_path("documents.parquet")
+    available = {row[0] for row in connection.execute(
+        "DESCRIBE SELECT * FROM read_parquet('" + documents_url + "')").fetchall()}
+    selected = FIELDS + [field for field in OPTIONAL_FIELDS if field in available]
     rows = connection.execute(
-        "SELECT " + ", ".join(FIELDS) + " FROM read_parquet('" + base + "/documents.parquet')"
+        "SELECT " + ", ".join(selected) + " FROM read_parquet('" + documents_url + "')"
     ).fetchall()
-    documents = [dict(zip(FIELDS, row)) for row in rows]
+    documents = []
+    for row in rows:
+        document = {field: None for field in OPTIONAL_FIELDS}
+        document.update(dict(zip(selected, row)))
+        documents.append(document)
 
     aliases = {}
     for sha, url in connection.execute(
-            "SELECT sha256, url FROM read_csv_auto('" + manifests +
-            "/files.csv.zst') WHERE sha256 IS NOT NULL").fetchall():
+            "SELECT sha256, url FROM read_csv_auto('" + sql_path("files.csv.zst") +
+            "') WHERE sha256 IS NOT NULL").fetchall():
         aliases.setdefault(sha, []).append(url)
 
     # Both conversion manifests. The PDF one covers 5,246 documents and the
@@ -139,7 +184,7 @@ def from_remote(user: str):
     for name in ("conversion-manifest.csv.zst", "conversion-manifest-office.csv.zst"):
         try:
             cursor = connection.execute(
-                "SELECT * FROM read_csv_auto('" + manifests + "/" + name +
+                "SELECT * FROM read_csv_auto('" + sql_path(name) +
                 "', all_varchar=true)")
             columns = [d[0] for d in cursor.description]
             rows = cursor.fetchall()
@@ -186,11 +231,21 @@ def from_remote(user: str):
             manifest_rows.setdefault(where, []).append(dict(zip(columns, row)))
         print("  read " + name + ": " + str(len(rows)) + " rows", flush=True)
 
+    pages_url = sql_path("pages.parquet")
+    page_columns = {row[0] for row in connection.execute(
+        "DESCRIBE SELECT * FROM read_parquet('" + pages_url + "')").fetchall()}
+    page_select = "document_id, page_number, text"
+    if "authorship" in page_columns:
+        page_select += ", authorship"
+    if "authorship_basis" in page_columns:
+        page_select += ", authorship_basis"
     pages = {}
-    for did, number, text in connection.execute(
-            "SELECT document_id, page_number, text FROM read_parquet('" + base +
-            "/pages.parquet') ORDER BY document_id, page_number").fetchall():
-        pages.setdefault(did, []).append((number, text))
+    for row in connection.execute(
+            "SELECT " + page_select + " FROM read_parquet('" + pages_url +
+            "') ORDER BY document_id, page_number").fetchall():
+        pages.setdefault(row[0], []).append(tuple(row[1:]))
+    connection.close()
+    cache.cleanup()
     return documents, aliases, extra, pages, corpus_of, manifest_rows
 
 
@@ -205,10 +260,24 @@ def from_local(database: Path, corpus: Path):
     """
     connection = sqlite3.connect(database)
     connection.row_factory = sqlite3.Row
-    query = ("SELECT " + ", ".join(FIELDS) +
-             ", source_urls_json, source_file, extraction_engine_version, markdown_file "
-             "FROM documents")
-    documents = [dict(row) for row in connection.execute(query)]
+    document_columns = {
+        row[1] for row in connection.execute("PRAGMA table_info(documents)")
+    }
+    required = set(FIELDS + ["source_urls_json", "source_sha256"])
+    missing_required = sorted(required - document_columns)
+    if missing_required:
+        raise ValueError(
+            "local index lacks required document columns: " + ", ".join(missing_required))
+    selected = FIELDS + [field for field in OPTIONAL_FIELDS if field in document_columns]
+    selected += [field for field in
+                 ("source_urls_json", "source_file", "extraction_engine_version", "markdown_file")
+                 if field in document_columns]
+    documents = []
+    for row in connection.execute("SELECT " + ", ".join(selected) + " FROM documents"):
+        document = {field: None for field in OPTIONAL_FIELDS}
+        document.update(dict(row))
+        document.setdefault("source_urls_json", "[]")
+        documents.append(document)
     aliases = {d["source_sha256"]: json.loads(d["source_urls_json"] or "[]") for d in documents}
 
     extra: dict = {}
@@ -235,10 +304,21 @@ def from_local(database: Path, corpus: Path):
             manifest_rows.setdefault(where, []).append(row)
         print("  read " + str(path) + ": " + str(len(rows)) + " rows", flush=True)
 
+    page_columns = {row[1] for row in connection.execute("PRAGMA table_info(pages)")}
+    page_select = ["document_id", "page_number", "text"]
+    page_select += [field for field in ("authorship", "authorship_basis")
+                    if field in page_columns]
+    document_authorship = {d["document_id"]: d.get("authorship") for d in documents}
     pages = {}
-    for row in connection.execute("SELECT document_id, page_number, text FROM pages "
-                                  "ORDER BY document_id, page_number"):
-        pages.setdefault(row["document_id"], []).append((row["page_number"], row["text"]))
+    for row in connection.execute(
+            "SELECT " + ", ".join(page_select) + " FROM pages "
+            "ORDER BY document_id, page_number"):
+        page_authorship = (row["authorship"] if "authorship" in page_columns
+                           else document_authorship.get(row["document_id"]))
+        page_basis = (row["authorship_basis"] if "authorship_basis" in page_columns
+                      else "document-level-authorship")
+        pages.setdefault(row["document_id"], []).append(
+            (row["page_number"], row["text"], page_authorship, page_basis))
     return documents, aliases, extra, pages, corpus_of, manifest_rows
 
 
@@ -262,9 +342,74 @@ def write_manifests(output: Path, manifest_rows: dict) -> None:
         print("  wrote " + str(target) + ": " + str(len(rows)) + " rows", flush=True)
 
 
+def write_extraction_preferences(output: Path, documents: list[dict],
+                                 corpus_of: dict[str, set[str]]) -> None:
+    """Preserve which duplicate extraction the published release selected.
+
+    The current public release selected the .pdf alias; the corrected release
+    selects the canonical .docx. A materialiser must reproduce whichever
+    release it is reading rather than silently applying today's preference to
+    yesterday's data.
+    """
+    rows = []
+    by_sha = {document["source_sha256"]: document for document in documents}
+    for sha, corpora in corpus_of.items():
+        if len(corpora) < 2:
+            continue
+        document = by_sha[sha]
+        url_path = document["source_url"].split("?", 1)[0].casefold()
+        preferred = "office" if url_path.endswith((".docx", ".doc", ".pptx", ".zip")) else "pdf"
+        rows.append({
+            "source_sha256": sha,
+            "preferred_corpus": preferred,
+            "basis": "published-release-selection",
+            "notes": "Generated from the canonical source_url in documents.parquet.",
+        })
+    if not rows:
+        return
+    target = output / "extraction-preferences.csv"
+    with target.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    print("  wrote " + str(target) + ": " + str(len(rows)) + " rows", flush=True)
+
+
+def write_page_authorship(output: Path, documents: list[dict], pages: dict) -> None:
+    """Materialise contiguous page-voice ranges for mixed documents."""
+    rows = []
+    for document in documents:
+        if document.get("authorship") != "mixed":
+            continue
+        values = pages.get(document["document_id"], [])
+        if not values or len(values[0]) < 4:
+            raise ValueError("published mixed document lacks page-level authorship")
+        start = previous = values[0][0]
+        authorship, basis = values[0][2], values[0][3]
+        for number, _text, current_authorship, current_basis in values[1:]:
+            if current_authorship != authorship or current_basis != basis:
+                rows.append({"source_sha256": document["source_sha256"],
+                             "start_page": start, "end_page": previous,
+                             "authorship": authorship, "basis": basis})
+                start, authorship, basis = number, current_authorship, current_basis
+            previous = number
+        rows.append({"source_sha256": document["source_sha256"],
+                     "start_page": start, "end_page": previous,
+                     "authorship": authorship, "basis": basis})
+    target = output / "page-authorship-overrides.csv"
+    fields = ["source_sha256", "start_page", "end_page", "authorship", "basis"]
+    with target.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    print("  wrote " + str(target) + ": " + str(len(rows)) + " rows", flush=True)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--user", default="aditya487", help="Hugging Face namespace to read from")
+    parser.add_argument("--revision", default=corpus_revision(),
+                        help="immutable HF corpus revision (defaults to RELEASE.lock.json)")
     parser.add_argument("--database", type=Path, help="read a local SQLite index instead")
     parser.add_argument("--corpus", type=Path,
                         default=Path("outputs/cbi-research/corpus"),
@@ -279,7 +424,8 @@ def main() -> int:
             args.database, args.corpus)
     else:
         print("reading published Parquet for " + args.user, flush=True)
-        documents, aliases, extra, pages, corpus_of, manifest_rows = from_remote(args.user)
+        documents, aliases, extra, pages, corpus_of, manifest_rows = from_remote(
+            args.user, args.revision)
 
     written = thin = missing = files = 0
     counts = {"pdf": 0, "office": 0}
@@ -312,6 +458,8 @@ def main() -> int:
 
     if manifest_rows and not args.limit:
         write_manifests(args.output, manifest_rows)
+        write_extraction_preferences(args.output, documents, corpus_of)
+        write_page_authorship(args.output, documents, pages)
 
     print("materialised " + str(written) + " documents as " + str(files) +
           " Markdown files into " + str(args.output))

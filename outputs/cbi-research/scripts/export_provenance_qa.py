@@ -22,10 +22,12 @@ def main() -> int:
     previous: dict[str, tuple[str, str]] = {}
     if args.previous_database:
         with sqlite3.connect(args.previous_database.resolve()) as connection:
-            for sha, document_class in connection.execute(
-                "SELECT source_sha256, document_class FROM documents"
+            for sha, document_class, stored_authorship in connection.execute(
+                "SELECT source_sha256, document_class, authorship FROM documents"
             ):
-                authorship = "stakeholder" if document_class.startswith("stakeholder-") else "central-bank"
+                authorship = (stored_authorship or
+                              ("stakeholder" if document_class.startswith("stakeholder-")
+                               else "central-bank"))
                 previous[sha] = (document_class, authorship)
 
     with sqlite3.connect(args.database.resolve()) as connection:
@@ -34,7 +36,9 @@ def main() -> int:
             """
             SELECT source_sha256, source_url, source_format, document_class,
                    authorship, classification_basis, classification_confidence,
-                   consultation_id, page_count
+                   consultation_id, page_count, extraction_selection_basis,
+                   alternate_extraction_count, published_at, published_at_basis,
+                   analysis_year, analysis_year_basis, source_page_url, retrieved_at
             FROM documents ORDER BY source_url, source_sha256
             """
         ).fetchall()
@@ -48,7 +52,8 @@ def main() -> int:
             "previous_authorship": old_authorship,
             "change": (
                 "new-document" if not old_class
-                else "reclassified" if old_class != item["document_class"]
+                else "reclassified" if (old_class != item["document_class"] or
+                                         old_authorship != item["authorship"])
                 else "unchanged"
             ),
         })
@@ -73,11 +78,26 @@ def main() -> int:
             for row in rows
         ),
         "moved_to_unresolved": sum(
-            row["authorship"] == "unresolved" and row["previous_authorship"] != ""
+            row["authorship"] == "unresolved" and
+            row["previous_authorship"] not in {"", "unresolved"}
+            for row in rows
+        ),
+        "moved_to_central_bank": sum(
+            row["authorship"] == "central-bank" and
+            row["previous_authorship"] not in {"", "central-bank"}
+            for row in rows
+        ),
+        "moved_to_mixed": sum(
+            row["authorship"] == "mixed" and row["previous_authorship"] != "mixed"
             for row in rows
         ),
         "basis_breakdown": dict(Counter(row["classification_basis"] for row in rows).most_common()),
+        "page_authorship": {},
     }
+    with sqlite3.connect(args.database.resolve()) as connection:
+        summary["page_authorship"] = dict(connection.execute(
+            "SELECT authorship, COUNT(*) FROM pages GROUP BY authorship ORDER BY COUNT(*) DESC"
+        ).fetchall())
     (args.output / "provenance-classification-summary.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8"
     )

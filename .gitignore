@@ -7,6 +7,9 @@
 outputs/cbi-archive/cbi-data/files/
 outputs/cbi-archive/cbi-data/duplicate-alias-files/
 outputs/cbi-archive/cbi-data/archive-state.json
+# HTML source-page bodies are future crawl evidence, stored content-addressed
+# and published with the raw tier rather than committed to git.
+outputs/cbi-archive/cbi-data/pages/
 
 # The Markdown corpus: 202 MB. Published as Parquet instead. See CLAUDE.md.
 outputs/cbi-research/corpus/markdown/
@@ -47,6 +50,7 @@ work/live-analysis*/
 work/live-evidence/
 work/key-index/
 work/pilot-index*/
+work/materialize-*/
 
 # A 60,196-line `tree /f` dump. Regenerable, goes stale immediately, and
 # CLAUDE.md documents the layout properly.

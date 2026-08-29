@@ -58,19 +58,35 @@ def main() -> int:
     ap.add_argument("--manifest", type=Path, action="append", required=True,
                     help="conversion-manifest.csv; repeatable")
     ap.add_argument("--output", type=Path, required=True)
+    ap.add_argument("--extraction-preferences-csv", type=Path,
+                    help="same duplicate-extraction choices used by the indexer")
     args = ap.parse_args()
 
-    rows = []
-    seen_shas: set[str] = set()
-    duplicate_manifest_rows = 0
+    candidates: dict[str, list[dict]] = {}
     for manifest in args.manifest:
         for row in load(manifest.resolve()):
-            if row["source_sha256"] in seen_shas:
-                duplicate_manifest_rows += 1
-                continue
-            seen_shas.add(row["source_sha256"])
             row["_manifest"] = "pdf" if manifest.parent.name == "corpus" else manifest.parent.name
-            rows.append(row)
+            candidates.setdefault(row["source_sha256"], []).append(row)
+
+    preferences = {
+        row["source_sha256"]: row for row in
+        load(args.extraction_preferences_csv.resolve())
+    } if args.extraction_preferences_csv else {}
+    rows = []
+    duplicate_manifest_rows = 0
+    for sha, choices in candidates.items():
+        if len(choices) == 1:
+            rows.append(choices[0])
+            continue
+        duplicate_manifest_rows += len(choices) - 1
+        preference = preferences.get(sha)
+        if not preference:
+            raise ValueError(f"duplicate extraction {sha} has no explicit preference")
+        selected = [row for row in choices
+                    if row["_manifest"] == preference["preferred_corpus"]]
+        if len(selected) != 1:
+            raise ValueError(f"duplicate extraction preference for {sha} matched {len(selected)} rows")
+        rows.append(selected[0])
 
     def as_int(row, key):
         try:

@@ -2,7 +2,7 @@ DATASET ?= aditya487/cbi-archive-corpus
 SCRIPTS := outputs/cbi-research/scripts
 ARCHIVE := outputs/cbi-archive/cbi-data
 RESEARCH := outputs/cbi-research
-INDEX := $(RESEARCH)/index/cbi-corpus-v4-5568docs.sqlite
+INDEX := $(RESEARCH)/index/cbi-corpus-v5-5568docs.sqlite
 
 .PHONY: help fetch index materialize recover scan-personal-data test test-invariants test-fresh-rebuild verify dataset clean-artifacts
 
@@ -11,8 +11,8 @@ help:
 	@echo "materialize      regenerate the Markdown corpus from the published Parquet"
 	@echo "recover          re-extract page text the converter dropped (--ocr needs Tesseract)"
 	@echo "scan-personal-data  screen the corpus for personal data before republishing"
-	@echo "index            rebuild the v4 SQLite index from the Markdown corpus"
-	@echo "test             classifier regression suite, 97 assertions"
+	@echo "index            rebuild the v5 SQLite index from the Markdown corpus"
+	@echo "test             classifier regression suite"
 	@echo "test-invariants  check tracked manifests agree with the docs, no network"
 	@echo "test-fresh-rebuild  prove a clone can rebuild the index from published data"
 	@echo "verify           re-hash every source and output, check page markers"
@@ -26,6 +26,9 @@ index:
 	python3 $(SCRIPTS)/build_search_index.py \
 	  --corpus $(RESEARCH)/corpus --corpus $(RESEARCH)/corpus/office \
 	  --audit-csv $(RESEARCH)/audit/pdf-audit.csv --output $(RESEARCH)/index \
+	  --files-csv $(ARCHIVE)/manifests/files.csv --snapshot-date 2026-08-25 \
+	  --page-authorship-csv $(RESEARCH)/qa/page-authorship-overrides.csv \
+	  --extraction-preferences-csv $(RESEARCH)/qa/extraction-preferences.csv \
 	  --database-name $(notdir $(INDEX))
 
 materialize:
@@ -46,7 +49,9 @@ verify:
 	  --audit-csv $(RESEARCH)/audit/pdf-audit.csv --archive $(ARCHIVE) --output $(RESEARCH)/qa
 	python3 $(SCRIPTS)/qa_extraction_quality.py \
 	  --manifest $(RESEARCH)/corpus/conversion-manifest.csv \
-	  --manifest $(RESEARCH)/corpus/office/conversion-manifest.csv --output $(RESEARCH)/qa
+	  --manifest $(RESEARCH)/corpus/office/conversion-manifest.csv \
+	  --extraction-preferences-csv $(RESEARCH)/qa/extraction-preferences.csv \
+	  --output $(RESEARCH)/qa
 
 dataset:
 	python3 $(SCRIPTS)/export_dataset.py --database $(INDEX) --output publish/hf/data
