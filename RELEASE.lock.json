@@ -2,12 +2,12 @@
   "schema_version": 1,
   "release": "corpus-v5.1-2026-08-30",
   "crawl_snapshot_date": "2026-08-25",
-  "git_commit": "1d900e37959e2b2b918910843624b302002fb3f2",
+  "git_commit": "408af8ed91ed6eaafd295d4c5562de8b9c56e317",
   "hugging_face": {
     "corpus_repo": "aditya487/cbi-archive-corpus",
-    "corpus_revision": "bcbd2e84bff7655794eb9985b5f6bd1e428d263e",
+    "corpus_revision": "f9a60f39c666b9aac4a68951a685bed1a46cea33",
     "raw_repo": "aditya487/cbi-archive-raw",
-    "raw_revision": "e0f660cca8335ae0ffe000b45b04d07116f9ebec"
+    "raw_revision": "61f50ee9ed975b70c3728e00ab083e2c841887f4"
   },
   "expected": {
     "documents": 5568,

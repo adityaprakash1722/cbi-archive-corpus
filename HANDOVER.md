@@ -289,7 +289,7 @@ Treat neither as authoritative. Verify.
 ```python
 import duckdb
 con = duckdb.connect(); con.execute("INSTALL httpfs; LOAD httpfs;")
-BASE = "https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/bcbd2e84bff7655794eb9985b5f6bd1e428d263e/data"
+BASE = "https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/f9a60f39c666b9aac4a68951a685bed1a46cea33/data"
 con.execute(f"SELECT authorship, count(*) FROM read_parquet('{BASE}/documents.parquet') GROUP BY 1").fetchall()
 ```
 

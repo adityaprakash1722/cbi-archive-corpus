@@ -39,7 +39,7 @@ Or query the corpus without downloading it at all:
 
 ```sql
 SELECT authorship, count(*)
-FROM 'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/bcbd2e84bff7655794eb9985b5f6bd1e428d263e/data/documents.parquet'
+FROM 'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/f9a60f39c666b9aac4a68951a685bed1a46cea33/data/documents.parquet'
 GROUP BY 1;
 ```
 
