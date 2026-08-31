@@ -153,15 +153,15 @@ def main() -> int:
 
     rows.sort(key=lambda r: -r["persistence_score"])
     args.output.mkdir(parents=True, exist_ok=True)
-    with (args.output / "industry-pain-scan.csv").open("w", encoding="utf-8-sig", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
+    with (args.output / "industry-pain-scan.csv").open("w", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(rows[0]), lineterminator="\n"); w.writeheader(); w.writerows(rows)
     (args.output / "industry-pain-scan.json").write_text(
         json.dumps({"generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     "stakeholder_documents_total": total_stake,
                     "central_bank_documents_total": total_cbi,
                     "method": "Discovery layer only. Counts locate documents to read. "
                               "Authorship is page-level; mixed containers can contribute to both voices.",
-                    "themes": rows}, indent=2) + "\n", encoding="utf-8")
+                    "themes": rows}, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     print(f"stakeholder corpus: {total_stake}   central bank corpus: {total_cbi}\n")
     print(f"{'theme':22s} {'docs':>5s} {'%':>5s} {'cons':>5s} {'span':>11s} {'persist':>8s} {'vs CBI':>7s}")

@@ -11,10 +11,10 @@ it.
 | Crawl snapshot | 25 August 2026 |
 | Downloaded | 6,963 files, 7.476 GB, 21 URLs failed (all 404, all recorded) |
 | Unique by SHA-256 | 6,309 files, 6.559 GB |
-| Corpus release v5 | 5,568 documents, 88,783 pages, zero conversion errors |
-| Published as | 47 MB of Parquet |
+| Corpus release v5.1 | 5,568 documents, 88,783 pages, zero conversion errors |
+| Published as | 48.0 MB of Parquet plus auditable compressed manifests |
 
-`RELEASE.lock.json` pins the published v5 Git and Hugging Face revisions plus
+`RELEASE.lock.json` pins the published v5.1 Git and Hugging Face revisions plus
 the artifact hashes; scripts never silently substitute Hugging Face `main` for
 that immutable release.
 
@@ -31,8 +31,8 @@ that immutable release.
 ## Quick start
 
 ```bash
-make fetch DATASET=aditya487/cbi-archive-corpus   # 47 MB, no build required
-make test                                      # 104 classifier assertions
+make fetch DATASET=aditya487/cbi-archive-corpus   # about 51 MB, no build required
+make test                                      # 116 classifier assertions
 ```
 
 Or query the corpus without downloading it at all:

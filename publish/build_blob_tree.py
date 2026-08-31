@@ -116,8 +116,8 @@ def main() -> int:
     fields = ["sha256", "key", "format", "bytes", "url_count", "canonical_url",
               "all_urls", "dataset_title"]
     catalog_path = output.parent / "blob-catalog.csv"
-    with catalog_path.open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields)
+    with catalog_path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(catalog)
 
@@ -167,8 +167,8 @@ def main() -> int:
             })
     page_catalog_path = output.parent / "page-catalog.csv"
     page_fields = ["sha256", "key", "bytes", "url_count", "all_urls"]
-    with page_catalog_path.open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=page_fields)
+    with page_catalog_path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=page_fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(page_catalog)
 
@@ -194,7 +194,8 @@ def main() -> int:
         "page_snapshot_source_missing": page_missing,
         "elapsed_seconds": round(time.time() - started, 1),
     }
-    (output.parent / "blob-summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    (output.parent / "blob-summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
     print("\n" + json.dumps(summary, indent=2))
     if copied:
         print(f"\nNOTE: {copied} files were copied rather than hard linked, so this")

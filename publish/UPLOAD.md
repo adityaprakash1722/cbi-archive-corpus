@@ -20,10 +20,11 @@ which only a real Python 3.12 install produces.
 Think of it as GitHub for data. Each dataset lives at a URL like
 `huggingface.co/datasets/yourname/cbi-archive-corpus`, is versioned, is free for
 public data, and is designed for files far larger than git handles comfortably.
-It is where the 47 MB corpus goes.
+It is where the roughly 48 MB Parquet corpus and its compressed audit manifests go.
 
 **GitHub** hosts code. It is where the pipeline, the manifests and the analysis
-go: 238 repository files, about 13 MB before generated data artifacts.
+go: 256 repository files in the v5.1 release candidate, about 13 MB before
+generated data artifacts.
 
 They are separate because the two kinds of content have different needs. Code is
 small, changes constantly, and benefits from line-by-line diffs. A 46 MB Parquet
@@ -99,7 +100,16 @@ root of the repository (`.`), and make it a dataset rather than a model.
 
 The repository is created automatically. You do not need to make it first.
 
-It uploads 10 files totalling about 48 MB. The 46.8 MB `pages.parquet` is most of it.
+First regenerate the complete publication bundle:
+
+```powershell
+make dataset
+python publish\build_hf_release.py
+```
+
+The upload contains the two Parquet files, nine compressed audit manifests,
+their build summary, the dataset summary, card and attribution. The 46.8 MB
+`pages.parquet` is most of it.
 Expect a progress bar and under a minute on a normal connection.
 
 ## Step 7. Check it worked
@@ -121,13 +131,12 @@ duckdb -c "SELECT authorship, count(*) FROM 'https://huggingface.co/datasets/YOU
 Expect exactly:
 
 ```
-central-bank   3807
-stakeholder    1671
-mixed             1
-unresolved       89
+central-bank   3844
+stakeholder    1722
+mixed             2
 ```
 
-If you get those three numbers, the corpus is live and reachable from any
+If you get those three rows, the corpus is live and reachable from any
 machine on earth. That query downloaded only the one column it needed, not the
 file.
 
@@ -164,7 +173,7 @@ git add .
 git status --short | Measure-Object -Line
 ```
 
-Expect roughly **238 files** in a clean release candidate. If you see thousands, stop: something
+Expect roughly **256 files** in the v5.1 release candidate. If you see thousands, stop: something
 slipped past the ignore rules.
 
 ```powershell
@@ -214,7 +223,7 @@ cd cbi-archive-corpus
 python outputs/cbi-research/scripts/bootstrap.py --dataset YOUR_HF_USERNAME/cbi-archive-corpus
 ```
 
-That pulls the 47 MB corpus. Claude Code or Codex opened in that folder reads
+That pulls the roughly 51 MB corpus bundle. Claude Code or Codex opened in that folder reads
 `CLAUDE.md` or `AGENTS.md` and knows the layout, which index is current, and the
 five mistakes that would otherwise cost an hour each.
 
@@ -310,6 +319,7 @@ Then add the catalogue so the repository describes itself:
 ```powershell
 hf upload aditya487/cbi-archive-raw publish/blob-catalog.csv blob-catalog.csv --repo-type=dataset
 hf upload aditya487/cbi-archive-raw publish/blob-summary.json blob-summary.json --repo-type=dataset
+hf upload aditya487/cbi-archive-raw publish/page-catalog.csv page-catalog.csv --repo-type=dataset
 ```
 
 ## Step 3. Test the whole loop

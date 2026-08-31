@@ -21,7 +21,8 @@ Output contract
 
   authorship      central-bank | stakeholder | mixed | unresolved
   document_class  the original 15-class taxonomy, corrected
-  consultation_id e.g. cp158, or None
+  consultation_id canonical CP identifier, e.g. cp158, or None
+  engagement_id   canonical CP or DP identifier, e.g. cp158 or dp10
   basis           the rule that fired, so every label is auditable
   confidence      high | medium | low
 
@@ -111,6 +112,9 @@ ATTRIBUTED = re.compile(
 CP_PREFIXED = re.compile(r"^(?:cp|dp)-?\d+[a-z]?[-_ ]+\S")
 
 CONSULTATION_ID = re.compile(r"/(cp[-_ ]?\d+[a-z]?)/")
+DISCUSSION_ID = re.compile(
+    r"/(?:dp[-_ ]?0*(\d+)[a-z]?|dis(?:cus|ucs)sion-paper[-_ ]?0*(\d+))/"
+)
 CONSULTATION_PATHS = ("/consultation-papers/", "/discussion-papers/")
 
 # These are not guesses based on a word in the filename. Each exception names a
@@ -151,6 +155,7 @@ class Provenance:
     authorship: str
     document_class: str
     consultation_id: str | None
+    engagement_id: str | None
     basis: str
     confidence: str
 
@@ -234,6 +239,14 @@ def _score(text: str, markers) -> tuple[int, list[str]]:
     return total, hits
 
 
+def canonical_cp(value: str) -> str:
+    """Normalise raw CP path fragments without erasing audited path overrides."""
+    match = re.fullmatch(r"cp[-_ ]?0*(\d+)([a-z]?)", value.casefold())
+    if not match:
+        raise ValueError(f"invalid CP identifier: {value!r}")
+    return f"cp{int(match.group(1))}{match.group(2)}"
+
+
 def consultation_id_for(path: str) -> str | None:
     for marker, consultation_id in CONSULTATION_PATH_OVERRIDES.items():
         if marker in path:
@@ -241,7 +254,18 @@ def consultation_id_for(path: str) -> str | None:
     match = CONSULTATION_ID.search(path)
     if not match:
         return None
-    return match.group(1).replace("_", "-").replace(" ", "-")
+    return canonical_cp(match.group(1))
+
+
+def engagement_id_for(path: str, consultation_id: str | None = None) -> str | None:
+    """Return a normalised join key spanning consultation and discussion papers."""
+    if consultation_id:
+        return consultation_id
+    match = DISCUSSION_ID.search(path)
+    if not match:
+        return None
+    number = next(group for group in match.groups() if group is not None)
+    return f"dp{int(number)}"
 
 
 def topical_class(path: str) -> str:
@@ -285,6 +309,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
     name = Path(path).name
     is_consultation = any(marker in path for marker in CONSULTATION_PATHS)
     consultation = consultation_id_for(path)
+    engagement = engagement_id_for(path, consultation)
     discussion = "/discussion-papers/" in path
 
     for marker, (document_class, basis) in MIXED_DOCUMENTS.items():
@@ -293,6 +318,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
                 authorship="mixed",
                 document_class=document_class,
                 consultation_id=consultation,
+                engagement_id=engagement,
                 basis=basis,
                 confidence="high",
             )
@@ -303,6 +329,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
                 authorship="stakeholder",
                 document_class="stakeholder-consultation-submission",
                 consultation_id=None,
+                engagement_id=engagement,
                 basis=f"audited-non-consultation-stakeholder:{evidence}",
                 confidence="high",
             )
@@ -312,6 +339,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
             authorship="central-bank",
             document_class=topical_class(path),
             consultation_id=consultation,
+            engagement_id=engagement,
             basis="non-consultation-path",
             confidence="high",
         )
@@ -329,6 +357,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
                 else "cbi-discussion-material" if discussion else "cbi-consultation-material"
             ),
             consultation_id=consultation,
+            engagement_id=engagement,
             basis=f"filename-strong-cbi-doctype:{strong_cbi_cue.group(0).strip('-')}",
             confidence="high",
         )
@@ -341,6 +370,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
                 else "stakeholder-consultation-submission"
             ),
             consultation_id=consultation,
+            engagement_id=engagement,
             basis=f"filename-attribution:{third_party_cue.group(0).strip('-')}",
             confidence="high",
         )
@@ -350,6 +380,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
             authorship="central-bank",
             document_class="cbi-discussion-material" if discussion else "cbi-consultation-material",
             consultation_id=consultation,
+            engagement_id=engagement,
             basis=f"filename-cbi-doctype:{cbi_cue.group(0).strip('-')}",
             confidence="high",
         )
@@ -360,6 +391,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
             authorship="central-bank",
             document_class="cbi-discussion-material" if discussion else "cbi-consultation-material",
             consultation_id=consultation,
+            engagement_id=engagement,
             basis="filename-cp-prefix-without-attribution",
             confidence="medium",
         )
@@ -380,6 +412,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
                     else "stakeholder-consultation-submission"
                 ),
                 consultation_id=consultation,
+                engagement_id=engagement,
                 basis=f"content-stakeholder({third_points}v{cbi_points}):{';'.join(third_hits[:3])}",
                 confidence="medium",
             )
@@ -388,6 +421,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
                 authorship="central-bank",
                 document_class="cbi-discussion-material" if discussion else "cbi-consultation-material",
                 consultation_id=consultation,
+                engagement_id=engagement,
                 basis=f"content-cbi({cbi_points}v{third_points}):{';'.join(cbi_hits[:3])}",
                 confidence="medium",
             )
@@ -395,6 +429,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
             authorship="unresolved",
             document_class="consultation-hosted-unresolved",
             consultation_id=consultation,
+            engagement_id=engagement,
             basis=f"content-inconclusive({cbi_points}v{third_points})",
             confidence="low",
         )
@@ -403,6 +438,7 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
         authorship="unresolved",
         document_class="consultation-hosted-unresolved",
         consultation_id=consultation,
+        engagement_id=engagement,
         basis="no-filename-cue-and-no-text",
         confidence="low",
     )

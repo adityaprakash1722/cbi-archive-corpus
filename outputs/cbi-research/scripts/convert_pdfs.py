@@ -280,8 +280,9 @@ def write_manifest(root: Path, rows: list[dict]) -> None:
         "low_text", "status", "error", "seconds",
     ]
     root.mkdir(parents=True, exist_ok=True)
-    with (root / "conversion-manifest.csv").open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
+    with (root / "conversion-manifest.csv").open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(
+            stream, fieldnames=fields, extrasaction="ignore", lineterminator="\n")
         writer.writeheader()
         for row in sorted(rows, key=lambda row: row["url"]):
             rendered = dict(row)

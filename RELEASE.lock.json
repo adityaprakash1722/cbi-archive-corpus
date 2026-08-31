@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "release": "corpus-v5-2026-08-29",
+  "release": "corpus-v5.1-2026-08-30",
   "crawl_snapshot_date": "2026-08-25",
-  "git_commit": "1f64cb72bfd2063d38974eb8f8c61e30d733dd1c",
+  "git_commit": "1d900e37959e2b2b918910843624b302002fb3f2",
   "hugging_face": {
     "corpus_repo": "aditya487/cbi-archive-corpus",
     "corpus_revision": "bcbd2e84bff7655794eb9985b5f6bd1e428d263e",
@@ -13,22 +13,27 @@
     "documents": 5568,
     "pages": 88783,
     "authorship": {
-      "central-bank": 3807,
-      "stakeholder": 1671,
-      "mixed": 1,
-      "unresolved": 89
+      "central-bank": 3844,
+      "stakeholder": 1722,
+      "mixed": 2
     }
   },
   "artifacts": {
-    "data/documents.parquet": "d03e04460e49d6f7aae1d0dfc1245ba0665b930082b4caa97551f646132674a0",
-    "data/pages.parquet": "f1c86ffd0d7206652d3b4e17541ec290c9320849e3150f7ddf7a8ec72f0960c5",
-    "manifests/files.csv.zst": "cf6b922233a3c25c4b72c39fedcb9df2061293cdfb36d248b6976c24fe79a6bc",
-    "manifests/provenance-classification.csv.zst": "ec16cd470280f56e5c7113f5a7d92730136876fcf7d25b4a3f5b46415ec6c867",
-    "manifests/extraction-quality.csv.zst": "2f8bcfb426e3de79b63e25ed71c6f501941e9fe2bdf8e66dd8f3cfba627f9cd3",
-    "manifests/conversion-manifest.csv.zst": "3945e542c9ed61b946e8544cd57a88e7db5aea9441276f026f42e4525c1b1751",
-    "manifests/conversion-manifest-office.csv.zst": "c4aa686ffad01baace1aecae807a428d1fa5267750b2d0449d94e4b6df8fef3f",
-    "publish/blob-catalog.csv": "3c81b01016edf6a085a369c68dbca617b5d934139a9f5f3c7770fc90419568c5",
-    "publish/blob-summary.json": "b1ce93df5563c1e44df16c81f7b4067977bbfc1e1bb04356ad7d91df4723f4a1",
-    "publish/page-catalog.csv": "fd017038333dbeca94fc639a2f666b71ab06bad4ccaa9472d1c9669af5e9c90e"
+    "data/documents.parquet": "878b9eb3c0fc2fc575a028c6278c1983fd4b0982196e46efe9c438d4b2f35dd4",
+    "data/pages.parquet": "5c734fd6fd812dc878bfec17f17848ce6219ab8f87cfc57be7f9914db95d8ca6",
+    "data/dataset-summary.json": "611bdd4fbb7a993159c2d8fafcc4879a6b249e0e093a35701d9f3d8ef09c57d4",
+    "manifests/files.csv.zst": "750ce083de0a012c6a2ddd38ba097193ab41d61c0c502a6f5693f6b874a65a34",
+    "manifests/provenance-classification.csv.zst": "ed5a5cf5d6437227943839d042b31cd6ec37e34a250ba146aa0a2157ee1bdd28",
+    "manifests/extraction-quality.csv.zst": "edca0e54780a53d6e803d93f3b11a7dfa0fd657a2ca417ae28a7b836b87de877",
+    "manifests/conversion-manifest.csv.zst": "bf7053d470fc3c22db248297db2d0c208345bcdf09bf149a1e42cf48144be58f",
+    "manifests/conversion-manifest-office.csv.zst": "14f953868c93765308dbc103abb990027958a5db71233d510abe4c70dd9c0795",
+    "manifests/authorship-overrides.csv.zst": "41e4f9ae2509d44999b9df34a45fd14a4ea053a27cd271cd1990d69f067a0250",
+    "manifests/page-authorship-overrides.csv.zst": "5918620d7773365ea921a916153ebcecc3fe240c25a52b6faf4bf53a15b3b4e1",
+    "manifests/conversion-exclusions.csv.zst": "5bba219827df2c0b71d917b637c8975cfc8713741a524ab1a80205dda9951d93",
+    "manifests/engagement-coverage.csv.zst": "b3c49b471d674cc30ab5a37b02ca9a962d2c38da203d107c88271388cf418aa1",
+    "manifests/manifest-build-summary.json": "2f52dd4c92a712926c32639610919e87461c154a5d101d81e1390574ede8e089",
+    "publish/blob-catalog.csv": "d8287597de933fd1cb10cb0c0391e31b6e3c60fc998ed6285e064adbdee286a2",
+    "publish/blob-summary.json": "e6a51628035543e44da99589fb8ddeff9f0cb38808dfb703f3c25c974f716c02",
+    "publish/page-catalog.csv": "d61a6a18cc350f886d065723cebb053e7bb17bf7a3c4d0b48360c42acfa037ba"
   }
 }

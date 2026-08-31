@@ -55,10 +55,11 @@ FIELDS = ["document_id", "source_url", "source_alias_count", "source_sha256",
           "page_basis", "source_format"]
 OPTIONAL_FIELDS = [
     "title", "document_class", "authorship", "classification_basis",
-    "classification_confidence", "consultation_id", "published_at",
+    "classification_confidence", "consultation_id", "engagement_id", "published_at",
     "published_at_basis", "analysis_year", "analysis_year_basis", "retrieved_at",
     "source_page_url", "source_last_modified_at", "extraction_selection_basis",
-    "alternate_extraction_count",
+    "alternate_extraction_count", "content_sha256", "content_cluster_id",
+    "content_cluster_size",
 ]
 
 
@@ -336,7 +337,8 @@ def write_manifests(output: Path, manifest_rows: dict) -> None:
                   else output / "office" / "conversion-manifest.csv")
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("w", newline="", encoding="utf-8") as stream:
-            writer = csv.DictWriter(stream, fieldnames=list(rows[0].keys()))
+            writer = csv.DictWriter(
+                stream, fieldnames=list(rows[0].keys()), lineterminator="\n")
             writer.writeheader()
             writer.writerows(rows)
         print("  wrote " + str(target) + ": " + str(len(rows)) + " rows", flush=True)
@@ -369,7 +371,7 @@ def write_extraction_preferences(output: Path, documents: list[dict],
         return
     target = output / "extraction-preferences.csv"
     with target.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     print("  wrote " + str(target) + ": " + str(len(rows)) + " rows", flush=True)
@@ -399,7 +401,7 @@ def write_page_authorship(output: Path, documents: list[dict], pages: dict) -> N
     target = output / "page-authorship-overrides.csv"
     fields = ["source_sha256", "start_page", "end_page", "authorship", "basis"]
     with target.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     print("  wrote " + str(target) + ": " + str(len(rows)) + " rows", flush=True)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate document authorship against a separately maintained human-labelled set."""
+"""Evaluate document authorship against a separately maintained reviewed set."""
 from __future__ import annotations
 
 import argparse
@@ -49,18 +49,22 @@ def main() -> int:
         "sample_design": "Deterministic pseudo-random SHA ordering, stratified across the v4 labels, "
                          "plus the discovered mixed composite and two audited non-consultation "
                          "stakeholder submissions. Labels were assigned by opening the text.",
+        "evaluation_role": ("Regression set used during classifier development; not a held-out "
+                            "population-accuracy estimate."),
         "documents": len(gold),
         "correct": len(gold) - len(errors),
         "accuracy": round(accuracy, 4),
         "confusion": {key: dict(value) for key, value in confusion.items()},
         "by_confidence": {key: dict(value) for key, value in by_confidence.items()},
         "errors": errors,
-        "caution": "This small audit sample is an error detector, not a population accuracy estimate.",
+        "caution": ("This small, non-held-out audit is an error detector. The separately tracked "
+                    "authorship adjudications target every formerly unresolved document."),
     }
     print(json.dumps(payload, indent=2))
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        args.output.write_text(
+            json.dumps(payload, indent=2) + "\n", encoding="utf-8", newline="\n")
     return 0 if accuracy >= args.minimum_accuracy and not any(
         error["predicted"] == "missing" for error in errors) else 1
 

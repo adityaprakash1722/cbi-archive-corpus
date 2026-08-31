@@ -3,11 +3,11 @@
 Written 26 August 2026, at the point of moving from a Cowork session to Claude
 Code running locally.
 
-> **Current-state addendum, 29 August 2026.** This is a dated research handover,
-> not the storage/runbook authority. Corpus v5 is now the local current index:
-> 3,807 Central Bank, 1,671 stakeholder, 89 unresolved and one mixed document;
-> page-level voice, safe analysis years, a preferred DOCX extraction and a
-> recovered CP76 submission. The public v5 release is pinned by immutable Git
+> **Current-state addendum, 30 August 2026.** This is a dated research handover,
+> not the storage/runbook authority. Corpus v5.1 is now the local current index:
+> 3,844 Central Bank, 1,722 stakeholder, zero unresolved and two mixed documents;
+> page-level voice, canonical engagement identifiers, final-text quality metrics,
+> a preferred DOCX extraction and a recovered CP76 submission. The public release is pinned by immutable Git
 > and Hugging Face revisions in `RELEASE.lock.json`. `AGENTS.md` and `STORAGE.md`
 > own the current operational facts.
 
@@ -140,23 +140,23 @@ raise, across how many separate consultations, over how many years". Persistence
 across independent consultations is the signal, because it cannot be explained by
 one consultation's politics.
 
-Base: **1,672 documents containing stakeholder-authored pages** across **97
+Base: **1,724 documents containing stakeholder-authored pages** across **97
 distinct consultations**, roughly 2006 to 2026. The count is one above the
-1,671 stakeholder containers because the mixed compilation contributes
+1,722 stakeholder containers because both mixed compilations contribute
 stakeholder pages too.
 
 | What firms raise | Consultations of 97 |
 |---|---:|
-| Unclear requirements, need for clarity | 80% |
-| Proportionality for smaller firms | 73% |
-| Outsourcing and third-party oversight | 72% |
-| Compliance cost and disproportionality | 70% |
-| Duplicated effort and re-reporting | 54% |
-| Regulatory reporting mechanics | 48% |
-| Safeguarding client money | 33% |
+| Unclear requirements, need for clarity | 81% |
+| Proportionality for smaller firms | 76% |
+| Outsourcing and third-party oversight | 73% |
+| Compliance cost and disproportionality | 72% |
+| Duplicated effort and re-reporting | 55% |
+| Regulatory reporting mechanics | 49% |
+| Safeguarding client money | 34% |
 | **Fraud and scam handling** | **26%** |
 | Manual work and spreadsheets | 25% |
-| **Complaints handling operations** | **18%** |
+| **Complaints handling operations** | **19%** |
 
 Interpretation and proportionality dominate. Operational topics do not. That is
 exactly what you would predict from a population holding obligations with no
@@ -173,14 +173,14 @@ ones. If firms wanted relief from fraud-handling or complaints-handling
 obligations, advocacy incentives would push them to say so loudly. They largely
 do not. That gap is the kind bias would conceal, not manufacture.
 
-A useful cross-check from the published corpus: 230 Central Bank documents and
-183 stakeholder documents contain "disproportionate". As rates that is 6.0% of
-the regulator's documents against 11.1% of industry submissions, nearly double.
+A useful cross-check from the published corpus: 236 Central Bank documents and
+188 stakeholder documents contain "disproportionate". As rates that is 6.1% of
+the regulator's page-voice corpus against 10.9% of the stakeholder corpus.
 
 ### Current status of these numbers
 
-The scan has been rerun against v5 and is in
-`analysis-v5/industry-pain-scan.*`. It uses page-level voice and validated
+The scan has been rerun against v5.1 and is in
+`analysis-v5.1/industry-pain-scan.*`. It uses page-level voice and validated
 `analysis_year`, so the mixed container is handled correctly and malformed 2031
 PDF timestamps no longer create future observations. These remain discovery
 counts, not evidence of prevalence, causality or buyer demand.
@@ -296,17 +296,17 @@ con.execute(f"SELECT authorship, count(*) FROM read_parquet('{BASE}/documents.pa
 **Or use the local index**, which is faster for heavy work:
 
 ```bash
-make index    # rebuilds cbi-corpus-v5-5568docs.sqlite in about 15 seconds
+make index    # rebuilds cbi-corpus-v5.1-5568docs.sqlite in under a minute
               # from a fresh clone, run make materialize first
 python outputs/cbi-research/scripts/search_corpus.py '"operational resilience"' \
-  --database outputs/cbi-research/index/cbi-corpus-v5-5568docs.sqlite --limit 10
+  --database outputs/cbi-research/index/cbi-corpus-v5.1-5568docs.sqlite --limit 10
 ```
 
 **Rebuild the reading bundles** after any classifier change:
 
 ```bash
 python outputs/cbi-research/scripts/build_learning_bundles.py \
-  --database outputs/cbi-research/index/cbi-corpus-v5-5568docs.sqlite \
+  --database outputs/cbi-research/index/cbi-corpus-v5.1-5568docs.sqlite \
   --output work/learning-bundles
 ```
 

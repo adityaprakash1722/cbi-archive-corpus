@@ -20,5 +20,8 @@
   },
   "pages": 678,
   "source_bytes": 387075790,
-  "markdown_bytes": 19279948
+  "markdown_bytes": 19279572,
+  "characters": 18045999,
+  "metric_basis": "final-page-text",
+  "near_blank_page_definition": "fewer than 30 Unicode non-space characters"
 }

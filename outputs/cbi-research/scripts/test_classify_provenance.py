@@ -71,7 +71,7 @@ CASES = [
     # statement identify this consultation as CP70. Actual CP71 is under cp071.
     (f"{BASE}/cp71/feedback-statement-on-cp70.pdf", "central-bank", "cp70"),
     (f"{BASE}/cp71/aema-submission.pdf", "stakeholder", "cp70"),
-    (f"{BASE}/cp071/cp71.pdf", "central-bank", "cp071"),
+    (f"{BASE}/cp071/cp71.pdf", "central-bank", "cp71"),
 ]
 
 # Complete regression set from the 2026-08-26 precedence audit: these 55 real
@@ -181,6 +181,15 @@ CLASS_CASES = [
      "cbi-corporate-report"),
 ]
 
+ID_CASES = [
+    (f"{BASE}/cp071/cp71.pdf", "cp71", "cp71"),
+    (f"{BASE}/cp-156/feedback-statement.pdf", "cp156", "cp156"),
+    (f"{BASE}/cp71/feedback-statement-on-cp70.pdf", "cp70", "cp70"),
+    (f"{DISC}/dp11/irish-funds-response-to-dp11.pdf", None, "dp11"),
+    (f"{DISC}/discussion-paper-10/public---responses-to-dp10.pdf", None, "dp10"),
+    (f"{DISC}/disucssion-paper-2/mabs-submission.pdf", None, "dp2"),
+]
+
 def main() -> int:
     failures = []
     for url, want_authorship, want_cp in CASES:
@@ -197,15 +206,24 @@ def main() -> int:
         got = classify(url)
         if got.document_class != want_class:
             failures.append(f"class {url.rsplit('/',1)[-1]}: want {want_class}, got {got.document_class}")
+    for url, want_cp, want_engagement in ID_CASES:
+        got = classify(url)
+        if got.consultation_id != want_cp:
+            failures.append(
+                f"normalised consultation_id {url}: want {want_cp}, got {got.consultation_id}")
+        if got.engagement_id != want_engagement:
+            failures.append(
+                f"engagement_id {url}: want {want_engagement}, got {got.engagement_id}")
 
-    total = len(CASES) + len(CONTENT_CASES) + len(CLASS_CASES)
+    total = len(CASES) + len(CONTENT_CASES) + len(CLASS_CASES) + len(ID_CASES) * 2
     if failures:
         print(f"FAIL {len(failures)} of {total} assertions")
         for line in failures:
             print("  -", line)
         return 1
     print(f"PASS {total} assertions across {len(CASES)} filename, "
-          f"{len(CONTENT_CASES)} content and {len(CLASS_CASES)} class cases")
+          f"{len(CONTENT_CASES)} content, {len(CLASS_CASES)} class and "
+          f"{len(ID_CASES)} identifier cases")
     return 0
 
 if __name__ == "__main__":

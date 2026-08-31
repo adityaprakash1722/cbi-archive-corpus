@@ -377,8 +377,10 @@ def main() -> int:
               "format", "pipeline_version", "markdown_file", "markdown_bytes", "markdown_sha256", "engine", "page_basis",
               "pages", "characters", "nonspace_characters", "lines", "replacement_characters",
               "empty_pages", "low_text", "status", "error", "format_mismatch"]
-    with (root / "conversion-manifest.csv").open("w", encoding="utf-8-sig", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=fields, extrasaction="ignore"); w.writeheader()
+    with (root / "conversion-manifest.csv").open("w", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(
+            fh, fieldnames=fields, extrasaction="ignore", lineterminator="\n")
+        w.writeheader()
         for r in sorted(rows, key=lambda r: r["url"]):
             r = dict(r); r["source_urls"] = " | ".join(r.get("source_urls") or [])
             w.writerow(r)
@@ -391,7 +393,8 @@ def main() -> int:
     for r in rows:
         for key, field in (("by_format", "format"), ("statuses", "status"), ("by_page_basis", "page_basis")):
             summary[key][r.get(field) or "n/a"] = summary[key].get(r.get(field) or "n/a", 0) + 1
-    (root / "conversion-summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    (root / "conversion-summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(summary, indent=2), flush=True)
     return 0
 

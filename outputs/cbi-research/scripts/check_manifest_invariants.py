@@ -4,7 +4,7 @@ r"""Check tracked data, explicitly marked facts, and known documentation regress
     python outputs\cbi-research\scripts\check_manifest_invariants.py
 
 Runs in CI on every push. Its CI checks need no network or built index. When the
-untracked Markdown corpus and v5 index are present locally, it also verifies the
+untracked Markdown corpus and v5.1 index are present locally, it also verifies the
 hash chain from each Markdown file through its manifest to the index.
 
 Two earlier versions of this script were not worth their name
@@ -97,6 +97,26 @@ def read_csv(path: Path) -> list[dict]:
         return list(csv.DictReader(line.replace("\x00", "") for line in stream))
 
 
+def read_jsonl(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8-sig").splitlines()
+            if line.strip()]
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(1 << 20):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def local_release_artifact(name: str) -> Path:
+    """Map a lock key to the exact local bytes uploaded for that artifact."""
+    if name.startswith(("data/", "manifests/")):
+        return ROOT / "publish" / "hf" / name
+    return ROOT / name
+
+
 def git_tracked_paths(pattern: str | None = None) -> list[str] | None:
     """Return files that would be present after a commit, or None without git.
 
@@ -143,7 +163,8 @@ def classifier_assertion_count() -> int:
     if scripts not in sys.path:
         sys.path.insert(0, scripts)
     spec.loader.exec_module(module)
-    return len(module.CASES) + len(module.CONTENT_CASES) + len(module.CLASS_CASES)
+    return (len(module.CASES) + len(module.CONTENT_CASES) + len(module.CLASS_CASES)
+            + len(module.ID_CASES) * 2)
 
 
 def decimal_value(text: str) -> Decimal:
@@ -191,17 +212,26 @@ def main() -> int:
         (ROOT / "publish" / "blob-summary.json").read_text(encoding="utf-8"))
     quality_summary = json.loads(
         (RESEARCH / "qa" / "extraction-quality-summary.json").read_text(encoding="utf-8"))
+    corpus_validation = json.loads(
+        (RESEARCH / "qa" / "corpus-validation.json").read_text(encoding="utf-8"))
     authorship_gold = read_csv(RESEARCH / "qa" / "authorship-gold.csv")
     authorship_evaluation = json.loads(
         (RESEARCH / "qa" / "authorship-evaluation.json").read_text(encoding="utf-8"))
     release = json.loads((ROOT / "RELEASE.lock.json").read_text(encoding="utf-8"))
     page_overrides = read_csv(RESEARCH / "qa" / "page-authorship-overrides.csv")
+    authorship_overrides = read_csv(RESEARCH / "qa" / "authorship-overrides.csv")
+    conversion_exclusions = read_csv(RESEARCH / "qa" / "conversion-exclusions.csv")
+    engagement_coverage = read_csv(RESEARCH / "qa" / "engagement-coverage.csv")
+    engagement_summary = json.loads(
+        (RESEARCH / "qa" / "engagement-coverage-summary.json").read_text(encoding="utf-8"))
+    individual_review = read_csv(RESEARCH / "qa" / "individual-submission-review.csv")
     extraction_preferences = read_csv(RESEARCH / "qa" / "extraction-preferences.csv")
     file_manifest = read_csv(ROOT / "outputs" / "cbi-archive" / "cbi-data" /
                              "manifests" / "files.csv")
     page_manifest = read_csv(ROOT / "outputs" / "cbi-archive" / "cbi-data" /
                              "manifests" / "page-snapshots.csv")
     page_catalog = read_csv(ROOT / "publish" / "page-catalog.csv")
+    pdf_journal = read_jsonl(RESEARCH / "corpus" / "conversion-journal.jsonl")
     tracked = git_tracked_paths()
     tracked_file_count = len(tracked) if tracked is not None else None
 
@@ -209,6 +239,11 @@ def main() -> int:
     check("PDF conversion manifest rows", len(pdf), 5246)
     check("Office conversion manifest rows", len(office), 323)
     check("extraction-quality rows", len(quality), 5568)
+    check("full PDF and Office validation failures", corpus_validation.get("failures"), 0)
+    check("full validation unique source hashes",
+          corpus_validation.get("manifest_unique_shas"), 5568)
+    check("full validation physical conversion records",
+          corpus_validation.get("manifest_records"), 5569)
     check("blob catalogue rows", len(catalog), 6309)
     check("blob catalogue unique hashes", len({r["sha256"] for r in catalog}), 6309)
     check("blob catalogue unique keys", len({r["key"] for r in catalog}), 6309)
@@ -225,6 +260,8 @@ def main() -> int:
     check("page snapshot manifest rows", len(page_manifest), 11371)
     check("page snapshot catalogue agrees with raw summary", len(page_catalog),
           blob_summary.get("page_snapshots_laid_out", 0))
+    check("legacy snapshot rows claiming archived HTML bodies",
+          sum(bool(row.get("htmlSha256") or row.get("archiveKey")) for row in page_manifest), 0)
     check("archived page keys are deterministic",
           sum(1 for row in page_manifest if row.get("htmlSha256") and
               row.get("archiveKey") !=
@@ -239,6 +276,13 @@ def main() -> int:
     check("release-lock artifact hashes are SHA-256",
           all(re.fullmatch(r"[0-9a-f]{64}", value or "")
               for value in release.get("artifacts", {}).values()), True)
+    for name, wanted in release.get("artifacts", {}).items():
+        path = local_release_artifact(name)
+        if not path.is_file() and name in {
+                "data/documents.parquet", "data/pages.parquet"}:
+            print(f"  release-lock bytes {name:29} {'not in git':>14}  skipped")
+            continue
+        check(f"release-lock bytes {name}", sha256_file(path) if path.is_file() else None, wanted)
     check("release-lock expected document count",
           release.get("expected", {}).get("documents"), 5568)
     overlap = {row["source_sha256"] for row in pdf} & {
@@ -246,7 +290,26 @@ def main() -> int:
     check("duplicate extractions with explicit preferences",
           {row["source_sha256"] for row in extraction_preferences}, overlap)
     check("mixed documents with page-authorship overrides",
-          len({row["source_sha256"] for row in page_overrides}), 1)
+          len({row["source_sha256"] for row in page_overrides}), 2)
+    check("authorship adjudication rows", len(authorship_overrides), 89)
+    check("authorship adjudication hashes unique",
+          len({row["source_sha256"] for row in authorship_overrides}), len(authorship_overrides))
+    check("conversion exclusion rows", len(conversion_exclusions), 1)
+    journal_hashes = {row.get("source_sha256") for row in pdf_journal if row.get("source_sha256")}
+    pdf_hashes = {row["source_sha256"] for row in pdf}
+    excluded_hashes = {row["source_sha256"] for row in conversion_exclusions}
+    check("PDF journal accounted for by manifest plus exclusions",
+          journal_hashes == pdf_hashes | excluded_hashes, True)
+    check("conversion exclusions absent from converted PDF manifest",
+          len(excluded_hashes & pdf_hashes), 0)
+    check("engagement coverage CSV rows", len(engagement_coverage), 182)
+    check("engagement coverage CP identifiers present",
+          sum(row["engagement_type"] == "consultation-paper" and
+              row["snapshot_status"] == "present" for row in engagement_coverage),
+          engagement_summary["cp_identifiers_present"])
+    check("engagement coverage complete loops",
+          sum((row.get("complete_argumentative_loop") or "").lower() == "true"
+              for row in engagement_coverage), engagement_summary["complete_argumentative_loops"])
     check("authorship audit covers every gold row",
           authorship_evaluation.get("documents"), len(authorship_gold))
     check("authorship audit has no detected errors",
@@ -260,6 +323,37 @@ def main() -> int:
     for row in provenance:
         key = row.get("classification_confidence") or ""
         confidence[key] = confidence.get(key, 0) + 1
+    adjudicated = {row["source_sha256"] for row in provenance
+                   if row.get("classification_basis", "").startswith("adjudicated:")}
+    check("adjudication hashes carried into provenance",
+          adjudicated == {row["source_sha256"] for row in authorship_overrides}, True)
+    check("current unresolved document count", authorship.get("unresolved", 0), 0)
+    check("release-lock expected authorship split",
+          release.get("expected", {}).get("authorship"), authorship)
+    current_by_sha = {row["source_sha256"]: row["authorship"] for row in provenance}
+    check("rights-review candidates with stale authorship",
+          sum(current_by_sha.get(row["source_sha256"]) != row.get("authorship")
+              for row in individual_review), 0)
+
+    canonical_csvs = [
+        RESEARCH / "corpus" / "conversion-manifest.csv",
+        RESEARCH / "corpus" / "office" / "conversion-manifest.csv",
+        RESEARCH / "qa" / "provenance-classification.csv",
+        RESEARCH / "qa" / "extraction-quality.csv",
+        RESEARCH / "qa" / "authorship-overrides.csv",
+        RESEARCH / "qa" / "page-authorship-overrides.csv",
+        RESEARCH / "qa" / "conversion-exclusions.csv",
+        RESEARCH / "qa" / "engagement-coverage.csv",
+        RESEARCH / "qa" / "individual-submission-review.csv",
+        RESEARCH / "qa" / "corpus-validation-failures.csv",
+        RESEARCH / "qa" / "corpus-validation-warnings.csv",
+        ROOT / "publish" / "blob-catalog.csv",
+        ROOT / "publish" / "page-catalog.csv",
+    ]
+    check("generated CSVs with a UTF-8 BOM",
+          sum(path.read_bytes().startswith(b"\xef\xbb\xbf") for path in canonical_csvs), 0)
+    check("generated CSVs containing CRLF",
+          sum(b"\r\n" in path.read_bytes() for path in canonical_csvs), 0)
     # The whole distribution, not two numbers from it. Checking `ok` and the
     # flagged total let two documents keep a breakdown that read
     # "63 gappy, 26 garbled, 16 thin, 7 empty", which sums to 112 while the
@@ -303,7 +397,8 @@ def main() -> int:
 
     expected_facts: dict[str, int | float | Decimal] = {
         **{f"quality.grade.{grade}": count for grade, count in grades.items()},
-        **{f"authorship.{label}": count for label, count in authorship.items()},
+        **{f"authorship.{label}": authorship.get(label, 0)
+           for label in ("central-bank", "stakeholder", "mixed", "unresolved")},
         "classifier.assertions": assertions,
         "audit.documents": len(authorship_gold),
         "audit.correct": authorship_evaluation.get("correct", 0),
@@ -322,7 +417,9 @@ def main() -> int:
          "central-bank count"),
         (3809, ["central-bank", "central bank document"], authorship.get("central-bank", 0),
          "central-bank count"),
+        (1671, ["stakeholder"], authorship.get("stakeholder", 0), "stakeholder count"),
         (1656, ["stakeholder"], authorship.get("stakeholder", 0), "stakeholder count"),
+        (89, ["unresolved"], authorship.get("unresolved", 0), "unresolved count"),
         (103, ["unresolved"], authorship.get("unresolved", 0), "unresolved count"),
         (105, ["unresolved"], authorship.get("unresolved", 0), "unresolved count"),
         (105, ["confidence", "low "], confidence.get("low", 0), "low-confidence count"),
@@ -335,9 +432,13 @@ def main() -> int:
          assertions, "assertion count"),
         (102, ["assertion", "regression test", "classifier", "test_classify"],
          assertions, "assertion count"),
+        (104, ["assertion", "regression test", "classifier", "test_classify"],
+         assertions, "assertion count"),
         (30, ["audit sample", "human-reviewed sample", "human-labelled audit", "30/30"],
          len(authorship_gold), "human-audit sample size"),
         (82, ["flag", "graded", "extraction", "extract badly", "below `ok`"],
+         flagged, "documents graded below ok"),
+        (81, ["flag", "graded", "extraction", "extract badly", "below `ok`"],
          flagged, "documents graded below ok"),
         (112, ["flag", "graded", "extraction", "extract badly", "below `ok`"],
          flagged, "documents graded below ok"),
@@ -469,7 +570,7 @@ def main() -> int:
         check("Markdown files whose hash differs from the manifest", stale_manifest, 0)
         check("manifest rows with no Markdown file on disk", missing, 0)
 
-    index = RESEARCH / "index" / "cbi-corpus-v5-5568docs.sqlite"
+    index = RESEARCH / "index" / "cbi-corpus-v5.1-5568docs.sqlite"
     if not index.is_file() or not file_hash:
         print("  index not present, skipped (this is normal in CI)")
     else:
@@ -485,15 +586,58 @@ def main() -> int:
         check("index documents with a future analysis year",
               connection.execute(
                   "SELECT COUNT(*) FROM documents WHERE analysis_year > 2026").fetchone()[0], 0)
-        check("index documents still assigned to erroneous cp71",
+        consultation_ids = [row[0] for row in connection.execute(
+            "SELECT DISTINCT consultation_id FROM documents WHERE consultation_id IS NOT NULL")]
+        engagement_ids = [row[0] for row in connection.execute(
+            "SELECT DISTINCT engagement_id FROM documents WHERE engagement_id IS NOT NULL")]
+        check("index noncanonical consultation identifiers",
+              sum(not re.fullmatch(r"cp[1-9][0-9]*[a-z]?", value)
+                  for value in consultation_ids), 0)
+        check("index noncanonical engagement identifiers",
+              sum(not re.fullmatch(r"(?:cp|dp)[1-9][0-9]*[a-z]?", value)
+                  for value in engagement_ids), 0)
+        check("misfiled /cp71/ documents not normalised to cp70",
               connection.execute(
-                  "SELECT COUNT(*) FROM documents WHERE consultation_id = 'cp71'").fetchone()[0], 0)
+                  "SELECT COUNT(*) FROM documents WHERE lower(source_url) LIKE '%/cp71/%' "
+                  "AND consultation_id != 'cp70'").fetchone()[0], 0)
+        check("/cp071/ documents not normalised to cp71",
+              connection.execute(
+                  "SELECT COUNT(*) FROM documents WHERE lower(source_url) LIKE '%/cp071/%' "
+                  "AND consultation_id != 'cp71'").fetchone()[0], 0)
         check("index mixed-document count",
               connection.execute(
-                  "SELECT COUNT(*) FROM documents WHERE authorship = 'mixed'").fetchone()[0], 1)
+                  "SELECT COUNT(*) FROM documents WHERE authorship = 'mixed'").fetchone()[0], 2)
+        check("index unresolved-document count",
+              connection.execute(
+                  "SELECT COUNT(*) FROM documents WHERE authorship = 'unresolved'").fetchone()[0], 0)
         check("index pages without page-level authorship",
               connection.execute(
                   "SELECT COUNT(*) FROM pages WHERE authorship IS NULL OR authorship = ''").fetchone()[0], 0)
+        check("index quality empty-page total",
+              connection.execute("SELECT SUM(quality_empty_pages) FROM documents").fetchone()[0],
+              total_empty_pages)
+        direct_empty = direct_replacements = 0
+        for page_text, in connection.execute("SELECT text FROM pages"):
+            text_value = page_text or ""
+            direct_empty += len("".join(text_value.split())) < 30
+            direct_replacements += text_value.count("\ufffd")
+        check("page text recomputation of near-blank pages", direct_empty, total_empty_pages)
+        check("page text recomputation of replacement characters", direct_replacements,
+              sum(int(row["replacement_characters"]) for row in quality))
+        check("content cluster rows with inconsistent sizes",
+              connection.execute("""
+                  SELECT COUNT(*) FROM (
+                    SELECT content_cluster_id
+                    FROM documents
+                    GROUP BY content_cluster_id
+                    HAVING COUNT(*) != MIN(content_cluster_size)
+                       OR MIN(content_cluster_size) != MAX(content_cluster_size)
+                  )
+              """).fetchone()[0], 0)
+        check("index documents without exact-content hashes",
+              connection.execute(
+                  "SELECT COUNT(*) FROM documents WHERE content_sha256 IS NULL "
+                  "OR length(content_sha256) != 64").fetchone()[0], 0)
         connection.close()
 
     print()

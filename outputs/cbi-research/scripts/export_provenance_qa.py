@@ -36,7 +36,7 @@ def main() -> int:
             """
             SELECT source_sha256, source_url, source_format, document_class,
                    authorship, classification_basis, classification_confidence,
-                   consultation_id, page_count, extraction_selection_basis,
+                   consultation_id, engagement_id, page_count, extraction_selection_basis,
                    alternate_extraction_count, published_at, published_at_basis,
                    analysis_year, analysis_year_basis, source_page_url, retrieved_at
             FROM documents ORDER BY source_url, source_sha256
@@ -60,8 +60,9 @@ def main() -> int:
 
     args.output.mkdir(parents=True, exist_ok=True)
     csv_path = args.output / "provenance-classification.csv"
-    with csv_path.open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+    with csv_path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(
+            stream, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -99,7 +100,7 @@ def main() -> int:
             "SELECT authorship, COUNT(*) FROM pages GROUP BY authorship ORDER BY COUNT(*) DESC"
         ).fetchall())
     (args.output / "provenance-classification-summary.json").write_text(
-        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
     print(json.dumps(summary, indent=2))
     return 0

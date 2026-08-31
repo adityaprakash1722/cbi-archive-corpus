@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Prove the published dataset is live and correct from a temporary download.
+"""Prove every locked public artifact is live and byte-identical.
 
     python publish\\verify_dataset.py aditya487
 
-The verifier securely downloads the two pinned Parquet artifacts, checks their
-hashes and queries the temporary copies with DuckDB. This is deliberately more
-portable than DuckDB's direct HTTPS reader, which can fail to discover the
-Windows certificate store behind a managed TLS proxy. The temporary files are
-removed before exit; ordinary users can still query the Hub URLs directly.
+The verifier downloads every corpus and raw-catalog artifact named in
+RELEASE.lock.json, checks its SHA-256, then queries the temporary Parquet copies
+with DuckDB. This proves the lock describes the bytes actually available at both
+immutable Hub revisions, rather than merely checking two convenient files.
 """
 from __future__ import annotations
 
@@ -35,8 +34,6 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("user", nargs="?", default="aditya487")
     parser.add_argument("--revision", default=release["hugging_face"]["corpus_revision"])
-    parser.add_argument("--skip-hashes", action="store_true",
-                        help="skip downloading and hashing the two Parquet artifacts")
     args = parser.parse_args()
     user = args.user.strip()
     locked_revision = release["hugging_face"]["corpus_revision"]
@@ -51,31 +48,39 @@ def main() -> int:
         print("duckdb is not installed:  pip install duckdb")
         return 1
 
-    base = (f"https://huggingface.co/datasets/{user}/cbi-archive-corpus/"
-            f"resolve/{args.revision}/data")
-    docs_url, pages_url = f"{base}/documents.parquet", f"{base}/pages.parquet"
     cache = tempfile.TemporaryDirectory(prefix="cbi-verify-")
     cache_path = Path(cache.name)
-    docs_file, pages_file = cache_path / "documents.parquet", cache_path / "pages.parquet"
-    downloaded_hashes = {
-        "data/documents.parquet": download_sha256(docs_url, docs_file),
-        "data/pages.parquet": download_sha256(pages_url, pages_file),
-    }
+    downloaded_hashes: dict[str, str] = {}
+    downloaded_files: dict[str, Path] = {}
+    corpus_repo = release["hugging_face"]["corpus_repo"]
+    raw_repo = release["hugging_face"]["raw_repo"]
+    raw_revision = release["hugging_face"]["raw_revision"]
+    print(f"reading pinned corpus {args.revision}")
+    print(f"and pinned raw metadata {raw_revision}\n")
+    for name in release["artifacts"]:
+        is_raw = name.startswith("publish/")
+        repo = raw_repo if is_raw else corpus_repo
+        revision = raw_revision if is_raw else args.revision
+        remote_name = name.removeprefix("publish/") if is_raw else name
+        url = f"https://huggingface.co/datasets/{repo}/resolve/{revision}/{remote_name}"
+        target = cache_path / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        downloaded_hashes[name] = download_sha256(url, target)
+        downloaded_files[name] = target
+
+    docs_file = downloaded_files["data/documents.parquet"]
+    pages_file = downloaded_files["data/pages.parquet"]
     docs, pages = sql_path(docs_file), sql_path(pages_file)
     connection = duckdb.connect()
     failures = []
 
-    print(f"reading pinned release {args.revision}\n")
-
-    if not args.skip_hashes:
-        print("0. locked artifact hashes")
-        for path in ("data/documents.parquet", "data/pages.parquet"):
-            got = downloaded_hashes[path]
-            want = release["artifacts"][path]
-            ok = got == want
-            print(f"   {path:24s} {got[:16]}  {'ok' if ok else 'MISMATCH'}")
-            if not ok:
-                failures.append(f"{path}: {got} != {want}")
+    print("0. locked artifact hashes")
+    for path, want in release["artifacts"].items():
+        got = downloaded_hashes[path]
+        ok = got == want
+        print(f"   {path:54s} {got[:16]}  {'ok' if ok else 'MISMATCH'}")
+        if not ok:
+            failures.append(f"{path}: {got} != {want}")
 
     print("1. authorship split")
     rows = connection.execute(

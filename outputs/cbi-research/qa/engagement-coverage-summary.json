@@ -1,0 +1,35 @@
+{
+  "snapshot_date": "2026-08-25",
+  "canonical_cp_range_audited": [
+    1,
+    171
+  ],
+  "cp_identifiers_present": 149,
+  "cp_identifiers_absent_from_snapshot": [
+    "cp6",
+    "cp7",
+    "cp12",
+    "cp35",
+    "cp36",
+    "cp48",
+    "cp61",
+    "cp110",
+    "cp126",
+    "cp127",
+    "cp128",
+    "cp129",
+    "cp130",
+    "cp132",
+    "cp133",
+    "cp134",
+    "cp144",
+    "cp149",
+    "cp150",
+    "cp155",
+    "cp168",
+    "cp169"
+  ],
+  "complete_argumentative_loops": 73,
+  "discussion_paper_identifiers_present": 11,
+  "caution": "Sequence gaps measure this snapshot's coverage. They do not establish that a number was never issued or that the Central Bank site is itself complete."
+}

@@ -1,5 +1,6 @@
 {
   "sample_design": "Deterministic pseudo-random SHA ordering, stratified across the v4 labels, plus the discovered mixed composite and two audited non-consultation stakeholder submissions. Labels were assigned by opening the text.",
+  "evaluation_role": "Regression set used during classifier development; not a held-out population-accuracy estimate.",
   "documents": 32,
   "correct": 32,
   "accuracy": 1.0,
@@ -23,5 +24,5 @@
     }
   },
   "errors": [],
-  "caution": "This small audit sample is an error detector, not a population accuracy estimate."
+  "caution": "This small, non-held-out audit is an error detector. The separately tracked authorship adjudications target every formerly unresolved document."
 }

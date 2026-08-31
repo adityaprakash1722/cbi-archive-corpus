@@ -1,22 +1,29 @@
 {
-  "generated_at": "2026-08-29T21:39:39Z",
-  "elapsed_seconds": 115.3,
-  "expected_logical_documents": 5246,
-  "manifest_records": 5246,
-  "manifest_unique_shas": 5246,
-  "markdown_files": 5246,
-  "total_pages": 88106,
+  "generated_at": "2026-08-30T22:26:22Z",
+  "elapsed_seconds": 11.5,
+  "expected_pdf_documents": 5246,
+  "manifest_records": 5569,
+  "manifest_unique_shas": 5568,
+  "markdown_files": 5569,
+  "total_pages": 88784,
   "status_counts": {
-    "success": 5237,
-    "low_text": 9
+    "success": 5562,
+    "low_text": 7
   },
   "engine_counts": {
     "pymupdf4llm|ocr=False": 4700,
     "pymupdf4llm|ocr=True": 542,
-    "markitdown|ocr=False": 4
+    "markitdown|ocr=False": 4,
+    "libreoffice-headless|ocr=false": 71,
+    "python-docx 1.2.0|ocr=false": 194,
+    "python-docx 1.2.0+xml-table-fallback|ocr=false": 2,
+    "python-pptx|ocr=false": 2,
+    "zipfile-profile|ocr=false": 49,
+    "libreoffice-fallback (python-docx: KeyError)|ocr=false": 3,
+    "pymupdf4llm 1.28.2|ocr=false": 2
   },
-  "source_bytes_hashed": 4219717046,
-  "markdown_bytes_hashed": 183140039,
+  "source_bytes_hashed": 4606792836,
+  "markdown_bytes_hashed": 202419583,
   "orphan_markdown_files": 0,
   "warnings": 0,
   "failures": 0,

@@ -119,11 +119,13 @@ def main() -> int:
     graded.sort(key=lambda r: (r["extraction_grade"] == "ok", r["nonspace_per_page"]))
     args.output.mkdir(parents=True, exist_ok=True)
     fields = list(graded[0]) if graded else []
-    with (args.output / "extraction-quality.csv").open("w", encoding="utf-8-sig", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=fields); w.writeheader(); w.writerows(graded)
+    with (args.output / "extraction-quality.csv").open("w", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=fields, lineterminator="\n")
+        w.writeheader(); w.writerows(graded)
     flagged = [r for r in graded if r["extraction_grade"] != "ok"]
-    with (args.output / "extraction-quality-flagged.csv").open("w", encoding="utf-8-sig", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=fields); w.writeheader(); w.writerows(flagged)
+    with (args.output / "extraction-quality-flagged.csv").open("w", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=fields, lineterminator="\n")
+        w.writeheader(); w.writerows(flagged)
 
     densities = [r["nonspace_per_page"] for r in graded if r["pages"]]
     summary = {
@@ -140,8 +142,11 @@ def main() -> int:
         "flagged_pages": sum(r["pages"] for r in flagged),
         "note": ("Grades describe extraction fidelity, not conversion success. A document can pass "
                  "every structural check in validate_corpus.py and still be graded gappy or garbled."),
+        "metric_basis": "final-page-text",
+        "near_blank_page_definition": "fewer than 30 Unicode non-space characters",
     }
-    (args.output / "extraction-quality-summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    (args.output / "extraction-quality-summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(summary, indent=2))
     return 0
 

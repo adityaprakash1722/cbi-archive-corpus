@@ -1,16 +1,40 @@
 # Which index file to use
 
-Five SQLite databases sit in this directory, and a sixth, stale one exists under
+Six SQLite databases sit in this directory, and a seventh, stale one exists under
 `work/live-index/`. They are not interchangeable.
 
 | File | Documents | Pages | Use it? |
 |---|---:|---:|---|
-| `cbi-corpus-v5-5568docs.sqlite` | 5,568 | 88,783 | **Yes.** Current. Page-level voice, validated time fields and explicit duplicate selection. |
+| `cbi-corpus-v5.1-5568docs.sqlite` | 5,568 | 88,783 | **Yes.** Current. Adjudicated authorship, canonical CP/DP keys, final-text quality metrics and exact-text clusters. |
+| `cbi-corpus-v5-5568docs.sqlite` | 5,568 | 88,783 | Superseded. 89 unresolved documents, unnormalised identifiers and quality counts that did not describe the final page text. | <!-- historical -->
 | `cbi-corpus-v4-5568docs.sqlite` | 5,568 | 88,782 | Superseded. Adds 441,610 characters of page text the converter had dropped. |
 | `cbi-corpus-v3-5568docs.sqlite` | 5,568 | 88,782 | Superseded. Correct provenance, but 1,425 pages are blank that should not be. |
 | `cbi-corpus-v2-5568docs.sqlite` | 5,568 | 88,782 | Superseded. Includes office files, but 55 stakeholder documents are misattributed. |
 | `cbi-corpus.sqlite` | 5,246 | 88,106 | Superseded. PDF only, and its provenance classes are wrong (see below). |
 | `../../../work/live-index/cbi-corpus.sqlite` | 3,259 | 57,368 | **No.** Partial build from a run that was still converting. |
+
+## What changed in v5.1
+
+1. **Every formerly unresolved document was opened and adjudicated.** The 89 <!-- historical -->
+   decisions are keyed by source SHA-256 in `qa/authorship-overrides.csv`: 37
+   Central Bank, 51 stakeholder, and one mixed public-response compilation.
+   Page ranges are explicit for both mixed documents.
+2. **Consultation identifiers are canonical.** `cp071` and `cp-156` are now
+   `cp71` and `cp156`. `engagement_id` extends the join key to 11 discussion
+   paper series (`dpN`) without pretending they are consultation papers.
+3. **Quality describes the released text.** The conversion manifests,
+   Markdown frontmatter, SQLite and QA report now derive near-blank pages from
+   the final page bodies. The reconciled grades are 5,481 `ok`, 36 `gappy`, 25
+   `garbled`, 19 `thin` and 7 `empty`.
+4. **Exact-text duplicates are explicit.** `content_sha256`,
+   `content_cluster_id` and `content_cluster_size` preserve every source record
+   while allowing analyses to count repeated content once.
+5. **Release bytes are portable.** Generated CSVs use UTF-8 without a BOM and
+   LF endings; release-lock checks hash the actual artifacts rather than only
+   validating the shape of the hash strings.
+
+v5.1 SHA-256:
+`aa779f4bba4ec5b783d3cedeebaa20fbba638bc5e6fcb4f716872affb086fed8`.
 
 ## What changed in v5
 
@@ -27,11 +51,11 @@ Five SQLite databases sit in this directory, and a sixth, stale one exists under
    increase.
 4. **The CP76 encoding failure is OCR-recovered.** Five pages that were 94%
    replacement characters now hold 11,206 readable characters.
-5. **Provenance is 3,807 Central Bank / 1,671 stakeholder / 89 unresolved / one
-   mixed document.** 104 classifier regressions and a small 32-document human
+5. **Provenance was 3,807 Central Bank / 1,671 stakeholder / 89 unresolved / one <!-- historical -->
+   mixed document.** 104 classifier regressions and a small 32-document human <!-- historical -->
    audit sample cover the known failure modes.
 
-v5 SHA-256:
+v5 SHA-256 (superseded):
 `3dbd6a91e33969475e07d02cb106259e9041dab86b0041524cffee36e66f2d34`.
 
 ## What changed in v4

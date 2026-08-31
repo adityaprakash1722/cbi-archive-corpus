@@ -120,11 +120,13 @@ def main() -> int:
         "elapsed_seconds": round(time.monotonic() - started, 2),
         "topics": results,
     }
-    (output / "topic-scan.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    with (output / "topic-scan.csv").open("w", encoding="utf-8-sig", newline="") as stream:
+    (output / "topic-scan.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8", newline="\n")
+    with (output / "topic-scan.csv").open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=["id", "label", "query", "matching_documents",
                                                         "matching_pages", "stakeholder_documents",
-                                                        "unresolved_documents"])
+                                                        "unresolved_documents"], lineterminator="\n")
         writer.writeheader()
         for result in results:
             writer.writerow({key: result[key] for key in writer.fieldnames})

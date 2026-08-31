@@ -1,0 +1,56 @@
+{
+  "files.csv.zst": {
+    "source": "outputs/cbi-archive/cbi-data/manifests/files.csv",
+    "source_bytes": 3925734,
+    "compressed_bytes": 679489,
+    "sha256": "750ce083de0a012c6a2ddd38ba097193ab41d61c0c502a6f5693f6b874a65a34"
+  },
+  "conversion-manifest.csv.zst": {
+    "source": "outputs/cbi-research/corpus/conversion-manifest.csv",
+    "source_bytes": 4043630,
+    "compressed_bytes": 870405,
+    "sha256": "bf7053d470fc3c22db248297db2d0c208345bcdf09bf149a1e42cf48144be58f"
+  },
+  "conversion-manifest-office.csv.zst": {
+    "source": "outputs/cbi-research/corpus/office/conversion-manifest.csv",
+    "source_bytes": 263376,
+    "compressed_bytes": 52866,
+    "sha256": "14f953868c93765308dbc103abb990027958a5db71233d510abe4c70dd9c0795"
+  },
+  "provenance-classification.csv.zst": {
+    "source": "outputs/cbi-research/qa/provenance-classification.csv",
+    "source_bytes": 2980971,
+    "compressed_bytes": 390708,
+    "sha256": "ed5a5cf5d6437227943839d042b31cd6ec37e34a250ba146aa0a2157ee1bdd28"
+  },
+  "extraction-quality.csv.zst": {
+    "source": "outputs/cbi-research/qa/extraction-quality.csv",
+    "source_bytes": 1700833,
+    "compressed_bytes": 432167,
+    "sha256": "edca0e54780a53d6e803d93f3b11a7dfa0fd657a2ca417ae28a7b836b87de877"
+  },
+  "authorship-overrides.csv.zst": {
+    "source": "outputs/cbi-research/qa/authorship-overrides.csv",
+    "source_bytes": 38562,
+    "compressed_bytes": 6224,
+    "sha256": "41e4f9ae2509d44999b9df34a45fd14a4ea053a27cd271cd1990d69f067a0250"
+  },
+  "page-authorship-overrides.csv.zst": {
+    "source": "outputs/cbi-research/qa/page-authorship-overrides.csv",
+    "source_bytes": 506,
+    "compressed_bytes": 252,
+    "sha256": "5918620d7773365ea921a916153ebcecc3fe240c25a52b6faf4bf53a15b3b4e1"
+  },
+  "conversion-exclusions.csv.zst": {
+    "source": "outputs/cbi-research/qa/conversion-exclusions.csv",
+    "source_bytes": 513,
+    "compressed_bytes": 358,
+    "sha256": "5bba219827df2c0b71d917b637c8975cfc8713741a524ab1a80205dda9951d93"
+  },
+  "engagement-coverage.csv.zst": {
+    "source": "outputs/cbi-research/qa/engagement-coverage.csv",
+    "source_bytes": 19555,
+    "compressed_bytes": 1734,
+    "sha256": "b3c49b471d674cc30ab5a37b02ca9a962d2c38da203d107c88271388cf418aa1"
+  }
+}

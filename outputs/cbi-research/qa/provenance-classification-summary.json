@@ -1,45 +1,40 @@
 {
-  "generated_at": "2026-08-29T21:31:14Z",
-  "database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus-v5-5568docs.sqlite",
-  "previous_database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus-v4-5568docs.sqlite",
+  "generated_at": "2026-08-30T22:18:54Z",
+  "database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus-v5.1-5568docs.sqlite",
+  "previous_database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus-v5-5568docs.sqlite",
   "documents": 5568,
   "authorship": {
-    "central-bank": 3807,
-    "stakeholder": 1671,
-    "unresolved": 89,
-    "mixed": 1
+    "central-bank": 3844,
+    "stakeholder": 1722,
+    "mixed": 2
   },
   "confidence": {
-    "high": 5342,
-    "medium": 137,
-    "low": 89
+    "high": 5431,
+    "medium": 137
   },
   "change_vs_previous": {
-    "unchanged": 5549,
-    "reclassified": 19
+    "unchanged": 5479,
+    "reclassified": 89
   },
-  "moved_to_stakeholder": 15,
-  "moved_to_unresolved": 1,
-  "moved_to_central_bank": 2,
+  "moved_to_stakeholder": 51,
+  "moved_to_unresolved": 0,
+  "moved_to_central_bank": 37,
   "moved_to_mixed": 1,
   "basis_breakdown": {
     "non-consultation-path": 3489,
     "filename-attribution:response": 1064,
     "filename-attribution:submission": 222,
     "filename-attribution:feedback-from": 123,
+    "adjudicated:opening-and-closing-page-adjudication-2026-08-30": 89,
     "filename-strong-cbi-doctype:feedback-statement": 84,
     "filename-attribution:submission.": 66,
     "filename-cp-prefix-without-attribution": 61,
     "filename-attribution:response-to": 58,
     "filename-attribution:response.": 56,
-    "content-inconclusive(0v0)": 48,
     "filename-cbi-doctype:discussion-paper": 23,
     "filename-cbi-doctype:consultation-paper": 22,
     "filename-cbi-doctype:requirements": 12,
     "filename-cbi-doctype:consultation-on": 11,
-    "content-inconclusive(2v0)": 11,
-    "content-inconclusive(0v2)": 11,
-    "content-inconclusive(1v0)": 9,
     "filename-cbi-doctype:consumer-protection-code": 7,
     "filename-cbi-doctype:guidance-note": 6,
     "content-stakeholder(5v0):we welcome the opportunity;dear sir": 6,
@@ -53,7 +48,6 @@
     "filename-cbi-doctype:regulations.": 3,
     "filename-cbi-doctype:cross-industry-guidance": 3,
     "filename-cbi-doctype:gn-1": 3,
-    "content-inconclusive(1v3)": 3,
     "content-stakeholder(4v0):dear sir;yours faithfully": 3,
     "filename-attribution:to-cp9": 3,
     "filename-cbi-doctype:addendum": 2,
@@ -64,14 +58,11 @@
     "filename-cbi-doctype:gn-3": 2,
     "content-cbi(3v0):this consultation paper": 2,
     "content-stakeholder(3v0):this submission": 2,
-    "content-inconclusive(4v6)": 2,
-    "content-inconclusive(1v2)": 2,
     "content-stakeholder(5v0):yours sincerely;this submission": 2,
     "content-stakeholder(3v0):submission to the financial regulator": 2,
     "filename-cbi-doctype:code-of-conduct": 2,
     "filename-strong-cbi-doctype:a-note-from-the-central-bank": 2,
     "content-stakeholder(3v0):welcomes the opportunity to respond": 2,
-    "content-inconclusive(3v4)": 2,
     "content-stakeholder(5v1):dear sir;appreciates the opportunity": 2,
     "content-stakeholder(3v0):response to cp": 2,
     "content-stakeholder(7v0):we welcome the opportunity;dear sir;yours sincerely": 2,
@@ -137,7 +128,6 @@
     "filename-cbi-doctype:cp68-consultation": 1,
     "filename-cbi-doctype:cp73-consultation": 1,
     "content-cbi(5v0):feedback statement;cbi-name-in-title-block": 1,
-    "content-inconclusive(3v2)": 1,
     "filename-cbi-doctype:cp-76-consultation": 1,
     "filename-cbi-doctype:cp78-consultation": 1,
     "filename-cbi-doctype:cp80-consultation": 1,
@@ -173,8 +163,7 @@
     "audited-non-consultation-stakeholder:collaborative-finance-submission": 1
   },
   "page_authorship": {
-    "central-bank": 74336,
-    "stakeholder": 12340,
-    "unresolved": 2107
+    "central-bank": 76140,
+    "stakeholder": 12643
   }
 }

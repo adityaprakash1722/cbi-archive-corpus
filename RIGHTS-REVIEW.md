@@ -90,8 +90,8 @@ Submissions written by private individuals rather than firms. These are the
 documents where a name, an occupation, a personal circumstance and an opinion
 appear together, which is what makes them sensitive in aggregate.
 
-`qa/individual-submission-review.csv` lists **18 candidates**: 11 stakeholder,
-6 central-bank, 1 unresolved. That is **0.66% of the 1,671 stakeholder
+`qa/individual-submission-review.csv` lists **18 candidates**: 12 stakeholder
+and 6 central-bank. That is **0.70% of the 1,722 stakeholder
 documents**.
 
 They were found three ways: a title styled as a personal name, a URL styled the

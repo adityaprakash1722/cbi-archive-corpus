@@ -3,11 +3,13 @@
   "pipeline_version": "0.1.0",
   "records": 5246,
   "statuses": {
-    "success": 5237,
-    "low_text": 9
+    "success": 5239,
+    "low_text": 7
   },
   "source_bytes": 4219717046,
-  "markdown_bytes": 182718214,
+  "markdown_bytes": 183140011,
   "pages": 88106,
-  "characters": 172872195
+  "characters": 172997486,
+  "metric_basis": "final-page-text",
+  "near_blank_page_definition": "fewer than 30 Unicode non-space characters"
 }

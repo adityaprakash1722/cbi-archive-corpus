@@ -71,8 +71,8 @@ documents and 88,783 pages.
 
 The PDF corpus contains **88,106 source pages or recovered pseudo-pages**. Of 5,246
 documents, 5,237 raised no conversion error. A separate extraction-fidelity pass,
-which structural validation cannot perform, grades 5,487 of 5,568 unique converted
-documents as clean and flags 81: 30 with substantially blank pages, 25 garbled by
+which structural validation cannot perform, grades 5,481 of 5,568 unique converted
+documents as clean and flags 87: 36 with substantially blank pages, 25 garbled by
 encoding damage, 19 thin and seven empty. Nine low-text results are explainable:
 two heavily redacted notices and seven one-page video placeholders. Four Office files
 served with a `.pdf` suffix were recovered. All source and Markdown hashes, page-marker
@@ -84,20 +84,21 @@ The 489 workbooks contain 5,404 sheets. Their purpose matters: 120 are published
 tools. The five XML files are reporting examples, not economic observations. Treating
 every structured file as a statistical series would be a category error.
 
-The index separates **1,671 stakeholder consultation and discussion containers**
-from Central Bank research, findings, rules and feedback, marks one 114-page
-composite as `mixed`, and leaves 89 documents `unresolved` rather than defaulting
-them to the Bank. Page-level authorship separates the voices inside the composite.
+The index separates **1,722 stakeholder consultation and discussion containers**
+from Central Bank research, findings, rules and feedback, and marks two
+compilations as `mixed`. Every one of the 89 formerly unresolved documents was <!-- historical -->
+opened and adjudicated by source hash: 37 Central Bank, 51 stakeholder, and one
+mixed. Page-level authorship separates the voices inside both composites.
 
 The original figure was 1,134, and it was wrong. A consultation-hosted document was
 treated as a stakeholder submission only if its filename contained the substring
 `response`, so 289 files named `...-submission-from-...`, 123 named
 `...-feedback-from-...` and an unknown number published under the responder's bare
 name were all recorded as Central Bank material. Classification is now two-pass,
-filename then document text, with 104 regression tests (including all 55 known
+filename then document text, with 116 regression assertions (including all 55 known
 generic-document-type/explicit-attribution conflicts) and a stored basis and
-confidence for every label. A 32-document human-reviewed audit sample is an
-additional error detector, not a population accuracy estimate. Stakeholder submissions can reveal pain or objections;
+confidence for every label. A 32-document reviewed regression set is an
+additional error detector, not a held-out population accuracy estimate. Stakeholder submissions can reveal pain or objections;
 being hosted on centralbank.ie does not turn them into Central Bank conclusions, and
 the safeguard that was supposed to enforce that now does.
 

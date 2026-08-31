@@ -19,7 +19,8 @@ PAGE_PATTERN = re.compile(r'<!-- source-page: (\d+) -->\s*\n<a id="page-(\d+)"><
 
 def arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--corpus", type=Path, required=True)
+    parser.add_argument("--corpus", type=Path, action="append", required=True,
+                        help="corpus root; repeat for PDF and Office corpora")
     parser.add_argument("--audit-csv", type=Path, required=True)
     parser.add_argument("--archive", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -55,7 +56,7 @@ def parse_frontmatter(markdown: str) -> tuple[dict, str]:
 
 def main() -> int:
     args = arguments()
-    corpus = args.corpus.resolve()
+    corpora = [path.resolve() for path in args.corpus]
     archive = args.archive.resolve()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -64,21 +65,31 @@ def main() -> int:
     with args.audit_csv.resolve().open(encoding="utf-8-sig", newline="") as stream:
         audit_rows = list(csv.DictReader(stream))
     expected = {row["sha256"]: row for row in audit_rows}
-    manifest_path = corpus / "conversion-manifest.csv"
-    with manifest_path.open(encoding="utf-8-sig", newline="") as stream:
-        manifest_rows = list(csv.DictReader(stream))
-
     failures: list[dict] = []
     warnings: list[dict] = []
-    manifest_shas = [row["source_sha256"] for row in manifest_rows]
-    duplicate_manifest_shas = sorted(sha for sha, count in Counter(manifest_shas).items() if count > 1)
-    for sha in duplicate_manifest_shas:
-        failures.append({"source_sha256": sha, "check": "unique-manifest-row", "detail": "duplicate SHA in manifest"})
+    manifest_records: list[tuple[Path, dict, bool]] = []
+    pdf_shas: set[str] = set()
+    for corpus in corpora:
+        manifest_path = corpus / "conversion-manifest.csv"
+        with manifest_path.open(encoding="utf-8-sig", newline="") as stream:
+            reader = csv.DictReader(stream)
+            rows = list(reader)
+            is_pdf_corpus = "ocr" in (reader.fieldnames or [])
+        shas = [row["source_sha256"] for row in rows]
+        for sha, count in Counter(shas).items():
+            if count > 1:
+                failures.append({"source_sha256": sha, "check": "unique-manifest-row",
+                                 "detail": f"duplicate SHA in {manifest_path}"})
+        if is_pdf_corpus:
+            pdf_shas.update(shas)
+        manifest_records.extend((corpus, row, is_pdf_corpus) for row in rows)
 
-    manifest_by_sha = {row["source_sha256"]: row for row in manifest_rows}
-    for sha in sorted(set(expected) - set(manifest_by_sha)):
+    # pdf-audit.csv describes the PDF conversion population. Office sources are
+    # validated against their own manifest and source bytes, not forced into a
+    # PDF-only ledger.
+    for sha in sorted(set(expected) - pdf_shas):
         failures.append({"source_sha256": sha, "check": "completeness", "detail": "missing from conversion manifest"})
-    for sha in sorted(set(manifest_by_sha) - set(expected)):
+    for sha in sorted(pdf_shas - set(expected)):
         failures.append({"source_sha256": sha, "check": "completeness", "detail": "not present in logical audit"})
 
     valid_markdown_paths: set[Path] = set()
@@ -88,10 +99,10 @@ def main() -> int:
     source_bytes_checked = 0
     markdown_bytes_checked = 0
 
-    for index, row in enumerate(manifest_rows, 1):
+    for index, (corpus, row, is_pdf_corpus) in enumerate(manifest_records, 1):
         sha = row["source_sha256"]
         status_counts[row["status"]] += 1
-        engine_counts[f"{row['engine']}|ocr={row['ocr']}"] += 1
+        engine_counts[f"{row['engine']}|ocr={row.get('ocr', 'false')}"] += 1
         if row["status"] not in {"success", "low_text"}:
             failures.append({"source_sha256": sha, "check": "conversion-status", "detail": row["status"] + ": " + (row.get("error") or "")})
             continue
@@ -123,7 +134,7 @@ def main() -> int:
                 raise ValueError("source-page comment and anchor disagree")
             if marker_numbers != list(range(1, pages + 1)):
                 raise ValueError(f"non-sequential page markers: expected 1..{pages}, found {len(marker_numbers)}")
-            audit_row = expected.get(sha)
+            audit_row = expected.get(sha) if is_pdf_corpus else None
             if audit_row and audit_row["status"] in {"ok", "likely_ocr"}:
                 audited_pages = int(audit_row["page_count"])
                 if pages != audited_pages:
@@ -138,9 +149,10 @@ def main() -> int:
         except Exception as exc:
             failures.append({"source_sha256": sha, "check": "artifact-validation", "detail": f"{type(exc).__name__}: {exc}"})
         if index % args.progress_every == 0:
-            print(f"Validated {index}/{len(manifest_rows)} manifest records; failures={len(failures)}", flush=True)
+            print(f"Validated {index}/{len(manifest_records)} manifest records; failures={len(failures)}", flush=True)
 
-    actual_markdown_paths = {path.resolve() for path in (corpus / "markdown").rglob("*.md")}
+    actual_markdown_paths = {
+        path.resolve() for corpus in corpora for path in (corpus / "markdown").rglob("*.md")}
     orphan_paths = sorted(actual_markdown_paths - valid_markdown_paths)
     for path in orphan_paths:
         failures.append({"source_sha256": "", "check": "orphan-markdown", "detail": str(path)})
@@ -148,9 +160,9 @@ def main() -> int:
     summary = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "elapsed_seconds": round(time.monotonic() - started, 2),
-        "expected_logical_documents": len(expected),
-        "manifest_records": len(manifest_rows),
-        "manifest_unique_shas": len(set(manifest_shas)),
+        "expected_pdf_documents": len(expected),
+        "manifest_records": len(manifest_records),
+        "manifest_unique_shas": len({row["source_sha256"] for _, row, _ in manifest_records}),
         "markdown_files": len(actual_markdown_paths),
         "total_pages": total_pages,
         "status_counts": dict(status_counts),
@@ -162,13 +174,18 @@ def main() -> int:
         "failures": len(failures),
         "passed": not failures,
     }
-    (output / "corpus-validation.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-    with (output / "corpus-validation-failures.csv").open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=["source_sha256", "check", "detail"])
+    (output / "corpus-validation.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
+    with (output / "corpus-validation-failures.csv").open(
+            "w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=["source_sha256", "check", "detail"],
+                                lineterminator="\n")
         writer.writeheader()
         writer.writerows(failures)
-    with (output / "corpus-validation-warnings.csv").open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=["source_sha256", "check", "detail"])
+    with (output / "corpus-validation-warnings.csv").open(
+            "w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=["source_sha256", "check", "detail"],
+                                lineterminator="\n")
         writer.writeheader()
         writer.writerows(warnings)
     print(json.dumps(summary, indent=2), flush=True)

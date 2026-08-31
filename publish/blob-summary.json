@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-29T21:24:50Z",
+  "generated_at": "2026-08-30T15:38:51Z",
   "download_records": 6963,
   "unique_files": 6309,
   "duplicate_copies_dropped": 654,
@@ -29,5 +29,5 @@
   "page_snapshot_copied": 0,
   "page_snapshot_already_present": 0,
   "page_snapshot_source_missing": 0,
-  "elapsed_seconds": 1.1
+  "elapsed_seconds": 0.9
 }

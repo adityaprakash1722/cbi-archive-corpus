@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import re
 import sqlite3
@@ -37,6 +38,8 @@ def arguments() -> argparse.Namespace:
                         help="crawl snapshot date, YYYY-MM-DD")
     parser.add_argument("--page-authorship-csv", type=Path,
                         help="audited page ranges for mixed-authorship documents")
+    parser.add_argument("--authorship-overrides-csv", type=Path,
+                        help="SHA-keyed document adjudications after opening-page review")
     parser.add_argument("--extraction-preferences-csv", type=Path,
                         help="required choices when a SHA has more than one extraction")
     parser.add_argument("--progress-every", type=int, default=250)
@@ -191,6 +194,20 @@ def page_authorship_overrides(path: Path | None) -> dict[str, list[dict]]:
     return result
 
 
+def document_authorship_overrides(path: Path | None) -> dict[str, dict]:
+    if not path:
+        return {}
+    result = read_keyed_csv(path, "source_sha256")
+    for sha, row in result.items():
+        if row["authorship"] not in {"central-bank", "stakeholder", "mixed", "unresolved"}:
+            raise ValueError(f"invalid document authorship override for {sha}: {row['authorship']}")
+        if row["classification_confidence"] not in {"high", "medium", "low"}:
+            raise ValueError(
+                f"invalid classification confidence override for {sha}: "
+                f"{row['classification_confidence']}")
+    return result
+
+
 def page_provenance(sha: str, page_number: int, document_authorship: str,
                     document_basis: str, overrides: dict[str, list[dict]]) -> tuple[str, str]:
     matches = [row for row in overrides.get(sha, [])
@@ -242,6 +259,7 @@ def initialize(connection: sqlite3.Connection) -> None:
           page_basis TEXT NOT NULL,
           source_format TEXT,
           consultation_id TEXT,
+          engagement_id TEXT,
           page_count INTEGER NOT NULL,
           extraction_engine TEXT NOT NULL,
           extraction_engine_version TEXT,
@@ -250,6 +268,9 @@ def initialize(connection: sqlite3.Connection) -> None:
           quality_empty_pages INTEGER NOT NULL
           ,extraction_selection_basis TEXT NOT NULL
           ,alternate_extraction_count INTEGER NOT NULL
+          ,content_sha256 TEXT NOT NULL
+          ,content_cluster_id TEXT NOT NULL
+          ,content_cluster_size INTEGER NOT NULL
         );
         CREATE TABLE pages (
           document_id TEXT NOT NULL REFERENCES documents(document_id),
@@ -271,6 +292,8 @@ def initialize(connection: sqlite3.Connection) -> None:
         CREATE INDEX pages_authorship ON pages(authorship);
         CREATE INDEX documents_authorship ON documents(authorship);
         CREATE INDEX documents_class ON documents(document_class);
+        CREATE INDEX documents_engagement ON documents(engagement_id);
+        CREATE INDEX documents_content_cluster ON documents(content_cluster_id);
         """
     )
 
@@ -323,8 +346,16 @@ def main() -> int:
             audit = {row["sha256"]: row for row in csv.DictReader(cleaned)}
     sources = source_metadata(args.files_csv)
     page_overrides = page_authorship_overrides(args.page_authorship_csv)
+    document_overrides = document_authorship_overrides(args.authorship_overrides_csv)
 
     database_path = output / args.database_name
+    # A rebuild must start from an empty SQLite file. Dropping tables in an
+    # existing database leaves free pages behind, so identical inputs can yield
+    # a larger file and a different SHA-256 on the second run. The index is a
+    # build artifact; replacing only this explicitly named output is expected.
+    database_path.unlink(missing_ok=True)
+    database_path.with_name(database_path.name + "-wal").unlink(missing_ok=True)
+    database_path.with_name(database_path.name + "-shm").unlink(missing_ok=True)
     connection = sqlite3.connect(database_path)
     initialize(connection)
     started = time.monotonic()
@@ -360,13 +391,31 @@ def main() -> int:
                         authorship=metadata["published_authorship"],
                         document_class=metadata["published_document_class"],
                         consultation_id=metadata.get("published_consultation_id"),
+                        engagement_id=metadata.get("published_engagement_id"),
                         basis=metadata["published_classification_basis"],
                         confidence=metadata["published_classification_confidence"],
                     )
                 else:
                     provenance = classify(metadata["source_url"], opening)
+                    override = document_overrides.get(metadata["source_sha256"])
+                    if override:
+                        provenance = Provenance(
+                            authorship=override["authorship"],
+                            document_class=override["document_class"],
+                            consultation_id=provenance.consultation_id,
+                            engagement_id=provenance.engagement_id,
+                            basis="adjudicated:" + override["evidence_basis"],
+                            confidence=override["classification_confidence"],
+                        )
                 document_class = provenance.document_class
                 consultation_id = provenance.consultation_id
+                engagement_id = provenance.engagement_id
+                page_nonspace = [sum(not character.isspace() for character in text)
+                                 for _number, text in pages]
+                quality_empty_pages = sum(value < 30 for value in page_nonspace)
+                content_sha256 = hashlib.sha256(
+                    "\x1e".join(text for _number, text in pages).encode("utf-8")
+                ).hexdigest()
                 if materialized and metadata.get("published_retrieved_at"):
                     date_fields = {
                         key: metadata.get("published_" + key) for key in (
@@ -389,12 +438,13 @@ def main() -> int:
                       source_page_url, source_last_modified_at,
                       document_class, authorship,
                       classification_basis, classification_confidence, page_basis,
-                      source_format, consultation_id,
+                      source_format, consultation_id, engagement_id,
                       page_count, extraction_engine,
                       extraction_engine_version, ocr_enabled, quality_low_text,
                       quality_empty_pages, extraction_selection_basis,
-                      alternate_extraction_count
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                      alternate_extraction_count, content_sha256,
+                      content_cluster_id, content_cluster_size
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         document_id,
@@ -425,17 +475,21 @@ def main() -> int:
                         metadata.get("page_basis") or "source-page",
                         metadata.get("detected_source_format") or "pdf",
                         consultation_id,
+                        engagement_id,
                         len(pages),
                         metadata["extraction_engine"],
                         metadata.get("extraction_engine_version"),
                         int(bool(metadata.get("ocr_enabled"))),
                         int(bool(metadata.get("quality_low_text"))),
-                        int(metadata.get("quality_empty_pages") or 0),
+                        quality_empty_pages,
                         (metadata.get("published_extraction_selection_basis")
                          or row["_selection_basis"]),
                         (metadata.get("published_alternate_extraction_count")
                          if metadata.get("published_alternate_extraction_count") is not None
                          else row["_alternate_extraction_count"]),
+                        content_sha256,
+                        content_sha256,
+                        0,
                     ),
                 )
                 for page_number, text in pages:
@@ -461,6 +515,15 @@ def main() -> int:
             if index % args.progress_every == 0:
                 connection.commit()
                 print(f"Indexed {index}/{len(manifest)} manifest records; pages={indexed_pages}; failures={len(failures)}", flush=True)
+        connection.commit()
+        connection.execute(
+            "CREATE TEMP TABLE content_counts AS "
+            "SELECT content_cluster_id, COUNT(*) AS size FROM documents "
+            "GROUP BY content_cluster_id")
+        connection.execute(
+            "UPDATE documents SET content_cluster_size = ("
+            "SELECT size FROM content_counts "
+            "WHERE content_counts.content_cluster_id = documents.content_cluster_id)")
         connection.commit()
         connection.execute("PRAGMA optimize")
         connection.commit()
@@ -503,8 +566,10 @@ def main() -> int:
         "database_bytes": database_path.stat().st_size,
         "database_file": database_path.name,
     }
-    (output / "index-summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-    (output / "index-failures.json").write_text(json.dumps(failures, indent=2) + "\n", encoding="utf-8")
+    (output / "index-summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
+    (output / "index-failures.json").write_text(
+        json.dumps(failures, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(summary, indent=2), flush=True)
     return 0 if not failures else 1
 

@@ -118,7 +118,12 @@ def main() -> int:
                             "ocr_enabled": bool(row["ocr_enabled"]),
                             "quality_low_text": bool(row["quality_low_text"]),
                             "fts_relevance": row["relevance"],
-                            "candidate_excerpt": row["candidate_excerpt"],
+                            # Extracted page text can carry spaces before a
+                            # newline. Preserve content while removing only
+                            # line-end whitespace so generated CSV/JSON passes
+                            # cross-platform diff checks.
+                            "candidate_excerpt": "\n".join(
+                                line.rstrip() for line in row["candidate_excerpt"].splitlines()),
                             "verification_status": "unverified-candidate",
                         }
                     )
@@ -149,6 +154,7 @@ def main() -> int:
     (output / "evidence-candidates.json").write_text(
         json.dumps(json_payload, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     fieldnames = list(output_rows[0]) if output_rows else [
         "topic_id",
@@ -171,8 +177,9 @@ def main() -> int:
         "candidate_excerpt",
         "verification_status",
     ]
-    with (output / "evidence-candidates.csv").open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fieldnames)
+    with (output / "evidence-candidates.csv").open(
+            "w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(output_rows)
     print(f"Exported {len(output_rows)} evidence candidates", flush=True)

@@ -1,0 +1,183 @@
+engagement_id,engagement_type,sequence_number,snapshot_status,documents,central_bank_proposal_or_material,stakeholder_submissions,central_bank_feedback,complete_argumentative_loop,interpretation
+cp1,consultation-paper,1,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp2,consultation-paper,2,present,3,3,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp3,consultation-paper,3,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp4,consultation-paper,4,present,3,3,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp5,consultation-paper,5,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp6,consultation-paper,6,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp7,consultation-paper,7,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp8,consultation-paper,8,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp9,consultation-paper,9,present,2,1,1,0,False,documents present in the 2026-08-25 crawl snapshot
+cp10,consultation-paper,10,present,3,3,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp11,consultation-paper,11,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp12,consultation-paper,12,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp13,consultation-paper,13,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp14,consultation-paper,14,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp15,consultation-paper,15,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp16,consultation-paper,16,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp17,consultation-paper,17,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp18,consultation-paper,18,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp19,consultation-paper,19,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp20,consultation-paper,20,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp21,consultation-paper,21,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp22,consultation-paper,22,present,4,4,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp23,consultation-paper,23,present,3,2,1,0,False,documents present in the 2026-08-25 crawl snapshot
+cp24,consultation-paper,24,present,3,3,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp25,consultation-paper,25,present,11,11,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp26,consultation-paper,26,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp27,consultation-paper,27,present,3,3,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp28,consultation-paper,28,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp29,consultation-paper,29,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp30,consultation-paper,30,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp31,consultation-paper,31,present,9,9,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp32,consultation-paper,32,present,28,2,26,0,False,documents present in the 2026-08-25 crawl snapshot
+cp33,consultation-paper,33,present,12,3,9,0,False,documents present in the 2026-08-25 crawl snapshot
+cp34,consultation-paper,34,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp35,consultation-paper,35,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp36,consultation-paper,36,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp37,consultation-paper,37,present,12,1,11,0,False,documents present in the 2026-08-25 crawl snapshot
+cp38,consultation-paper,38,present,15,2,13,0,False,documents present in the 2026-08-25 crawl snapshot
+cp39,consultation-paper,39,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp40,consultation-paper,40,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp41,consultation-paper,41,present,51,3,48,0,False,documents present in the 2026-08-25 crawl snapshot
+cp42,consultation-paper,42,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp43,consultation-paper,43,present,13,3,9,1,True,documents present in the 2026-08-25 crawl snapshot
+cp44,consultation-paper,44,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp45,consultation-paper,45,present,47,1,46,0,False,documents present in the 2026-08-25 crawl snapshot
+cp46,consultation-paper,46,present,32,1,31,0,False,documents present in the 2026-08-25 crawl snapshot
+cp47,consultation-paper,47,present,52,1,51,0,False,documents present in the 2026-08-25 crawl snapshot
+cp48,consultation-paper,48,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp49,consultation-paper,49,present,15,1,14,0,False,documents present in the 2026-08-25 crawl snapshot
+cp50,consultation-paper,50,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp51,consultation-paper,51,present,60,4,55,1,True,documents present in the 2026-08-25 crawl snapshot
+cp52,consultation-paper,52,present,19,1,16,2,True,documents present in the 2026-08-25 crawl snapshot
+cp53,consultation-paper,53,present,13,5,7,1,True,documents present in the 2026-08-25 crawl snapshot
+cp54,consultation-paper,54,present,40,2,38,0,False,documents present in the 2026-08-25 crawl snapshot
+cp55,consultation-paper,55,present,11,1,10,0,False,documents present in the 2026-08-25 crawl snapshot
+cp56,consultation-paper,56,present,13,1,11,1,True,documents present in the 2026-08-25 crawl snapshot
+cp57,consultation-paper,57,present,8,1,6,1,True,documents present in the 2026-08-25 crawl snapshot
+cp58,consultation-paper,58,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp59,consultation-paper,59,present,5,1,3,1,True,documents present in the 2026-08-25 crawl snapshot
+cp60,consultation-paper,60,present,20,2,17,1,True,documents present in the 2026-08-25 crawl snapshot
+cp61,consultation-paper,61,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp62,consultation-paper,62,present,15,1,13,1,True,documents present in the 2026-08-25 crawl snapshot
+cp63,consultation-paper,63,present,39,1,37,1,True,documents present in the 2026-08-25 crawl snapshot
+cp64,consultation-paper,64,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp65,consultation-paper,65,present,7,1,5,1,True,documents present in the 2026-08-25 crawl snapshot
+cp66,consultation-paper,66,present,3,1,2,0,False,documents present in the 2026-08-25 crawl snapshot
+cp67,consultation-paper,67,present,10,0,9,1,False,documents present in the 2026-08-25 crawl snapshot
+cp68,consultation-paper,68,present,10,1,8,1,True,documents present in the 2026-08-25 crawl snapshot
+cp69,consultation-paper,69,present,29,2,26,1,True,documents present in the 2026-08-25 crawl snapshot
+cp70,consultation-paper,70,present,21,1,19,1,True,documents present in the 2026-08-25 crawl snapshot
+cp71,consultation-paper,71,present,30,3,26,1,True,documents present in the 2026-08-25 crawl snapshot
+cp72,consultation-paper,72,present,3,2,1,0,False,documents present in the 2026-08-25 crawl snapshot
+cp73,consultation-paper,73,present,20,5,14,1,True,documents present in the 2026-08-25 crawl snapshot
+cp74,consultation-paper,74,present,7,3,3,1,True,documents present in the 2026-08-25 crawl snapshot
+cp75,consultation-paper,75,present,9,1,8,0,False,documents present in the 2026-08-25 crawl snapshot
+cp76,consultation-paper,76,present,163,1,161,1,True,documents present in the 2026-08-25 crawl snapshot
+cp77,consultation-paper,77,present,12,3,8,1,True,documents present in the 2026-08-25 crawl snapshot
+cp78,consultation-paper,78,present,7,2,5,0,False,documents present in the 2026-08-25 crawl snapshot
+cp79,consultation-paper,79,present,11,1,9,1,True,documents present in the 2026-08-25 crawl snapshot
+cp80,consultation-paper,80,present,6,2,3,1,True,documents present in the 2026-08-25 crawl snapshot
+cp81,consultation-paper,81,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp82,consultation-paper,82,present,10,1,8,1,True,documents present in the 2026-08-25 crawl snapshot
+cp83,consultation-paper,83,present,18,1,16,1,True,documents present in the 2026-08-25 crawl snapshot
+cp84,consultation-paper,84,present,7,1,5,1,True,documents present in the 2026-08-25 crawl snapshot
+cp85,consultation-paper,85,present,27,3,24,0,False,documents present in the 2026-08-25 crawl snapshot
+cp86,consultation-paper,86,present,36,2,31,3,True,documents present in the 2026-08-25 crawl snapshot
+cp87,consultation-paper,87,present,53,2,50,1,True,documents present in the 2026-08-25 crawl snapshot
+cp88,consultation-paper,88,present,118,1,116,1,True,documents present in the 2026-08-25 crawl snapshot
+cp89,consultation-paper,89,present,13,1,11,1,True,documents present in the 2026-08-25 crawl snapshot
+cp90,consultation-paper,90,present,16,1,14,1,True,documents present in the 2026-08-25 crawl snapshot
+cp91,consultation-paper,91,present,16,1,14,1,True,documents present in the 2026-08-25 crawl snapshot
+cp92,consultation-paper,92,present,13,1,11,1,True,documents present in the 2026-08-25 crawl snapshot
+cp93,consultation-paper,93,present,22,2,20,0,False,documents present in the 2026-08-25 crawl snapshot
+cp94,consultation-paper,94,present,12,1,10,1,True,documents present in the 2026-08-25 crawl snapshot
+cp95,consultation-paper,95,present,27,1,25,1,True,documents present in the 2026-08-25 crawl snapshot
+cp96,consultation-paper,96,present,7,1,5,1,True,documents present in the 2026-08-25 crawl snapshot
+cp97,consultation-paper,97,present,9,1,7,1,True,documents present in the 2026-08-25 crawl snapshot
+cp98,consultation-paper,98,present,10,1,9,0,False,documents present in the 2026-08-25 crawl snapshot
+cp99,consultation-paper,99,present,6,1,4,1,True,documents present in the 2026-08-25 crawl snapshot
+cp100,consultation-paper,100,present,6,1,4,1,True,documents present in the 2026-08-25 crawl snapshot
+cp101,consultation-paper,101,present,3,1,1,1,True,documents present in the 2026-08-25 crawl snapshot
+cp102,consultation-paper,102,present,9,1,7,1,True,documents present in the 2026-08-25 crawl snapshot
+cp103,consultation-paper,103,present,11,1,9,1,True,documents present in the 2026-08-25 crawl snapshot
+cp104,consultation-paper,104,present,13,1,11,1,True,documents present in the 2026-08-25 crawl snapshot
+cp105,consultation-paper,105,present,5,1,3,1,True,documents present in the 2026-08-25 crawl snapshot
+cp106,consultation-paper,106,present,27,1,26,0,False,documents present in the 2026-08-25 crawl snapshot
+cp107,consultation-paper,107,present,11,1,9,1,True,documents present in the 2026-08-25 crawl snapshot
+cp108,consultation-paper,108,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp109,consultation-paper,109,present,2,1,0,1,False,documents present in the 2026-08-25 crawl snapshot
+cp110,consultation-paper,110,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp111,consultation-paper,111,present,6,1,4,1,True,documents present in the 2026-08-25 crawl snapshot
+cp112,consultation-paper,112,present,11,1,9,1,True,documents present in the 2026-08-25 crawl snapshot
+cp113,consultation-paper,113,present,6,1,4,1,True,documents present in the 2026-08-25 crawl snapshot
+cp114,consultation-paper,114,present,10,1,9,0,False,documents present in the 2026-08-25 crawl snapshot
+cp115,consultation-paper,115,present,7,1,5,1,True,documents present in the 2026-08-25 crawl snapshot
+cp116,consultation-paper,116,present,19,1,17,1,True,documents present in the 2026-08-25 crawl snapshot
+cp117,consultation-paper,117,present,5,1,3,1,True,documents present in the 2026-08-25 crawl snapshot
+cp118,consultation-paper,118,present,19,2,16,1,True,documents present in the 2026-08-25 crawl snapshot
+cp119,consultation-paper,119,present,11,1,9,1,True,documents present in the 2026-08-25 crawl snapshot
+cp120,consultation-paper,120,present,13,2,10,1,True,documents present in the 2026-08-25 crawl snapshot
+cp121,consultation-paper,121,present,4,1,2,1,True,documents present in the 2026-08-25 crawl snapshot
+cp122,consultation-paper,122,present,4,1,2,1,True,documents present in the 2026-08-25 crawl snapshot
+cp123,consultation-paper,123,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp124,consultation-paper,124,present,8,1,7,0,False,documents present in the 2026-08-25 crawl snapshot
+cp125,consultation-paper,125,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp126,consultation-paper,126,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp127,consultation-paper,127,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp128,consultation-paper,128,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp129,consultation-paper,129,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp130,consultation-paper,130,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp131,consultation-paper,131,present,2,1,0,1,False,documents present in the 2026-08-25 crawl snapshot
+cp132,consultation-paper,132,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp133,consultation-paper,133,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp134,consultation-paper,134,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp135,consultation-paper,135,present,3,1,1,1,True,documents present in the 2026-08-25 crawl snapshot
+cp136,consultation-paper,136,present,20,1,18,1,True,documents present in the 2026-08-25 crawl snapshot
+cp137,consultation-paper,137,present,2,1,0,1,False,documents present in the 2026-08-25 crawl snapshot
+cp138,consultation-paper,138,present,23,2,20,1,True,documents present in the 2026-08-25 crawl snapshot
+cp139,consultation-paper,139,present,12,1,10,1,True,documents present in the 2026-08-25 crawl snapshot
+cp140,consultation-paper,140,present,3,2,0,1,False,documents present in the 2026-08-25 crawl snapshot
+cp141,consultation-paper,141,present,8,1,6,1,True,documents present in the 2026-08-25 crawl snapshot
+cp142,consultation-paper,142,present,12,1,10,1,True,documents present in the 2026-08-25 crawl snapshot
+cp143,consultation-paper,143,present,16,1,14,1,True,documents present in the 2026-08-25 crawl snapshot
+cp144,consultation-paper,144,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp145,consultation-paper,145,present,2,1,0,1,False,documents present in the 2026-08-25 crawl snapshot
+cp146,consultation-paper,146,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp147,consultation-paper,147,present,2,1,0,1,False,documents present in the 2026-08-25 crawl snapshot
+cp148,consultation-paper,148,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp149,consultation-paper,149,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp150,consultation-paper,150,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp151,consultation-paper,151,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp152,consultation-paper,152,present,7,1,5,1,True,documents present in the 2026-08-25 crawl snapshot
+cp153,consultation-paper,153,present,33,4,26,3,True,documents present in the 2026-08-25 crawl snapshot
+cp154,consultation-paper,154,present,17,3,13,1,True,documents present in the 2026-08-25 crawl snapshot
+cp155,consultation-paper,155,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp156,consultation-paper,156,present,2,1,0,1,False,documents present in the 2026-08-25 crawl snapshot
+cp157,consultation-paper,157,present,9,2,6,1,True,documents present in the 2026-08-25 crawl snapshot
+cp158,consultation-paper,158,present,57,1,55,1,True,documents present in the 2026-08-25 crawl snapshot
+cp159,consultation-paper,159,present,8,1,6,1,True,documents present in the 2026-08-25 crawl snapshot
+cp160,consultation-paper,160,present,25,1,23,1,True,documents present in the 2026-08-25 crawl snapshot
+cp161,consultation-paper,161,present,11,1,9,1,True,documents present in the 2026-08-25 crawl snapshot
+cp162,consultation-paper,162,present,17,1,15,1,True,documents present in the 2026-08-25 crawl snapshot
+cp163,consultation-paper,163,present,12,1,10,1,True,documents present in the 2026-08-25 crawl snapshot
+cp164,consultation-paper,164,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp165,consultation-paper,165,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp166,consultation-paper,166,present,8,1,6,1,True,documents present in the 2026-08-25 crawl snapshot
+cp167,consultation-paper,167,present,6,1,4,1,True,documents present in the 2026-08-25 crawl snapshot
+cp168,consultation-paper,168,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp169,consultation-paper,169,absent-from-snapshot,0,0,0,0,False,"no canonical identifier found; this is a coverage gap, not proof of non-existence"
+cp170,consultation-paper,170,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+cp171,consultation-paper,171,present,3,3,0,0,False,documents present in the 2026-08-25 crawl snapshot
+dp1,discussion-paper,1,present,2,2,0,0,False,documents present in the 2026-08-25 crawl snapshot
+dp2,discussion-paper,2,present,5,2,3,0,False,documents present in the 2026-08-25 crawl snapshot
+dp4,discussion-paper,4,present,17,2,15,0,False,documents present in the 2026-08-25 crawl snapshot
+dp5,discussion-paper,5,present,16,16,0,0,False,documents present in the 2026-08-25 crawl snapshot
+dp6,discussion-paper,6,present,28,2,26,0,False,documents present in the 2026-08-25 crawl snapshot
+dp7,discussion-paper,7,present,14,1,13,0,False,documents present in the 2026-08-25 crawl snapshot
+dp8,discussion-paper,8,present,19,1,18,0,False,documents present in the 2026-08-25 crawl snapshot
+dp9,discussion-paper,9,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot
+dp10,discussion-paper,10,present,49,0,48,0,False,documents present in the 2026-08-25 crawl snapshot
+dp11,discussion-paper,11,present,15,2,13,0,False,documents present in the 2026-08-25 crawl snapshot
+dp12,discussion-paper,12,present,1,1,0,0,False,documents present in the 2026-08-25 crawl snapshot

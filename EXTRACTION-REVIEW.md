@@ -15,7 +15,7 @@ are kept because the reasoning depends on them.**
 `gappy`, 26 `garbled`, 16 `thin`, 7 `empty`. **33 of those were stakeholder  <!-- historical -->
 documents**, and the stakeholder pile is what drives Finding 2's industry pain
 scan. The first recovery pass reduced that to 82; the later targeted CP76 repair  <!-- historical -->
-reduced the current total to 81.
+reduced the then-current total to 81. <!-- historical -->
 
 I had claimed that extraction failure "can only cause false negatives, never
 false positives", and that its effect was uniform across themes. Codex pushed
@@ -222,7 +222,7 @@ Fixed by giving four decision-maker phrases precedence over the generic
 stakeholder cue, on the reasoning that only the body making the decision counts
 the submissions it received, thanks the parties who made them, and sets out next
 steps. Three regression assertions cover it, including the mirror case of a
-genuine respondent citing the same consultation. The suite is now 104 assertions.
+genuine respondent citing the same consultation. The suite is now 116 assertions.
 
 *The general lesson is worth keeping: recovering data changed a classification,
 and a classifier that was correct on an empty document was wrong on a full one.
@@ -248,5 +248,6 @@ pages; overwriting a garbled extraction requires both a targeted SHA and
 earlier image-only OCR pages plus these five replacements. Its companion JSON is
 a report for the most recent run, not a cumulative total.
 
-After rebuilding, the current extraction grades are 5,487 `ok`, 30 `gappy`, 25
-`garbled`, 19 `thin` and 7 `empty`: 81 documents below `ok` in total.
+After reconciling the metrics against final page text, the current extraction
+grades are 5,481 `ok`, 36 `gappy`, 25 `garbled`, 19 `thin` and 7 `empty`: 87
+documents below `ok` in total.

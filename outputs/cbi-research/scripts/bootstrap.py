@@ -28,6 +28,11 @@ WANTED = [
     # one the 323 non-PDF documents come out thinner than they need to be.
     "manifests/conversion-manifest.csv.zst",
     "manifests/conversion-manifest-office.csv.zst",
+    "manifests/authorship-overrides.csv.zst",
+    "manifests/page-authorship-overrides.csv.zst",
+    "manifests/conversion-exclusions.csv.zst",
+    "manifests/engagement-coverage.csv.zst",
+    "manifests/manifest-build-summary.json",
 ]
 
 

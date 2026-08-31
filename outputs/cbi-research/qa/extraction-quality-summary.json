@@ -1,20 +1,22 @@
 {
-  "generated_at": "2026-08-27T19:48:29Z",
+  "generated_at": "2026-08-30T22:18:54Z",
   "documents_assessed": 5568,
   "duplicate_manifest_rows_deduplicated_by_sha256": 1,
   "total_pages": 88783,
-  "total_empty_pages": 545,
-  "empty_page_share": 0.0061,
+  "total_empty_pages": 1141,
+  "empty_page_share": 0.0129,
   "grades": {
-    "ok": 5487,
-    "gappy": 30,
+    "ok": 5481,
+    "gappy": 36,
     "garbled": 25,
     "thin": 19,
     "empty": 7
   },
   "documents_with_any_replacement_characters": 142,
   "median_nonspace_per_page": 1624.0,
-  "flagged_documents": 81,
-  "flagged_pages": 804,
-  "note": "Grades describe extraction fidelity, not conversion success. A document can pass every structural check in validate_corpus.py and still be graded gappy or garbled."
+  "flagged_documents": 87,
+  "flagged_pages": 828,
+  "note": "Grades describe extraction fidelity, not conversion success. A document can pass every structural check in validate_corpus.py and still be graded gappy or garbled.",
+  "metric_basis": "final-page-text",
+  "near_blank_page_definition": "fewer than 30 Unicode non-space characters"
 }

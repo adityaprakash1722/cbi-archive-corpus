@@ -273,7 +273,8 @@ def main() -> int:
             row["empty_pages"] = str(sum(sum(not char.isspace() for char in item) < 30
                                          for item in bodies))
         with manifest_path.open("w", encoding="utf-8", newline="") as stream:
-            writer = csv.DictWriter(stream, fieldnames=list(manifest[0]))
+            writer = csv.DictWriter(
+                stream, fieldnames=list(manifest[0]), lineterminator="\n")
             writer.writeheader()
             writer.writerows(manifest)
 

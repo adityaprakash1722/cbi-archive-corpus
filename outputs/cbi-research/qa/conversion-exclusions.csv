@@ -1,0 +1,2 @@
+source_sha256,source_url,declared_format,observed_content_type,reason,evidence_basis
+8f09786713c5ad1ce5b80226c1efa85df798fca2381030dcefa85854dae414be,https://www.centralbank.ie/news/article/%20https://www.centralbank.ie/docs/default-source/regulation/consumer-protection/compliance-monitoring/reviews-and-research/a-guide-to-consumer-protection-risk-assessment.pdf?sfvrsn=4,PDF,text/html,malformed nested URL returned an HTML error page rather than the named PDF,files.csv contentType plus source-byte inspection
