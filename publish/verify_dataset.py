@@ -31,8 +31,11 @@ def sql_path(path: Path) -> str:
 
 def raw_tree(repo: str, revision: str) -> dict[str, dict]:
     """Read the complete pinned Hub tree, following RFC 8288 next links."""
+    # The Hub caps expanded tree pages at 50 entries. Expansion is unnecessary
+    # here because ordinary tree results already include LFS metadata, so use
+    # the 1,000-entry page size and keep the full-archive check practical.
     url = (f"https://huggingface.co/api/datasets/{repo}/tree/{revision}"
-           "?recursive=true&expand=true&limit=1000")
+           "?recursive=true&limit=1000")
     entries: dict[str, dict] = {}
     while url:
         request = urllib.request.Request(url, headers={"User-Agent": "cbi-dataset-verifier/1"})

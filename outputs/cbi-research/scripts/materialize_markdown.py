@@ -219,11 +219,11 @@ def from_remote(user: str, revision: str):
             # manifests with a different source_file in each, a .pdf and a
             # .docx, so a hash-only key lets whichever manifest is read last
             # overwrite the other.
-            # Aliases come from the manifest, not from files.csv. files.csv maps
-            # every URL to its hash, so aggregating it by hash gives the union
-            # across both corpora: the one document converted by both pipelines
-            # was served as .pdf and .docx, and the union says two aliases where
-            # each corpus canonically records one.
+            # source_file and engine metadata are corpus-specific. URL aliases
+            # are not: the published document row records every source URL that
+            # served the same bytes, including the one hash converted by both
+            # pipelines. Keep the manifest URLs here only as a fallback; the
+            # full files.csv union is written into each materialised frontmatter.
             urls = [u.strip() for u in (column("source_urls") or "").split("|") if u.strip()]
             extra[(sha, where)] = {
                 "source_file": column("source_file"),
@@ -477,7 +477,8 @@ def main() -> int:
             detail = extra.get((sha, where), {})
             if not detail.get("source_file"):
                 thin += 1
-            known = sorted(set(detail.get("urls") or fallback_aliases))
+            known = sorted(set(fallback_aliases or detail.get("urls") or
+                               [document["source_url"]]))
             text = frontmatter(document, known, detail) + body(document_pages)
             counts[where] += 1
             root = args.output if where == "pdf" else args.output / "office"
