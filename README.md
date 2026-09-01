@@ -44,7 +44,7 @@ Or query the corpus without downloading it at all:
 
 ```sql
 SELECT institutional_voice, voice_review_status, count(*)
-FROM 'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/<v5.2-revision>/data/documents.parquet'
+FROM 'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/9eb1a61caa3578257d9407eebb2f5bd27afd4acf/data/documents.parquet'
 GROUP BY 1, 2;
 ```
 

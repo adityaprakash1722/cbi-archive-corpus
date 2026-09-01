@@ -1,37 +1,58 @@
 {
-  "schema_version": 1,
-  "release": "corpus-v5.1-2026-08-30",
+  "schema_version": 2,
+  "release": "corpus-v5.2-2026-09-01",
   "crawl_snapshot_date": "2026-08-25",
-  "git_commit": "408af8ed91ed6eaafd295d4c5562de8b9c56e317",
+  "git_commit": "e40c71c35998dde10b126d81efb50a3c6a1f5b9c",
   "hugging_face": {
     "corpus_repo": "aditya487/cbi-archive-corpus",
-    "corpus_revision": "f9a60f39c666b9aac4a68951a685bed1a46cea33",
+    "corpus_revision": "9eb1a61caa3578257d9407eebb2f5bd27afd4acf",
     "raw_repo": "aditya487/cbi-archive-raw",
-    "raw_revision": "61f50ee9ed975b70c3728e00ab083e2c841887f4"
+    "raw_revision": "d7d79f81a981318f243139b4a55ff5caed2cfbd4"
   },
   "expected": {
     "documents": 5568,
-    "pages": 88783,
+    "pages": 89242,
+    "index_sha256": "0870a95847400e3419cded329ef0d7cba13403ba1ce186a303343c53d3225eb0",
     "authorship": {
-      "central-bank": 3844,
-      "stakeholder": 1722,
-      "mixed": 2
+      "central-bank": 340,
+      "external-authority": 3,
+      "judicial-tribunal": 2,
+      "mixed": 2,
+      "stakeholder": 1739,
+      "third-party": 2,
+      "unresolved": 3480
+    },
+    "institutional_voice": {
+      "cbi-institutional": 338,
+      "cbi-staff": 2,
+      "external-authority": 3,
+      "judicial-tribunal": 2,
+      "mixed": 2,
+      "stakeholder": 1739,
+      "third-party": 2,
+      "unknown": 3480
+    },
+    "voice_review_status": {
+      "manual-reviewed": 117,
+      "rule-classified": 1971,
+      "unreviewed": 3480
     }
   },
   "artifacts": {
-    "data/documents.parquet": "878b9eb3c0fc2fc575a028c6278c1983fd4b0982196e46efe9c438d4b2f35dd4",
-    "data/pages.parquet": "5c734fd6fd812dc878bfec17f17848ce6219ab8f87cfc57be7f9914db95d8ca6",
-    "data/dataset-summary.json": "611bdd4fbb7a993159c2d8fafcc4879a6b249e0e093a35701d9f3d8ef09c57d4",
+    "data/documents.parquet": "25318f18ed18e93b6313571337038759f872ae74bc09aa647f5765e290975b2f",
+    "data/pages.parquet": "f3d4836491c56f4841fe3089f3b88d0e29f1dc3cde1ad33c613c8e9b0ae70419",
+    "data/dataset-summary.json": "350357d455926d7fae9ac3ab651de5d4498714245eb1af71138b5531af86a492",
     "manifests/files.csv.zst": "750ce083de0a012c6a2ddd38ba097193ab41d61c0c502a6f5693f6b874a65a34",
-    "manifests/provenance-classification.csv.zst": "ed5a5cf5d6437227943839d042b31cd6ec37e34a250ba146aa0a2157ee1bdd28",
-    "manifests/extraction-quality.csv.zst": "edca0e54780a53d6e803d93f3b11a7dfa0fd657a2ca417ae28a7b836b87de877",
+    "manifests/provenance-classification.csv.zst": "3927b90f1778566cf985ae6c92a3c0042ae4da777296adeb8a228dfcfbb3e96d",
+    "manifests/extraction-quality.csv.zst": "c9711e237795d773e38b40c0a8e750de61c298dfc5b13985ac3764944e332814",
     "manifests/conversion-manifest.csv.zst": "bf7053d470fc3c22db248297db2d0c208345bcdf09bf149a1e42cf48144be58f",
-    "manifests/conversion-manifest-office.csv.zst": "14f953868c93765308dbc103abb990027958a5db71233d510abe4c70dd9c0795",
-    "manifests/authorship-overrides.csv.zst": "41e4f9ae2509d44999b9df34a45fd14a4ea053a27cd271cd1990d69f067a0250",
+    "manifests/conversion-manifest-office.csv.zst": "87900ed497196d07ed20954921888877a3785eec30c00fd0f05027e66730dcab",
+    "manifests/authorship-overrides.csv.zst": "fc5df3997639554643ac8692cf23531750d34982e35c86ea502459c1942fbd79",
     "manifests/page-authorship-overrides.csv.zst": "5918620d7773365ea921a916153ebcecc3fe240c25a52b6faf4bf53a15b3b4e1",
     "manifests/conversion-exclusions.csv.zst": "5bba219827df2c0b71d917b637c8975cfc8713741a524ab1a80205dda9951d93",
-    "manifests/engagement-coverage.csv.zst": "b3c49b471d674cc30ab5a37b02ca9a962d2c38da203d107c88271388cf418aa1",
-    "manifests/manifest-build-summary.json": "2f52dd4c92a712926c32639610919e87461c154a5d101d81e1390574ede8e089",
+    "manifests/engagement-coverage.csv.zst": "faafc5909e280a15262e64a0e3cbcee7e5b58c531d64d28ac8a3ad901673fa31",
+    "manifests/voice-review-scope.csv.zst": "30204a5ad4aeca9b944c6116e3c62e51cce48d46f483ded95acf3c9b24a87ac3",
+    "manifests/manifest-build-summary.json": "983e840f2ad530b5f6720eaeaa46773bc5bf5bcb9a4d0e57ee72981f2b5e242d",
     "publish/blob-catalog.csv": "d8287597de933fd1cb10cb0c0391e31b6e3c60fc998ed6285e064adbdee286a2",
     "publish/blob-summary.json": "e6a51628035543e44da99589fb8ddeff9f0cb38808dfb703f3c25c974f716c02",
     "publish/page-catalog.csv": "d61a6a18cc350f886d065723cebb053e7bb17bf7a3c4d0b48360c42acfa037ba"

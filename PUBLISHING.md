@@ -162,9 +162,8 @@ one for the right service.
 | Hugging Face corpus | published. Two Parquet files, ten compressed audit manifests, their build summary, dataset summary, card and attribution |
 | Hugging Face raw archive | published. 6,309 blobs plus four metadata files, 6.56 GB |
 
-Until the v5.2 runbook finishes, `RELEASE.lock.json` continues to identify the
-current public v5.1 release by immutable Git and Hugging Face revisions. The
-v5.2 candidate has 5,568 documents and 89,242 page or pseudo-page rows; its
+`RELEASE.lock.json` identifies the public v5.2 release by immutable Git and
+Hugging Face revisions. It has 5,568 documents and 89,242 page or pseudo-page rows; its
 institutional-voice split is 338 `cbi-institutional`, 1,739 `stakeholder`, 3,480
 `unknown`, three `external-authority`, and two each of `cbi-staff`,
 `judicial-tribunal`, `third-party`, and `mixed`. The lock records the build-input
@@ -243,8 +242,8 @@ git push origin master v5.2.0
 `make dataset` regenerates the two Parquet files from the current v5.2 index;
 `build_hf_release.py` regenerates every compressed audit manifest and its
 machine-readable build summary. Do not upload a hand-picked subset.
-`--allow-release-drift` is only for the interval where local v5.2 bytes exist but
-the immutable lock still correctly describes public v5.1. It skips only lock
+`--allow-release-drift` is only for the interval where local release-candidate
+bytes exist but the immutable lock still correctly describes the previous public release. It skips only lock
 comparisons. Standard `make test-invariants` must pass after the v5.2 lock is
 written and before the tag is created.
 Never replace the release lock with `main`; a mutable URL destroys the ability

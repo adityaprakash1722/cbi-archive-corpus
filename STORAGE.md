@@ -292,8 +292,8 @@ Choose by what you need, not by what is convenient.
 ```sql
 INSTALL httpfs; LOAD httpfs;
 SELECT d.title, p.page_number
-FROM  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/f9a60f39c666b9aac4a68951a685bed1a46cea33/data/pages.parquet' p
-JOIN  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/f9a60f39c666b9aac4a68951a685bed1a46cea33/data/documents.parquet' d
+FROM  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/9eb1a61caa3578257d9407eebb2f5bd27afd4acf/data/pages.parquet' p
+JOIN  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/9eb1a61caa3578257d9407eebb2f5bd27afd4acf/data/documents.parquet' d
   USING (document_id)
 WHERE d.institutional_voice = 'cbi-institutional'
   AND d.voice_review_status IN ('rule-classified', 'manual-reviewed')
@@ -330,7 +330,7 @@ python publish/get_source.py --sha e5dabf14e1e876c484b3fd0d9b4fe86925befc868391e
 Or construct the URL directly, since the hash is the address:
 
 ```
-https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/61f50ee9ed975b70c3728e00ab083e2c841887f4/e5/da/e5dabf14....pdf
+https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/d7d79f81a981318f243139b4a55ff5caed2cfbd4/e5/da/e5dabf14....pdf
 ```
 
 ---

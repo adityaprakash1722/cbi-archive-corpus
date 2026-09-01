@@ -17,7 +17,7 @@ Code running locally.
 > `judicial-tribunal`, `third-party`, and `mixed`. It corrects 19 unsafe v5.1
 > speaker labels and two corrupt DOCX extractions. Use `institutional_voice` and
 > `voice_review_status`, not `authorship`, for analysis. The v5.2 public release
-> is not current until `RELEASE.lock.json` is updated with immutable revisions.
+> is pinned by immutable Git and Hugging Face revisions in `RELEASE.lock.json`.
 
 `CLAUDE.md`, `STORAGE.md` and `PUBLISHING.md` describe the corpus and the
 infrastructure. **This document describes the research**: what has been found,
@@ -299,7 +299,7 @@ Treat neither as authoritative. Verify.
 ```python
 import duckdb
 con = duckdb.connect(); con.execute("INSTALL httpfs; LOAD httpfs;")
-BASE = "https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/<v5.2-revision>/data"
+BASE = "https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/9eb1a61caa3578257d9407eebb2f5bd27afd4acf/data"
 con.execute(f"SELECT institutional_voice, voice_review_status, count(*) FROM read_parquet('{BASE}/documents.parquet') GROUP BY 1,2").fetchall()
 ```
 
