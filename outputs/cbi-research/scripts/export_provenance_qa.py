@@ -35,7 +35,9 @@ def main() -> int:
         current = connection.execute(
             """
             SELECT source_sha256, source_url, source_format, document_class,
-                   authorship, classification_basis, classification_confidence,
+                   authorship, legacy_authorship, host, author_org, document_role,
+                   institutional_voice, voice_review_status, voice_evidence,
+                   classification_basis, classification_confidence,
                    consultation_id, engagement_id, page_count, extraction_selection_basis,
                    alternate_extraction_count, published_at, published_at_basis,
                    analysis_year, analysis_year_basis, source_page_url, retrieved_at
@@ -72,6 +74,10 @@ def main() -> int:
         "previous_database": str(args.previous_database.resolve()) if args.previous_database else None,
         "documents": len(rows),
         "authorship": dict(Counter(row["authorship"] for row in rows).most_common()),
+        "institutional_voice": dict(Counter(
+            row["institutional_voice"] for row in rows).most_common()),
+        "voice_review_status": dict(Counter(
+            row["voice_review_status"] for row in rows).most_common()),
         "confidence": dict(Counter(row["classification_confidence"] for row in rows).most_common()),
         "change_vs_previous": dict(Counter(row["change"] for row in rows).most_common()),
         "moved_to_stakeholder": sum(
@@ -94,10 +100,15 @@ def main() -> int:
         ),
         "basis_breakdown": dict(Counter(row["classification_basis"] for row in rows).most_common()),
         "page_authorship": {},
+        "page_institutional_voice": {},
     }
     with sqlite3.connect(args.database.resolve()) as connection:
         summary["page_authorship"] = dict(connection.execute(
             "SELECT authorship, COUNT(*) FROM pages GROUP BY authorship ORDER BY COUNT(*) DESC"
+        ).fetchall())
+        summary["page_institutional_voice"] = dict(connection.execute(
+            "SELECT institutional_voice, COUNT(*) FROM pages "
+            "GROUP BY institutional_voice ORDER BY COUNT(*) DESC"
         ).fetchall())
     (args.output / "provenance-classification-summary.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n"

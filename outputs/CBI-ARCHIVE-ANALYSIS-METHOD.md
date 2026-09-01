@@ -9,6 +9,11 @@
 > **Revision, 29 August 2026.** v5 adds page-level voice for a mixed composite,
 > validated temporal fields, explicit duplicate-extraction selection and the
 > targeted CP76 OCR repair. Counts below describe v5 unless marked historical.
+>
+> **Revision, 1 September 2026.** v5.2 separates hosting, issuer, document role
+> and institutional voice; corrects 19 unsafe v5.1 speaker labels; replaces the
+> DOCX extractor; and adds semantic extraction, raw-object and full-schema
+> rebuild checks. Counts below describe v5.2 unless marked historical.
 
 ## Purpose
 
@@ -54,20 +59,25 @@ Final conversion:
 
 - 5,246 source hashes and 5,246 Markdown files.
 - 88,106 pages/pseudo-pages.
-- 4,701 native PyMuPDF4LLM conversions.
-- 541 OCR conversions.
+- 4,700 native PyMuPDF4LLM conversions.
+- 542 OCR conversions.
 - Four mislabelled Office recoveries.
-- 5,237 normal successes and nine explainable low-text results.
+- 5,239 normal successes and seven explainable low-text results.
 - Zero conversion errors, meaning no conversion raised an exception. It does not
   mean every page extracted cleanly; see Extraction quality below.
 
 The office and archive pipeline (`scripts/convert_office.py`) adds:
 
-- 323 source hashes and 323 Markdown files, 678 pages, zero errors.
-- DOCX through python-docx. Three packages with unusual relationship targets use
-  LibreOffice; two PDFs served as DOCX dispatch to the PDF converter; and two
-  irregular merged-cell tables use a raw-XML fallback so table text is not lost.
-- DOC through LibreOffice headless. This replaces an earlier routine that kept
+- 323 source hashes and 323 Markdown files, 1,137 page or pseudo-page rows, zero
+  errors.
+- 200 OOXML packages use a standard-library body-order extractor. It keeps
+  paragraphs and tables in their actual order, deduplicates merged cells,
+  preserves explicit page breaks, and separates headers, footers, notes and
+  comments. One source labelled DOC is correctly detected as OOXML.
+- 70 legacy binary DOC files use retained LibreOffice output. Their historical
+  engine version was not recorded, so v5.2 says
+  `version-unrecorded-pre-v5.2` rather than inventing one. New conversions record
+  `soffice --version` when available. This replaces an earlier routine that kept
   only the single longest printable run from the binary stream and discarded the
   rest of the document.
 - PPTX at one page per slide.
@@ -94,8 +104,11 @@ The final validator independently checked:
 - orphan outputs and missing outputs; and
 - documented exception status.
 
-Result: **pass, zero failures, zero warnings and zero orphans**. Nine low-text files are
-two heavily redacted prohibition notices and seven video-tutorial placeholders. One
+Result: **pass, zero failures, zero warnings and zero orphans** across 5,569
+physical conversion records and 89,243 page rows. The selected logical corpus
+has 5,568 documents and 89,242 rows because one source hash has two explicit
+conversion candidates. Seven low-text files are explainable placeholders or
+heavily redacted material. One
 server-error HTML alias previously saved with a PDF suffix was verified as malformed
 and excluded; its valid document alias remains in the corpus.
 
@@ -114,21 +127,24 @@ holds. `scripts/qa_extraction_quality.py` adds that missing test and grades all
 | thin | <!-- fact:quality.grade.thin -->19<!-- /fact --> | under 200 non-space characters per page |
 | empty | <!-- fact:quality.grade.empty -->7<!-- /fact --> | no usable extractable text |
 
-Median density is <!-- fact:quality.median_nonspace_per_page -->1,624<!-- /fact -->
+Median density is <!-- fact:quality.median_nonspace_per_page -->1,611.8<!-- /fact -->
 non-space characters per page and
-<!-- fact:quality.empty_page_share_percent -->1.29<!-- /fact -->% of all pages are
+<!-- fact:quality.empty_page_share_percent -->1.27<!-- /fact -->% of all pages are
 effectively empty, down from 2.44% before the recovery pass. 142 documents
-contain Unicode replacement characters, the worst
-carrying 11,371. Chart-heavy statistical releases extract with visible damage: the
+contain Unicode replacement characters. Chart-heavy statistical releases and
+profiled archive members can extract with visible damage: the
 Q1 2026 arrears release renders "March" as "~~M~~ arch" in places. Every figure
 quoted from that release was rechecked against the page and is correct, but the
 prose around it is unreliable. The 87 flagged documents are listed in
-`qa/extraction-quality-flagged.csv`.
+`qa/extraction-quality-flagged.csv`. Semantic gates also reject extreme source
+expansion, repeated prose and oversized pages. After exact-document
+deduplication, repeated non-empty page text accounts for 3.19% of characters,
+below the 4% release ceiling.
 
 ## Search and provenance model
 
-The 674 MB SQLite index (`index/cbi-corpus-v5.1-5568docs.sqlite`) contains 5,568
-documents and 88,783 pages.
+The 663 MB SQLite index (`index/cbi-corpus-v5.2-5568docs.sqlite`) contains 5,568
+documents and 89,242 page or pseudo-page rows.
 
 **The original provenance model did not work, and this is the most serious error
 the audit found.** A consultation-hosted document was classed as a stakeholder
@@ -151,31 +167,40 @@ explicit stakeholder attribution then wins over generic words such as
 correctly classed as Bank material without misclassifying stakeholder responses
 that name the document they answer. Two manually audited stakeholder submissions
 outside the consultation archive are exact exceptions rather than a general
-filename guess. <!-- fact:classifier.assertions -->116<!-- /fact --> regression assertions, including all 55
+filename guess. <!-- fact:classifier.assertions -->132<!-- /fact --> regression assertions, including all 55
 conflict filenames found in the follow-up audit, in
 `scripts/test_classify_provenance.py` cover all of the above.
 
-Corrected counts:
+v5.2 no longer treats a Central Bank URL as evidence that the Bank is speaking.
+It stores `host`, `author_org`, `document_role`, `institutional_voice`,
+`voice_review_status`, and `voice_evidence` separately. `authorship` and
+`legacy_authorship` remain compatibility fields and must not be used as
+regulator-only filters.
 
-| | Original | Corrected |
-|---|---:|---:|
-| Central Bank documents | 4,112 | <!-- fact:authorship.central-bank -->3,844<!-- /fact --> |
-| Stakeholder submissions | 1,134 | <!-- fact:authorship.stakeholder -->1,722<!-- /fact --> |
-| Mixed composite | 0 | <!-- fact:authorship.mixed -->2<!-- /fact --> |
-| Unresolved | 0 | <!-- fact:authorship.unresolved -->0<!-- /fact --> |
+| Institutional voice | Documents | Meaning |
+|---|---:|---|
+| `cbi-institutional` | <!-- fact:voice.cbi-institutional -->338<!-- /fact --> | evidence-supported institutional Bank material |
+| `stakeholder` | <!-- fact:voice.stakeholder -->1,739<!-- /fact --> | consultation or other advocacy addressed to the regulator |
+| `unknown` | <!-- fact:voice.unknown -->3,480<!-- /fact --> | hosted by the Bank, but issuer/voice not evidenced |
+| `external-authority` | 3 | IMF-authored assessments |
+| `cbi-staff` | 2 | attributable to a named staff member |
+| `judicial-tribunal` | 2 | court or tribunal voice |
+| `third-party` | 2 | other evidenced external speaker |
+| `mixed` | <!-- fact:voice.mixed -->2<!-- /fact --> | composite; filter the page rows |
 
-`unresolved` remains a real answer and must never be counted as Central Bank
-material. In v5.1, every one of the 89 formerly unresolved documents was opened <!-- historical -->
-and adjudicated by source hash: 37 are Central Bank, 51 stakeholder, and one is
-mixed. The decisions and evidence notes are in `qa/authorship-overrides.csv`.
-Every document stores its rule or adjudication (`classification_basis`) and a
-confidence (high 5,431, medium 137). The full before-and-after trail is in
-`qa/provenance-classification.csv`.
+The 114 source-hash adjudications include the 89 v5.1 unresolved-document <!-- historical -->
+decisions, 19 adversarial corrections, and six public-role decisions. They are
+stored with evidence in `qa/authorship-overrides.csv`. The status split is 1,971
+rule-classified, 117 manually reviewed, and 3,480 unreviewed. Unreviewed records
+remain `unknown`; this is a safety result, not evidence of Central Bank voice.
+The full before-and-after trail is in `qa/provenance-classification.csv`, and
+`VOICE-REVIEW-PROTOCOL.md` defines a deterministic 359-document risk queue for
+future independent review.
 
 Exact-text identity is separate from source identity. The ordered final page
-strings, separated by U+001E, form 5,490 SHA-256 content clusters. Of 146
-documents in non-singleton clusters, seven are empty extractions; 139 carry
-duplicated non-empty text, representing 72 excess records if text is counted
+strings, separated by U+001E, form 5,493 SHA-256 content clusters. Of 140
+documents in non-singleton clusters, seven are empty extractions; 133 carry
+duplicated non-empty text, representing 69 excess records if text is counted
 once. They remain separate documents because URL and publication context are
 provenance. Analyses that need text-level deduplication use
 `content_cluster_id` rather than deleting records.
@@ -183,14 +208,16 @@ provenance. Analyses that need text-level deduplication use
 Two compilations contain multiple voices: the 114-page strategic-plan engagement
 file and a 40-page DP10 public-response compilation. They are labelled `mixed`,
 and the `pages` table records the actual voice on each page. A deterministic
-<!-- fact:audit.documents -->32<!-- /fact -->-document reviewed regression set is
+<!-- fact:audit.documents -->32<!-- /fact -->-document development regression set is
 stored in `qa/authorship-gold.csv`; its
-<!-- fact:audit.correct -->32<!-- /fact -->/32 result is an error-detection exercise,
-not a held-out population accuracy claim.
+<!-- fact:audit.correct -->32<!-- /fact -->/32 result is an error-detection exercise
+for the legacy label, not a held-out population accuracy claim for the v5.2
+ontology.
 
-v5.1 also separates raw time metadata from analysis time. `pdf_creation_date` is
+The index also separates raw time metadata from analysis time. `pdf_creation_date` is
 preserved even when implausible; 27 documents contain a 2031 timestamp.
-`analysis_year` rejects anything after the 2026 crawl snapshot, while
+`analysis_year` rejects anything after the 2026 crawl snapshot and rejects a
+known 1980 creation-time proxy for a later consultation paper, while
 `published_at` is populated only from explicit publication evidence (72
 documents). All 5,568 rows retain `retrieved_at` and `source_page_url`.
 
@@ -198,10 +225,10 @@ The first-pass topic scan is a discovery layer only. Examples:
 
 | Topic | Matching documents | Matching pages | Stakeholder submissions | Previously reported |
 |---|---:|---:|---:|---:|
-| Payments | 1,669 | 6,390 | 331 | 219 |
-| Complaints/redress | 1,118 | 3,197 | 295 | 136 |
-| Fraud/scams | 510 | 1,135 | 138 | 95 |
-| Consumer harm | 610 | 1,849 | 261 | 166 |
+| Payments | 1,671 | 6,464 | 340 | 219 | <!-- not-a-population-count -->
+| Complaints/redress | 1,119 | 3,202 | 301 | 136 |
+| Fraud/scams | 510 | 1,143 | 139 | 95 |
+| Consumer harm | 610 | 1,850 | 266 | 166 |
 | Data quality | 116 | 204 | 8 | 4 |
 
 The stakeholder column was understated by 40% to 101% in these examples.
@@ -265,23 +292,30 @@ The scripts and machine-readable results are in the `cbi-research` output direct
 - `scripts/convert_office.py`
 - `scripts/qa_extraction_quality.py`
 - `scripts/export_provenance_qa.py`
+- `scripts/export_voice_review_scope.py`
 
-Key result directories are `qa`, `index`, `analysis-v5.1`, and `structured`.
+Key result directories are `qa`, `index`, `analysis-v5.2`, and `structured`.
 
-All scripts now run on Linux as well as Windows. Manifest paths are written with
-Windows separators, and seven scripts joined them to a root without normalising, so
-the pipeline was silently Windows-only. Re-running the full structured-data analysis
+All scripts now run on Linux as well as Windows. Historical conversion manifests
+may contain Windows separators; path consumers normalise them before joining to
+a root. Seven scripts once omitted that step, so the pipeline was silently
+Windows-only. Re-running the full structured-data analysis
 on Linux after that fix reproduces every published figure exactly; the only
 differences in `key-dataset-analysis.json` are the absolute source paths.
 
 ## Limitations
 
 - The crawl is a dated snapshot and cannot include inaccessible or later-published files.
-- The current snapshot has no unresolved containers after adjudication, but the
-  label remains part of the schema. Future ambiguity must stay unresolved rather
-  than being absorbed into the Central Bank denominator.
-- Office and archive documents mostly have no page structure. 179 of 323 are a single
-  pseudo-page, so they are searchable but not page-citable.
+- 3,480 documents remain `institutional_voice = 'unknown'` because a host path is
+  not issuer evidence. They must stay outside any regulator-only denominator
+  unless reviewed evidence supports a narrower voice.
+- Office and archive documents mostly lack true source pages. Of 323 records,
+  137 are a single pseudo-page, 133 use explicit OOXML page breaks, 49 use
+  archive members, two use slides and two have source pages. Explicit page
+  breaks are searchable boundaries, not source-page citations.
+- The 32-document development set is not independent or held out. v5.2 makes no
+  population accuracy claim for institutional voice. The 359-document risk queue
+  is pending double review.
 - ZIP taxonomy packages are inventoried and profiled, not transcribed. A claim that
   depends on the contents of a specific schema file needs that file opened.
 - 87 documents are graded below `ok` for extraction fidelity, down from 112  <!-- historical -->

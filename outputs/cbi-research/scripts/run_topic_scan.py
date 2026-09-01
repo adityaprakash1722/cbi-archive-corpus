@@ -51,14 +51,14 @@ def main() -> int:
                 """,
                 (topic["query"], args.top_documents),
             ).fetchall()
-            by_authorship = connection.execute(
+            by_voice = connection.execute(
                 """
-                SELECT pg.authorship, COUNT(DISTINCT p.document_id) AS matching_documents,
+                SELECT pg.institutional_voice, COUNT(DISTINCT p.document_id) AS matching_documents,
                        COUNT(*) AS matching_pages
                 FROM pages_fts AS p
                 JOIN pages AS pg USING(document_id, page_number)
                 WHERE pages_fts MATCH ?
-                GROUP BY pg.authorship
+                GROUP BY pg.institutional_voice
                 ORDER BY matching_documents DESC
                 """,
                 (topic["query"],),
@@ -95,12 +95,15 @@ def main() -> int:
                 **topic,
                 "matching_documents": totals["matching_documents"],
                 "matching_pages": totals["matching_pages"],
-                "by_authorship": {row["authorship"]: row["matching_documents"] for row in by_authorship},
+                "by_institutional_voice": {
+                    row["institutional_voice"]: row["matching_documents"] for row in by_voice},
                 "stakeholder_documents": next(
-                    (row["matching_documents"] for row in by_authorship if row["authorship"] == "stakeholder"), 0
+                    (row["matching_documents"] for row in by_voice
+                     if row["institutional_voice"] == "stakeholder"), 0
                 ),
-                "unresolved_documents": next(
-                    (row["matching_documents"] for row in by_authorship if row["authorship"] == "unresolved"), 0
+                "unknown_voice_documents": next(
+                    (row["matching_documents"] for row in by_voice
+                     if row["institutional_voice"] == "unknown"), 0
                 ),
                 "by_document_class": [dict(row) for row in by_document_class],
                 "by_analysis_year": [dict(row) for row in by_analysis_year],
@@ -126,7 +129,7 @@ def main() -> int:
     with (output / "topic-scan.csv").open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=["id", "label", "query", "matching_documents",
                                                         "matching_pages", "stakeholder_documents",
-                                                        "unresolved_documents"], lineterminator="\n")
+                                                        "unknown_voice_documents"], lineterminator="\n")
         writer.writeheader()
         for result in results:
             writer.writerow({key: result[key] for key in writer.fieldnames})

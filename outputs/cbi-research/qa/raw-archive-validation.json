@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-09-01T10:59:19Z",
+  "download_records": 6963,
+  "unique_downloaded_files": 6309,
+  "bytes_hashed": 6558826563,
+  "failures": 0,
+  "passed": true,
+  "scope": "every unique downloaded hash, including structured and excluded objects",
+  "elapsed_seconds": 13.8
+}

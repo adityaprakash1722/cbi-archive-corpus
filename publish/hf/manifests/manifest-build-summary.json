@@ -13,27 +13,27 @@
   },
   "conversion-manifest-office.csv.zst": {
     "source": "outputs/cbi-research/corpus/office/conversion-manifest.csv",
-    "source_bytes": 263376,
-    "compressed_bytes": 52866,
-    "sha256": "14f953868c93765308dbc103abb990027958a5db71233d510abe4c70dd9c0795"
+    "source_bytes": 273429,
+    "compressed_bytes": 55801,
+    "sha256": "87900ed497196d07ed20954921888877a3785eec30c00fd0f05027e66730dcab"
   },
   "provenance-classification.csv.zst": {
     "source": "outputs/cbi-research/qa/provenance-classification.csv",
-    "source_bytes": 2980971,
-    "compressed_bytes": 390708,
-    "sha256": "ed5a5cf5d6437227943839d042b31cd6ec37e34a250ba146aa0a2157ee1bdd28"
+    "source_bytes": 3679300,
+    "compressed_bytes": 399165,
+    "sha256": "3927b90f1778566cf985ae6c92a3c0042ae4da777296adeb8a228dfcfbb3e96d"
   },
   "extraction-quality.csv.zst": {
     "source": "outputs/cbi-research/qa/extraction-quality.csv",
-    "source_bytes": 1700833,
-    "compressed_bytes": 432167,
-    "sha256": "edca0e54780a53d6e803d93f3b11a7dfa0fd657a2ca417ae28a7b836b87de877"
+    "source_bytes": 1745736,
+    "compressed_bytes": 436834,
+    "sha256": "c9711e237795d773e38b40c0a8e750de61c298dfc5b13985ac3764944e332814"
   },
   "authorship-overrides.csv.zst": {
     "source": "outputs/cbi-research/qa/authorship-overrides.csv",
-    "source_bytes": 38562,
-    "compressed_bytes": 6224,
-    "sha256": "41e4f9ae2509d44999b9df34a45fd14a4ea053a27cd271cd1990d69f067a0250"
+    "source_bytes": 52468,
+    "compressed_bytes": 9144,
+    "sha256": "fc5df3997639554643ac8692cf23531750d34982e35c86ea502459c1942fbd79"
   },
   "page-authorship-overrides.csv.zst": {
     "source": "outputs/cbi-research/qa/page-authorship-overrides.csv",
@@ -49,8 +49,14 @@
   },
   "engagement-coverage.csv.zst": {
     "source": "outputs/cbi-research/qa/engagement-coverage.csv",
-    "source_bytes": 19555,
-    "compressed_bytes": 1734,
-    "sha256": "b3c49b471d674cc30ab5a37b02ca9a962d2c38da203d107c88271388cf418aa1"
+    "source_bytes": 19556,
+    "compressed_bytes": 1733,
+    "sha256": "faafc5909e280a15262e64a0e3cbcee7e5b58c531d64d28ac8a3ad901673fa31"
+  },
+  "voice-review-scope.csv.zst": {
+    "source": "outputs/cbi-research/qa/voice-review-scope.csv",
+    "source_bytes": 245089,
+    "compressed_bytes": 38083,
+    "sha256": "30204a5ad4aeca9b944c6116e3c62e51cce48d46f483ded95acf3c9b24a87ac3"
   }
 }

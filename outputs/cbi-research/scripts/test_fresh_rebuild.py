@@ -64,7 +64,7 @@ def remote_scalar(documents: Path, query: str) -> int:
 
 
 def page_row_mismatches(connection, pages: Path) -> tuple[int, list[str]]:
-    """Compare every common page column against the published pages table.
+    """Compare every published page column against the rebuilt joined row.
 
     The document table is not the corpus. A rebuild could match all nineteen
     document columns and still hand back different text, and until this existed
@@ -81,13 +81,32 @@ def page_row_mismatches(connection, pages: Path) -> tuple[int, list[str]]:
     table = sql_parquet(pages)
     remote_columns = [row[0] for row in remote.execute(
         "DESCRIBE SELECT * FROM " + table).fetchall()]
-    local_columns = [row[1] for row in connection.execute("PRAGMA table_info(pages)")]
-    columns = [column for column in remote_columns if column in local_columns]
+    local_expression = {
+        "document_id": "p.document_id",
+        "source_sha256": "d.source_sha256",
+        "page_number": "p.page_number",
+        "authorship": "p.authorship",
+        "authorship_basis": "p.authorship_basis",
+        "institutional_voice": "p.institutional_voice",
+        "voice_review_status": "p.voice_review_status",
+        "voice_evidence": "p.voice_evidence",
+        "document_class": "d.document_class",
+        "page_basis": "d.page_basis",
+        "consultation_id": "d.consultation_id",
+        "engagement_id": "d.engagement_id",
+        "title": "d.title",
+        "source_url": "d.source_url",
+        "characters": "p.characters",
+        "text": "p.text",
+    }
+    unmapped = [column for column in remote_columns if column not in local_expression]
+    if unmapped:
+        raise RuntimeError("published page columns lack rebuild mappings: " + ", ".join(unmapped))
     required = {"document_id", "page_number", "text", "characters"}
-    if not required.issubset(columns):
-        missing = sorted(required - set(columns))
-        raise RuntimeError("page comparison lacks required columns: " + ", ".join(missing))
-    value_columns = [column for column in columns
+    if not required.issubset(remote_columns):
+        missing = sorted(required - set(remote_columns))
+        raise RuntimeError("published page table lacks required columns: " + ", ".join(missing))
+    value_columns = [column for column in remote_columns
                      if column not in ("document_id", "page_number")]
     select = "document_id, page_number, " + ", ".join(value_columns)
     published = {
@@ -95,7 +114,11 @@ def page_row_mismatches(connection, pages: Path) -> tuple[int, list[str]]:
             "SELECT " + select + " FROM " + table).fetchall()}
     mismatched = 0
     seen = 0
-    for row in connection.execute("SELECT " + select + " FROM pages"):
+    comparison_order = ["document_id", "page_number"] + value_columns
+    local_select = ", ".join(local_expression[column] for column in comparison_order)
+    for row in connection.execute(
+            "SELECT " + local_select + " FROM pages AS p "
+            "JOIN documents AS d USING(document_id)"):
         did, number, values = row[0], row[1], row[2:]
         seen += 1
         want = published.get((did, number))
@@ -103,7 +126,7 @@ def page_row_mismatches(connection, pages: Path) -> tuple[int, list[str]]:
             mismatched += 1
     if seen != len(published):
         mismatched += abs(seen - len(published))
-    return mismatched, ["document_id", "page_number"] + value_columns
+    return mismatched, remote_columns
 
 
 def manifest_mismatches(connection, field: str, manifests: Path,

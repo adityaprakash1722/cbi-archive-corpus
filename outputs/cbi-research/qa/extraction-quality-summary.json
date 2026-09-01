@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-08-30T22:18:54Z",
+  "generated_at": "2026-09-01T10:47:43Z",
   "documents_assessed": 5568,
   "duplicate_manifest_rows_deduplicated_by_sha256": 1,
-  "total_pages": 88783,
-  "total_empty_pages": 1141,
-  "empty_page_share": 0.0129,
+  "total_pages": 89242,
+  "total_empty_pages": 1136,
+  "empty_page_share": 0.0127,
   "grades": {
     "ok": 5481,
     "gappy": 36,
@@ -13,10 +13,22 @@
     "empty": 7
   },
   "documents_with_any_replacement_characters": 142,
-  "median_nonspace_per_page": 1624.0,
+  "median_nonspace_per_page": 1611.8,
   "flagged_documents": 87,
   "flagged_pages": 828,
   "note": "Grades describe extraction fidelity, not conversion success. A document can pass every structural check in validate_corpus.py and still be graded gappy or garbled.",
   "metric_basis": "final-page-text",
-  "near_blank_page_definition": "fewer than 30 Unicode non-space characters"
+  "near_blank_page_definition": "fewer than 30 Unicode non-space characters",
+  "nonempty_pages": 88944,
+  "exact_document_text_clusters": 5493,
+  "exact_duplicate_nonempty_page_excess": 4873,
+  "exact_duplicate_nonempty_page_excess_characters": 7775301,
+  "after_exact_document_dedup_nonempty_pages": 87895,
+  "after_exact_document_dedup_page_excess": 3824,
+  "after_exact_document_dedup_page_excess_characters": 5750845,
+  "total_extracted_characters": 180008537,
+  "after_exact_document_dedup_page_duplication_share": 0.0319,
+  "maximum_allowed_page_duplication_share": 0.04,
+  "semantic_gate_failures": [],
+  "passed": true
 }

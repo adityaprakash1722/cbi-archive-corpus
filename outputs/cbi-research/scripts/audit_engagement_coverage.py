@@ -52,9 +52,9 @@ def main() -> int:
 
     discussion = connection.execute(
         "SELECT engagement_id, COUNT(*) AS documents, "
-        "SUM(authorship = 'stakeholder') AS stakeholder, "
-        "SUM(authorship = 'central-bank') AS central_bank, "
-        "SUM(authorship = 'mixed') AS mixed "
+        "SUM(institutional_voice = 'stakeholder') AS stakeholder, "
+        "SUM(institutional_voice = 'cbi-institutional') AS central_bank, "
+        "SUM(institutional_voice = 'mixed') AS mixed "
         "FROM documents WHERE engagement_id LIKE 'dp%' GROUP BY engagement_id"
     ).fetchall()
     connection.close()

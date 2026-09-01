@@ -1,27 +1,47 @@
 {
-  "generated_at": "2026-08-30T22:18:54Z",
-  "database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus-v5.1-5568docs.sqlite",
-  "previous_database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus-v5-5568docs.sqlite",
+  "generated_at": "2026-09-01T10:37:08Z",
+  "database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus-v5.2-5568docs.sqlite",
+  "previous_database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus-v5.1-5568docs.sqlite",
   "documents": 5568,
   "authorship": {
-    "central-bank": 3844,
-    "stakeholder": 1722,
+    "unresolved": 3480,
+    "stakeholder": 1739,
+    "central-bank": 340,
+    "external-authority": 3,
+    "third-party": 2,
+    "judicial-tribunal": 2,
     "mixed": 2
   },
+  "institutional_voice": {
+    "unknown": 3480,
+    "stakeholder": 1739,
+    "cbi-institutional": 338,
+    "external-authority": 3,
+    "cbi-staff": 2,
+    "third-party": 2,
+    "judicial-tribunal": 2,
+    "mixed": 2
+  },
+  "voice_review_status": {
+    "unreviewed": 3480,
+    "rule-classified": 1971,
+    "manual-reviewed": 117
+  },
   "confidence": {
-    "high": 5431,
-    "medium": 137
+    "low": 3480,
+    "high": 1950,
+    "medium": 138
   },
   "change_vs_previous": {
-    "unchanged": 5479,
-    "reclassified": 89
+    "reclassified": 3506,
+    "unchanged": 2062
   },
-  "moved_to_stakeholder": 51,
-  "moved_to_unresolved": 0,
-  "moved_to_central_bank": 37,
-  "moved_to_mixed": 1,
+  "moved_to_stakeholder": 17,
+  "moved_to_unresolved": 3480,
+  "moved_to_central_bank": 0,
+  "moved_to_mixed": 0,
   "basis_breakdown": {
-    "non-consultation-path": 3489,
+    "host-path-only:non-consultation": 3480,
     "filename-attribution:response": 1064,
     "filename-attribution:submission": 222,
     "filename-attribution:feedback-from": 123,
@@ -31,11 +51,13 @@
     "filename-cp-prefix-without-attribution": 61,
     "filename-attribution:response-to": 58,
     "filename-attribution:response.": 56,
-    "filename-cbi-doctype:discussion-paper": 23,
-    "filename-cbi-doctype:consultation-paper": 22,
+    "filename-cbi-doctype:consultation-paper": 21,
+    "adjudicated:adversarial-source-review-2026-08-31": 19,
     "filename-cbi-doctype:requirements": 12,
     "filename-cbi-doctype:consultation-on": 11,
+    "filename-cbi-doctype:discussion-paper": 8,
     "filename-cbi-doctype:consumer-protection-code": 7,
+    "adjudicated:rights-review-public-role-2026-08-31": 6,
     "filename-cbi-doctype:guidance-note": 6,
     "content-stakeholder(5v0):we welcome the opportunity;dear sir": 6,
     "filename-cbi-doctype:regulations": 5,
@@ -53,7 +75,6 @@
     "filename-cbi-doctype:addendum": 2,
     "filename-attribution:to-cp1": 2,
     "filename-cbi-doctype:requirements.": 2,
-    "filename-cbi-doctype:rulebook": 2,
     "filename-attribution:repsonse": 2,
     "filename-cbi-doctype:gn-3": 2,
     "content-cbi(3v0):this consultation paper": 2,
@@ -94,6 +115,7 @@
     "filename-cbi-doctype:cp158-consultation": 1,
     "filename-cbi-doctype:cp16-consultation": 1,
     "filename-cbi-doctype:cp160-consultation": 1,
+    "filename-cbi-doctype:rulebook": 1,
     "filename-cbi-doctype:cp164---consultation": 1,
     "filename-cbi-doctype:cp167---consultation": 1,
     "filename-cbi-doctype:cp17-consultation": 1,
@@ -129,6 +151,7 @@
     "filename-cbi-doctype:cp73-consultation": 1,
     "content-cbi(5v0):feedback statement;cbi-name-in-title-block": 1,
     "filename-cbi-doctype:cp-76-consultation": 1,
+    "content-overrides-generic-doctype(4v0):dear sir;yours faithfully": 1,
     "filename-cbi-doctype:cp78-consultation": 1,
     "filename-cbi-doctype:cp80-consultation": 1,
     "filename-strong-cbi-doctype:cp81.pdf": 1,
@@ -163,7 +186,20 @@
     "audited-non-consultation-stakeholder:collaborative-finance-submission": 1
   },
   "page_authorship": {
-    "central-bank": 76140,
-    "stakeholder": 12643
+    "unresolved": 64524,
+    "stakeholder": 12751,
+    "central-bank": 11651,
+    "external-authority": 266,
+    "third-party": 44,
+    "judicial-tribunal": 6
+  },
+  "page_institutional_voice": {
+    "unknown": 64524,
+    "stakeholder": 12751,
+    "cbi-institutional": 11648,
+    "external-authority": 266,
+    "third-party": 44,
+    "judicial-tribunal": 6,
+    "cbi-staff": 3
   }
 }

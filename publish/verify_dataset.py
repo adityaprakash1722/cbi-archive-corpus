@@ -10,7 +10,7 @@ immutable Hub revisions, rather than merely checking two convenient files.
 """
 from __future__ import annotations
 
-import argparse, hashlib, tempfile, urllib.request
+import argparse, csv, hashlib, json, tempfile, urllib.request
 from pathlib import Path
 
 from release_lock import load as load_release
@@ -29,6 +29,26 @@ def sql_path(path: Path) -> str:
     return path.resolve().as_posix().replace("'", "''")
 
 
+def raw_tree(repo: str, revision: str) -> dict[str, dict]:
+    """Read the complete pinned Hub tree, following RFC 8288 next links."""
+    url = (f"https://huggingface.co/api/datasets/{repo}/tree/{revision}"
+           "?recursive=true&expand=true&limit=1000")
+    entries: dict[str, dict] = {}
+    while url:
+        request = urllib.request.Request(url, headers={"User-Agent": "cbi-dataset-verifier/1"})
+        with urllib.request.urlopen(request) as response:
+            for item in json.load(response):
+                if item.get("type") == "file":
+                    entries[item["path"]] = item
+            next_url = None
+            for part in (response.headers.get("Link") or "").split(","):
+                if 'rel="next"' in part:
+                    next_url = part.split(";", 1)[0].strip().strip("<>")
+                    break
+            url = next_url
+    return entries
+
+
 def main() -> int:
     release = load_release()
     parser = argparse.ArgumentParser()
@@ -41,6 +61,8 @@ def main() -> int:
         parser.error("--revision must match RELEASE.lock.json; update the lock before verifying a release")
     expected = release["expected"]
     expected_authorship = expected["authorship"]
+    expected_voice = expected["institutional_voice"]
+    expected_review = expected["voice_review_status"]
 
     try:
         import duckdb
@@ -82,7 +104,7 @@ def main() -> int:
         if not ok:
             failures.append(f"{path}: {got} != {want}")
 
-    print("1. authorship split")
+    print("1. compatibility authorship split")
     rows = connection.execute(
         f"SELECT authorship, count(*) FROM read_parquet('{docs}') GROUP BY 1 ORDER BY 2 DESC"
     ).fetchall()
@@ -96,6 +118,20 @@ def main() -> int:
         if not ok:
             failures.append(f"{label}: {got} != {expected_count}")
 
+    print("\n1b. institutional-voice and review-status splits")
+    for column, wanted in (("institutional_voice", expected_voice),
+                           ("voice_review_status", expected_review)):
+        actual = dict(connection.execute(
+            f"SELECT {column}, count(*) FROM read_parquet('{docs}') GROUP BY 1"
+        ).fetchall())
+        if actual != wanted:
+            failures.append(f"{column}: {actual} != {wanted}")
+        for label, expected_count in wanted.items():
+            got = actual.get(label, 0)
+            ok = got == expected_count
+            print(f"   {column:23s} {label:21s} {got:6d}  "
+                  f"expected {expected_count:6d}  {'ok' if ok else 'MISMATCH'}")
+
     print("\n2. totals")
     documents = connection.execute(f"SELECT count(*) FROM read_parquet('{docs}')").fetchone()[0]
     page_rows = connection.execute(f"SELECT count(*) FROM read_parquet('{pages}')").fetchone()[0]
@@ -106,12 +142,43 @@ def main() -> int:
         if not ok:
             failures.append(f"{label}: {got} != {expected_count}")
 
-    print("\n3. a real query: what the regulator says about operational resilience")
+    print("\n3. every raw blob path and every available content hash")
+    tree = raw_tree(raw_repo, raw_revision)
+    with downloaded_files["publish/blob-catalog.csv"].open(
+            encoding="utf-8-sig", newline="") as stream:
+        catalog = list(csv.DictReader(stream))
+    missing = size_mismatches = lfs_hash_mismatches = 0
+    lfs_verified = git_only = 0
+    for row in catalog:
+        item = tree.get(row["key"])
+        if item is None:
+            missing += 1
+            continue
+        if int(item.get("size") or -1) != int(row["bytes"]):
+            size_mismatches += 1
+        lfs = item.get("lfs") or {}
+        if lfs:
+            lfs_verified += 1
+            if lfs.get("oid") != row["sha256"]:
+                lfs_hash_mismatches += 1
+        else:
+            git_only += 1
+    print(f"   catalogued blobs {len(catalog):6d}")
+    print(f"   paths present     {len(catalog)-missing:6d}")
+    print(f"   LFS SHA-256       {lfs_verified:6d} verified")
+    print(f"   ordinary Git      {git_only:6d} size/path only")
+    if missing or size_mismatches or lfs_hash_mismatches:
+        failures.append(
+            f"raw tree: missing={missing}, size={size_mismatches}, "
+            f"lfs_sha256={lfs_hash_mismatches}")
+
+    print("\n4. a real query: what evidence-supported CBI institutional material says about operational resilience")
     rows = connection.execute(f"""
         SELECT d.title, p.page_number
         FROM read_parquet('{pages}') p
         JOIN read_parquet('{docs}') d USING (document_id)
-        WHERE p.authorship = 'central-bank'
+        WHERE p.institutional_voice = 'cbi-institutional'
+          AND p.voice_review_status IN ('rule-classified', 'manual-reviewed')
           AND lower(p.text) LIKE '%operational resilience%'
         LIMIT 5
     """).fetchall()
@@ -120,15 +187,16 @@ def main() -> int:
     if not rows:
         failures.append("the join query returned nothing")
 
-    print("\n4. the discipline check: these two must never be mixed")
-    for authorship in ("central-bank", "stakeholder"):
+    print("\n5. the discipline check: reviewed voices must never be mixed")
+    for institutional_voice in ("cbi-institutional", "stakeholder"):
         count = connection.execute(f"""
             SELECT count(DISTINCT d.document_id)
             FROM read_parquet('{pages}') p JOIN read_parquet('{docs}') d USING (document_id)
-            WHERE p.authorship = '{authorship}' AND lower(p.text) LIKE '%disproportionate%'
+            WHERE p.institutional_voice = '{institutional_voice}'
+              AND lower(p.text) LIKE '%disproportionate%'
         """).fetchone()[0]
-        voice = "regulator" if authorship == "central-bank" else "industry advocacy"
-        print(f"   {count:4d} {authorship:14s} documents say 'disproportionate'  ({voice})")
+        meaning = "evidence-supported regulator" if institutional_voice == "cbi-institutional" else "advocacy"
+        print(f"   {count:4d} {institutional_voice:17s} documents say 'disproportionate'  ({meaning})")
 
     print()
     if failures:

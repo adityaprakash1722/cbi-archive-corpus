@@ -115,6 +115,10 @@ def main() -> int:
     ap.add_argument("--corpus-revision", default=release["hugging_face"]["corpus_revision"])
     ap.add_argument("--raw-revision", default=release["hugging_face"]["raw_revision"])
     ap.add_argument("--authorship", choices=["central-bank", "stakeholder", "mixed", "unresolved"])
+    ap.add_argument("--voice", choices=["cbi-institutional", "cbi-staff", "stakeholder",
+                                         "external-authority", "judicial-tribunal",
+                                         "third-party", "mixed", "unknown"],
+                    help="safe analytical speaker filter; preferred over --authorship")
     ap.add_argument("--limit", type=int, default=10)
     ap.add_argument("--out", type=Path, default=Path("downloaded-sources"))
     ap.add_argument("--fetch", action="store_true", help="download the matches, not just list them")
@@ -159,7 +163,10 @@ def main() -> int:
         )
         manifest = sql_path(manifest_file)
 
-    columns = ("source_sha256, title, source_url, source_bytes, source_format, authorship")
+    if args.authorship and args.voice:
+        ap.error("use only one of --authorship or --voice")
+    columns = ("source_sha256, title, source_url, source_bytes, source_format, "
+               "authorship, institutional_voice, voice_review_status")
     connection = duckdb.connect()
 
     if args.sha:
@@ -177,9 +184,12 @@ def main() -> int:
             [args.url]).fetchall()
     elif args.search:
         clause = f"AND p.authorship = '{args.authorship}'" if args.authorship else ""
+        if args.voice:
+            clause = f"AND p.institutional_voice = '{args.voice}'"
         matches = connection.execute(f"""
             SELECT DISTINCT d.source_sha256, d.title, d.source_url, d.source_bytes,
-                   d.source_format, d.authorship
+                   d.source_format, d.authorship, d.institutional_voice,
+                   d.voice_review_status
             FROM read_parquet('{pages}') p JOIN read_parquet('{documents}') d USING (document_id)
             WHERE lower(p.text) LIKE '%' || lower(?) || '%' {clause}
             LIMIT {args.limit}""", [args.search]).fetchall()
@@ -198,10 +208,11 @@ def main() -> int:
 
     print(f"{len(matches)} match(es)\n")
     failures = 0
-    for sha, title, url, size, fmt, authorship in matches:
+    for sha, title, url, size, fmt, authorship, voice, review_status in matches:
         blob = resolve(args.user, args.raw_revision, sha, fmt)
         print(f"  {(title or '(untitled)')[:66]}")
         print(f"    authorship : {authorship}")
+        print(f"    voice      : {voice} ({review_status})")
         print(f"    size       : {(size or 0)/1e6:.1f} MB")
         print(f"    original   : {url}")
         print(f"    sha256     : {sha}")

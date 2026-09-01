@@ -27,9 +27,17 @@ across two drives, it falls back to copying and tells you.
 """
 from __future__ import annotations
 
-import argparse, csv, json, os, shutil, sys, time
+import argparse, csv, hashlib, json, os, shutil, sys, time
 from collections import Counter
 from pathlib import Path
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def main() -> int:
@@ -74,7 +82,7 @@ def main() -> int:
     if args.limit:
         entries = entries[: args.limit]
 
-    linked = copied = missing = existing = 0
+    linked = copied = missing = existing = corrupt = 0
     started = time.time()
     catalog = []
     for index, entry in enumerate(entries, 1):
@@ -91,10 +99,27 @@ def main() -> int:
 
         if not source.is_file():
             missing += 1
+            print(f"ERROR: source missing for {sha}: {source}", file=sys.stderr)
             continue
         if destination.is_file():
+            actual_bytes = destination.stat().st_size
+            actual_sha = sha256_file(destination)
+            if actual_bytes != entry["bytes"] or actual_sha != sha:
+                corrupt += 1
+                print(
+                    f"ERROR: existing blob failed integrity check: {destination} "
+                    f"bytes={actual_bytes} sha256={actual_sha}", file=sys.stderr)
+                continue
             existing += 1
         else:
+            actual_bytes = source.stat().st_size
+            actual_sha = sha256_file(source)
+            if actual_bytes != entry["bytes"] or actual_sha != sha:
+                corrupt += 1
+                print(
+                    f"ERROR: source failed integrity check: {source} "
+                    f"bytes={actual_bytes} sha256={actual_sha}", file=sys.stderr)
+                continue
             destination.parent.mkdir(parents=True, exist_ok=True)
             try:
                 os.link(source, destination)
@@ -184,6 +209,7 @@ def main() -> int:
         "by_format": dict(Counter(c["format"] for c in catalog).most_common()),
         "hard_linked": linked, "copied": copied,
         "already_present": existing, "source_missing": missing,
+        "integrity_failures": corrupt,
         "layout": "<sha[0:2]>/<sha[2:4]>/<sha256><ext>",
         "page_snapshots_laid_out": len(page_catalog),
         "page_snapshot_bytes": sum(row["bytes"] for row in page_catalog),
@@ -201,8 +227,10 @@ def main() -> int:
         print(f"\nNOTE: {copied} files were copied rather than hard linked, so this")
         print(f"cost about {sum(c['bytes'] for c in catalog)/1e9:.1f} GB of extra disk.")
     if missing:
-        print(f"\nWARNING: {missing} files listed in the manifest were not on disk.")
-    return 0
+        print(f"\nERROR: {missing} files listed in the manifest were not on disk.")
+    if corrupt:
+        print(f"\nERROR: {corrupt} source or existing blob files failed integrity checks.")
+    return 1 if missing or corrupt else 0
 
 
 if __name__ == "__main__":

@@ -2,18 +2,18 @@ DATASET ?= aditya487/cbi-archive-corpus
 SCRIPTS := outputs/cbi-research/scripts
 ARCHIVE := outputs/cbi-archive/cbi-data
 RESEARCH := outputs/cbi-research
-INDEX := $(RESEARCH)/index/cbi-corpus-v5.1-5568docs.sqlite
+INDEX := $(RESEARCH)/index/cbi-corpus-v5.2-5568docs.sqlite
 
 .PHONY: help fetch index materialize reconcile recover scan-personal-data test test-invariants test-fresh-rebuild verify dataset release-artifacts clean-artifacts
 
 help:
-	@echo "fetch            pull the 47 MB Parquet corpus (set DATASET=user/name)"
+	@echo "fetch            pull the 48 MB Parquet corpus (set DATASET=user/name)"
 	@echo "materialize      regenerate the Markdown corpus from the published Parquet"
 	@echo "reconcile        make manifests/frontmatter match final page text"
 	@echo "recover          re-extract page text the converter dropped (--ocr needs Tesseract)"
 	@echo "scan-personal-data  screen the corpus for personal data before republishing"
-	@echo "index            rebuild the v5.1 SQLite index from the Markdown corpus"
-	@echo "test             classifier regression suite"
+	@echo "index            rebuild the v5.2 SQLite index from the Markdown corpus"
+	@echo "test             classifier and synthetic Office regression suites"
 	@echo "test-invariants  check tracked manifests agree with the docs, no network"
 	@echo "test-fresh-rebuild  prove a clone can rebuild the index from published data"
 	@echo "verify           re-hash every source and output, check page markers"
@@ -44,6 +44,7 @@ reconcile:
 
 test:
 	cd $(SCRIPTS) && python3 test_classify_provenance.py
+	cd $(SCRIPTS) && python3 test_convert_office.py
 
 test-invariants:
 	python3 $(SCRIPTS)/check_manifest_invariants.py
@@ -52,6 +53,7 @@ test-fresh-rebuild:
 	python3 $(SCRIPTS)/test_fresh_rebuild.py --user $(firstword $(subst /, ,$(DATASET)))
 
 verify:
+	python3 $(SCRIPTS)/verify_raw_archive.py --archive $(ARCHIVE) --output $(RESEARCH)/qa
 	python3 $(SCRIPTS)/reconcile_final_text_metrics.py \
 	  --corpus $(RESEARCH)/corpus --corpus $(RESEARCH)/corpus/office --check
 	python3 $(SCRIPTS)/validate_corpus.py --corpus $(RESEARCH)/corpus \

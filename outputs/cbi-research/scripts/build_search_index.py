@@ -22,6 +22,27 @@ PAGE_PATTERN = re.compile(
     r"<!-- source-page: (\d+) -->\s*\n<a id=\"page-\d+\"></a>\s*\n",
     re.MULTILINE,
 )
+AUTHORSHIP_VALUES = {
+    "central-bank", "stakeholder", "external-authority", "judicial-tribunal",
+    "third-party", "mixed", "unresolved",
+}
+VOICE_VALUES = {
+    "cbi-institutional", "cbi-staff", "stakeholder", "external-authority",
+    "judicial-tribunal", "third-party", "mixed", "unknown",
+}
+REVIEW_STATUSES = {"manual-reviewed", "rule-classified", "unreviewed"}
+
+
+def voice_for_authorship(authorship: str) -> str:
+    return {
+        "central-bank": "cbi-institutional",
+        "stakeholder": "stakeholder",
+        "external-authority": "external-authority",
+        "judicial-tribunal": "judicial-tribunal",
+        "third-party": "third-party",
+        "mixed": "mixed",
+        "unresolved": "unknown",
+    }[authorship]
 
 
 def arguments() -> argparse.Namespace:
@@ -123,7 +144,9 @@ def pdf_creation_year(value: str | None, maximum: int) -> int | None:
     if not match:
         return None
     year = int(match.group(1))
-    return year if 1900 <= year <= maximum else None
+    # PDF did not exist before the 1990s. Earlier values in this corpus are bad
+    # producer defaults, including a 2011 CP54 response stamped 1980.
+    return year if 1990 <= year <= maximum else None
 
 
 def temporal_metadata(url: str, pdf_date: str | None, source: dict,
@@ -170,13 +193,16 @@ def source_metadata(path: Path | None) -> dict[str, dict]:
             sha = row.get("sha256") or ""
             if not sha:
                 continue
-            item = result.setdefault(sha, {"referrers": [], "lastModified": None})
+            item = result.setdefault(sha, {"referrers": [], "urls": [], "lastModified": None})
+            if row.get("url"):
+                item["urls"].append(row["url"])
             item["referrers"].extend(
                 ref.strip() for ref in (row.get("referrers") or "").split("|") if ref.strip()
             )
             item["lastModified"] = item["lastModified"] or row.get("lastModified") or None
     for item in result.values():
         item["referrers"] = sorted(set(item["referrers"]))
+        item["urls"] = sorted(set(item["urls"]))
     return result
 
 
@@ -188,7 +214,7 @@ def page_authorship_overrides(path: Path | None) -> dict[str, list[dict]]:
         for row in csv.DictReader(stream):
             row["start_page"] = int(row["start_page"])
             row["end_page"] = int(row["end_page"])
-            if row["authorship"] not in {"central-bank", "stakeholder", "unresolved"}:
+            if row["authorship"] not in AUTHORSHIP_VALUES - {"mixed"}:
                 raise ValueError(f"invalid page authorship: {row['authorship']}")
             result.setdefault(row["source_sha256"], []).append(row)
     return result
@@ -199,26 +225,46 @@ def document_authorship_overrides(path: Path | None) -> dict[str, dict]:
         return {}
     result = read_keyed_csv(path, "source_sha256")
     for sha, row in result.items():
-        if row["authorship"] not in {"central-bank", "stakeholder", "mixed", "unresolved"}:
+        if row["authorship"] not in AUTHORSHIP_VALUES:
             raise ValueError(f"invalid document authorship override for {sha}: {row['authorship']}")
         if row["classification_confidence"] not in {"high", "medium", "low"}:
             raise ValueError(
                 f"invalid classification confidence override for {sha}: "
                 f"{row['classification_confidence']}")
+        voice = row.get("institutional_voice") or voice_for_authorship(row["authorship"])
+        if voice not in VOICE_VALUES:
+            raise ValueError(f"invalid institutional voice override for {sha}: {voice}")
+        status = row.get("review_status") or "manual-reviewed"
+        if status not in REVIEW_STATUSES:
+            raise ValueError(f"invalid voice review status for {sha}: {status}")
     return result
 
 
-def page_provenance(sha: str, page_number: int, document_authorship: str,
-                    document_basis: str, overrides: dict[str, list[dict]]) -> tuple[str, str]:
+def page_provenance(sha: str, page_number: int, provenance: Provenance,
+                    overrides: dict[str, list[dict]]) -> tuple[str, str, str, str, str]:
     matches = [row for row in overrides.get(sha, [])
                if row["start_page"] <= page_number <= row["end_page"]]
     if len(matches) > 1:
         raise ValueError(f"overlapping page-authorship overrides for {sha} page {page_number}")
     if matches:
-        return matches[0]["authorship"], matches[0]["basis"]
-    if document_authorship == "mixed":
+        row = matches[0]
+        authorship = row["authorship"]
+        return (
+            authorship,
+            row["basis"],
+            row.get("institutional_voice") or voice_for_authorship(authorship),
+            row.get("review_status") or "manual-reviewed",
+            row.get("review_evidence") or row["basis"],
+        )
+    if provenance.authorship == "mixed":
         raise ValueError(f"mixed document {sha} has no authorship override for page {page_number}")
-    return document_authorship, "document:" + document_basis
+    return (
+        provenance.authorship,
+        "document:" + provenance.basis,
+        provenance.institutional_voice or voice_for_authorship(provenance.authorship),
+        provenance.review_status or "unreviewed",
+        provenance.review_evidence or provenance.basis,
+    )
 
 
 def initialize(connection: sqlite3.Connection) -> None:
@@ -254,6 +300,13 @@ def initialize(connection: sqlite3.Connection) -> None:
           source_last_modified_at TEXT,
           document_class TEXT NOT NULL,
           authorship TEXT NOT NULL,
+          legacy_authorship TEXT NOT NULL,
+          host TEXT NOT NULL,
+          author_org TEXT,
+          document_role TEXT NOT NULL,
+          institutional_voice TEXT NOT NULL,
+          voice_review_status TEXT NOT NULL,
+          voice_evidence TEXT NOT NULL,
           classification_basis TEXT NOT NULL,
           classification_confidence TEXT NOT NULL,
           page_basis TEXT NOT NULL,
@@ -277,6 +330,9 @@ def initialize(connection: sqlite3.Connection) -> None:
           page_number INTEGER NOT NULL,
           authorship TEXT NOT NULL,
           authorship_basis TEXT NOT NULL,
+          institutional_voice TEXT NOT NULL,
+          voice_review_status TEXT NOT NULL,
+          voice_evidence TEXT NOT NULL,
           text TEXT NOT NULL,
           characters INTEGER NOT NULL,
           PRIMARY KEY (document_id, page_number)
@@ -290,7 +346,10 @@ def initialize(connection: sqlite3.Connection) -> None:
         );
         CREATE INDEX pages_document_id ON pages(document_id);
         CREATE INDEX pages_authorship ON pages(authorship);
+        CREATE INDEX pages_voice ON pages(institutional_voice);
         CREATE INDEX documents_authorship ON documents(authorship);
+        CREATE INDEX documents_voice ON documents(institutional_voice);
+        CREATE INDEX documents_voice_review ON documents(voice_review_status);
         CREATE INDEX documents_class ON documents(document_class);
         CREATE INDEX documents_engagement ON documents(engagement_id);
         CREATE INDEX documents_content_cluster ON documents(content_cluster_id);
@@ -364,6 +423,8 @@ def main() -> int:
     failures: list[dict] = []
     document_classes: dict[str, int] = {}
     authorship_counts: dict[str, int] = {}
+    voice_counts: dict[str, int] = {}
+    voice_review_counts: dict[str, int] = {}
     confidence_counts: dict[str, int] = {}
     try:
         for index, row in enumerate(manifest, 1):
@@ -377,14 +438,20 @@ def main() -> int:
                     raise ValueError(f"page marker mismatch: expected {expected_pages}, found {len(pages)}")
                 document_id = metadata["document_id"]
                 audit_row = audit.get(metadata["source_sha256"], {})
-                pdf_title = audit_row.get("title") or None
+                pdf_title = (audit_row.get("title") or "").strip() or None
                 heading_title = clean_title(body)
                 if heading_title and heading_title.casefold() in {"contents", "table of contents", "introduction"}:
                     heading_title = None
                 materialized = bool(metadata.get("materialized_from"))
-                title = (metadata.get("published_title") if materialized
+                published_title = (metadata.get("published_title") or "").strip() or None
+                title = (published_title if materialized
                          else pdf_title or heading_title or title_from_url(metadata["source_url"]))
-                source_urls = metadata.get("source_urls") or [metadata["source_url"]]
+                source_row = sources.get(metadata["source_sha256"], {})
+                source_urls = sorted(set(
+                    (metadata.get("source_urls") or [metadata["source_url"]])
+                    + source_row.get("urls", [])
+                ))
+                canonical_source_url = source_urls[0]
                 opening = "\n".join(text for _number, text in pages[:2])[:20000]
                 if materialized and metadata.get("published_authorship"):
                     provenance = Provenance(
@@ -394,6 +461,14 @@ def main() -> int:
                         engagement_id=metadata.get("published_engagement_id"),
                         basis=metadata["published_classification_basis"],
                         confidence=metadata["published_classification_confidence"],
+                        legacy_authorship=(metadata.get("published_legacy_authorship")
+                                           or metadata["published_authorship"]),
+                        host=metadata.get("published_host") or "centralbank.ie",
+                        author_org=metadata.get("published_author_org"),
+                        document_role=metadata.get("published_document_role"),
+                        institutional_voice=metadata.get("published_institutional_voice"),
+                        review_status=metadata.get("published_voice_review_status"),
+                        review_evidence=metadata.get("published_voice_evidence"),
                     )
                 else:
                     provenance = classify(metadata["source_url"], opening)
@@ -406,6 +481,16 @@ def main() -> int:
                             engagement_id=provenance.engagement_id,
                             basis="adjudicated:" + override["evidence_basis"],
                             confidence=override["classification_confidence"],
+                            legacy_authorship=provenance.legacy_authorship,
+                            host=urlparse(canonical_source_url).hostname or "centralbank.ie",
+                            author_org=override.get("author_org") or None,
+                            document_role=override.get("document_role") or None,
+                            institutional_voice=(override.get("institutional_voice")
+                                                 or voice_for_authorship(override["authorship"])),
+                            review_status=override.get("review_status") or "manual-reviewed",
+                            review_evidence=(override.get("review_evidence")
+                                             or override.get("review_notes")
+                                             or override["evidence_basis"]),
                         )
                 document_class = provenance.document_class
                 consultation_id = provenance.consultation_id
@@ -425,8 +510,8 @@ def main() -> int:
                     }
                 else:
                     date_fields = temporal_metadata(
-                        metadata["source_url"], audit_row.get("creation_date") or None,
-                        sources.get(metadata["source_sha256"], {}), args.snapshot_date)
+                        canonical_source_url, audit_row.get("creation_date") or None,
+                        source_row, args.snapshot_date)
                 connection.execute(
                     """
                     INSERT INTO documents (
@@ -436,7 +521,9 @@ def main() -> int:
                       pdf_creation_date, published_at, published_at_basis,
                       analysis_year, analysis_year_basis, retrieved_at,
                       source_page_url, source_last_modified_at,
-                      document_class, authorship,
+                      document_class, authorship, legacy_authorship, host,
+                      author_org, document_role, institutional_voice,
+                      voice_review_status, voice_evidence,
                       classification_basis, classification_confidence, page_basis,
                       source_format, consultation_id, engagement_id,
                       page_count, extraction_engine,
@@ -444,12 +531,12 @@ def main() -> int:
                       quality_empty_pages, extraction_selection_basis,
                       alternate_extraction_count, content_sha256,
                       content_cluster_id, content_cluster_size
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         document_id,
                         metadata["source_sha256"],
-                        metadata["source_url"],
+                        canonical_source_url,
                         json.dumps(source_urls, ensure_ascii=False),
                         len(source_urls),
                         metadata["source_file"],
@@ -470,6 +557,13 @@ def main() -> int:
                         date_fields["source_last_modified_at"],
                         document_class,
                         provenance.authorship,
+                        provenance.legacy_authorship,
+                        provenance.host,
+                        provenance.author_org,
+                        provenance.document_role,
+                        provenance.institutional_voice,
+                        provenance.review_status,
+                        provenance.review_evidence,
                         provenance.basis,
                         provenance.confidence,
                         metadata.get("page_basis") or "source-page",
@@ -493,12 +587,14 @@ def main() -> int:
                     ),
                 )
                 for page_number, text in pages:
-                    page_authorship, page_basis = page_provenance(
-                        metadata["source_sha256"], page_number, provenance.authorship,
-                        provenance.basis, page_overrides)
+                    (page_authorship, page_basis, page_voice,
+                     page_review_status, page_voice_evidence) = page_provenance(
+                        metadata["source_sha256"], page_number, provenance, page_overrides)
                     connection.execute(
-                        "INSERT INTO pages VALUES (?, ?, ?, ?, ?, ?)",
-                        (document_id, page_number, page_authorship, page_basis, text, len(text)),
+                        "INSERT INTO pages VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (document_id, page_number, page_authorship, page_basis,
+                         page_voice, page_review_status, page_voice_evidence,
+                         text, len(text)),
                     )
                     connection.execute(
                         "INSERT INTO pages_fts VALUES (?, ?, ?, ?)",
@@ -533,6 +629,20 @@ def main() -> int:
                 "SELECT authorship, COUNT(*) FROM documents GROUP BY authorship ORDER BY COUNT(*) DESC"
             ).fetchall()
         }
+        voice_counts = {
+            row[0]: row[1]
+            for row in connection.execute(
+                "SELECT institutional_voice, COUNT(*) FROM documents "
+                "GROUP BY institutional_voice ORDER BY COUNT(*) DESC"
+            ).fetchall()
+        }
+        voice_review_counts = {
+            row[0]: row[1]
+            for row in connection.execute(
+                "SELECT voice_review_status, COUNT(*) FROM documents "
+                "GROUP BY voice_review_status ORDER BY COUNT(*) DESC"
+            ).fetchall()
+        }
         confidence_counts = {
             row[0]: row[1]
             for row in connection.execute(
@@ -559,6 +669,8 @@ def main() -> int:
         "indexed_documents": indexed_documents,
         "indexed_pages": indexed_pages,
         "authorship": authorship_counts,
+        "institutional_voice": voice_counts,
+        "voice_review_status": voice_review_counts,
         "classification_confidence": confidence_counts,
         "document_classes": document_classes,
         "failures": len(failures),

@@ -5,11 +5,19 @@ Code running locally.
 
 > **Current-state addendum, 30 August 2026.** This is a dated research handover,
 > not the storage/runbook authority. Corpus v5.1 is now the local current index:
-> 3,844 Central Bank, 1,722 stakeholder, zero unresolved and two mixed documents;
+> 3,844 Central Bank, 1,722 stakeholder, zero unresolved and two mixed documents; <!-- historical -->
 > page-level voice, canonical engagement identifiers, final-text quality metrics,
 > a preferred DOCX extraction and a recovered CP76 submission. The public release is pinned by immutable Git
 > and Hugging Face revisions in `RELEASE.lock.json`. `AGENTS.md` and `STORAGE.md`
 > own the current operational facts.
+>
+> **Current-state addendum, 1 September 2026.** Corpus v5.2 is now the local
+> current index: 338 `cbi-institutional`, 1,739 `stakeholder`, 3,480 `unknown`,
+> three `external-authority`, and two each of `cbi-staff`,
+> `judicial-tribunal`, `third-party`, and `mixed`. It corrects 19 unsafe v5.1
+> speaker labels and two corrupt DOCX extractions. Use `institutional_voice` and
+> `voice_review_status`, not `authorship`, for analysis. The v5.2 public release
+> is not current until `RELEASE.lock.json` is updated with immutable revisions.
 
 `CLAUDE.md`, `STORAGE.md` and `PUBLISHING.md` describe the corpus and the
 infrastructure. **This document describes the research**: what has been found,
@@ -58,7 +66,8 @@ are gitignored but present on disk.
 | history.txt | 311 KB | no |
 | industry_voice.txt | 763 KB | partially, by grep |
 
-Every excerpt in every bundle carries an `authorship:` header. Respect it.
+Every excerpt in every rebuilt bundle carries `voice:` and `review:` headers,
+plus `legacy_authorship:` for migration. Respect the voice and review fields.
 
 ---
 
@@ -140,9 +149,9 @@ raise, across how many separate consultations, over how many years". Persistence
 across independent consultations is the signal, because it cannot be explained by
 one consultation's politics.
 
-Base: **1,724 documents containing stakeholder-authored pages** across **97
-distinct consultations**, roughly 2006 to 2026. The count is one above the
-1,722 stakeholder containers because both mixed compilations contribute
+Base: **1,741 documents containing stakeholder-voice pages** across **97
+distinct consultations**, roughly 2006 to 2026. The count is two above the
+1,739 stakeholder containers because both mixed compilations contribute
 stakeholder pages too.
 
 | What firms raise | Consultations of 97 |
@@ -152,7 +161,7 @@ stakeholder pages too.
 | Outsourcing and third-party oversight | 73% |
 | Compliance cost and disproportionality | 72% |
 | Duplicated effort and re-reporting | 55% |
-| Regulatory reporting mechanics | 49% |
+| Regulatory reporting mechanics | 48% |
 | Safeguarding client money | 34% |
 | **Fraud and scam handling** | **26%** |
 | Manual work and spreadsheets | 25% |
@@ -173,14 +182,15 @@ ones. If firms wanted relief from fraud-handling or complaints-handling
 obligations, advocacy incentives would push them to say so loudly. They largely
 do not. That gap is the kind bias would conceal, not manufacture.
 
-A useful cross-check from the published corpus: 236 Central Bank documents and
-188 stakeholder documents contain "disproportionate". As rates that is 6.1% of
-the regulator's page-voice corpus against 10.9% of the stakeholder corpus.
+A useful cross-check from the v5.2 corpus: 47 CBI-institutional-bearing documents
+and 160 stakeholder-bearing documents contain "disproportionate". As rates that
+is 13.8% of the 340 CBI-institutional-bearing documents against 9.2% of the 1,741
+stakeholder-bearing documents. Mixed containers can contribute to both bases.
 
 ### Current status of these numbers
 
-The scan has been rerun against v5.1 and is in
-`analysis-v5.1/industry-pain-scan.*`. It uses page-level voice and validated
+The scan has been rerun against v5.2 and is in
+`analysis-v5.2/industry-pain-scan.*`. It uses page-level voice and validated
 `analysis_year`, so the mixed container is handled correctly and malformed 2031
 PDF timestamps no longer create future observations. These remain discovery
 counts, not evidence of prevalence, causality or buyer demand.
@@ -289,24 +299,24 @@ Treat neither as authoritative. Verify.
 ```python
 import duckdb
 con = duckdb.connect(); con.execute("INSTALL httpfs; LOAD httpfs;")
-BASE = "https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/f9a60f39c666b9aac4a68951a685bed1a46cea33/data"
-con.execute(f"SELECT authorship, count(*) FROM read_parquet('{BASE}/documents.parquet') GROUP BY 1").fetchall()
+BASE = "https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/<v5.2-revision>/data"
+con.execute(f"SELECT institutional_voice, voice_review_status, count(*) FROM read_parquet('{BASE}/documents.parquet') GROUP BY 1,2").fetchall()
 ```
 
 **Or use the local index**, which is faster for heavy work:
 
 ```bash
-make index    # rebuilds cbi-corpus-v5.1-5568docs.sqlite in under a minute
+make index    # rebuilds cbi-corpus-v5.2-5568docs.sqlite in under a minute
               # from a fresh clone, run make materialize first
 python outputs/cbi-research/scripts/search_corpus.py '"operational resilience"' \
-  --database outputs/cbi-research/index/cbi-corpus-v5.1-5568docs.sqlite --limit 10
+  --database outputs/cbi-research/index/cbi-corpus-v5.2-5568docs.sqlite --limit 10
 ```
 
 **Rebuild the reading bundles** after any classifier change:
 
 ```bash
 python outputs/cbi-research/scripts/build_learning_bundles.py \
-  --database outputs/cbi-research/index/cbi-corpus-v5.1-5568docs.sqlite \
+  --database outputs/cbi-research/index/cbi-corpus-v5.2-5568docs.sqlite \
   --output work/learning-bundles
 ```
 

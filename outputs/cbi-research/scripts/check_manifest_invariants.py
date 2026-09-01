@@ -4,7 +4,7 @@ r"""Check tracked data, explicitly marked facts, and known documentation regress
     python outputs\cbi-research\scripts\check_manifest_invariants.py
 
 Runs in CI on every push. Its CI checks need no network or built index. When the
-untracked Markdown corpus and v5.1 index are present locally, it also verifies the
+untracked Markdown corpus and v5.2 index are present locally, it also verifies the
 hash chain from each Markdown file through its manifest to the index.
 
 Two earlier versions of this script were not worth their name
@@ -30,7 +30,7 @@ deliberate history must carry `<!-- historical -->` on the same line.
 """
 from __future__ import annotations
 
-import csv, hashlib, importlib.util, json, re, sqlite3, statistics, subprocess, sys
+import argparse, csv, hashlib, importlib.util, json, re, sqlite3, statistics, subprocess, sys
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -47,6 +47,7 @@ EXEMPT_DIRECTORIES = ("/outputs/cbi-research/pilot/",)
 # If git is unavailable, rglob also sees the untracked 202 MB working corpus.
 FALLBACK_EXEMPT_DIRECTORIES = EXEMPT_DIRECTORIES + ("/outputs/cbi-research/corpus/",)
 HISTORICAL = "<!-- historical -->"
+NOT_A_POPULATION_COUNT = "<!-- not-a-population-count -->"
 
 # Exact facts use an explicit span so the checker validates the displayed value,
 # not merely the presence of the right number somewhere nearby.
@@ -72,16 +73,16 @@ REQUIRED_FACT_COUNTS = {
     ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "quality.grade.empty"): 1,
     ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "quality.median_nonspace_per_page"): 1,
     ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "quality.empty_page_share_percent"): 1,
-    ("STORAGE.md", "authorship.central-bank"): 1,
-    ("STORAGE.md", "authorship.stakeholder"): 1,
-    ("STORAGE.md", "authorship.unresolved"): 1,
-    ("STORAGE.md", "authorship.mixed"): 1,
+    ("STORAGE.md", "voice.cbi-institutional"): 1,
+    ("STORAGE.md", "voice.stakeholder"): 1,
+    ("STORAGE.md", "voice.unknown"): 1,
+    ("STORAGE.md", "voice.mixed"): 1,
     ("STORAGE.md", "classifier.assertions"): 1,
     ("STORAGE.md", "audit.documents"): 1,
-    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "authorship.central-bank"): 1,
-    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "authorship.stakeholder"): 1,
-    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "authorship.unresolved"): 1,
-    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "authorship.mixed"): 1,
+    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "voice.cbi-institutional"): 1,
+    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "voice.stakeholder"): 1,
+    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "voice.unknown"): 1,
+    ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "voice.mixed"): 1,
     ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "classifier.assertions"): 1,
     ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "audit.documents"): 1,
     ("outputs/CBI-ARCHIVE-ANALYSIS-METHOD.md", "audit.correct"): 1,
@@ -164,7 +165,7 @@ def classifier_assertion_count() -> int:
         sys.path.insert(0, scripts)
     spec.loader.exec_module(module)
     return (len(module.CASES) + len(module.CONTENT_CASES) + len(module.CLASS_CASES)
-            + len(module.ID_CASES) * 2)
+            + len(module.ID_CASES) * 2 + len(module.VOICE_CASES) * 3)
 
 
 def decimal_value(text: str) -> Decimal:
@@ -195,6 +196,12 @@ def number_near(text: str, value: int, keywords: list[str]) -> list[int]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--allow-release-drift", action="store_true",
+        help="pre-publication mode: report but do not fail on RELEASE.lock.json drift",
+    )
+    args = parser.parse_args()
     problems: list[str] = []
 
     def check(label: str, got, want) -> None:
@@ -203,6 +210,13 @@ def main() -> int:
             problems.append(f"{label}: got {got}, want {want}")
         print(f"  {label:48} {str(got):>14}  {'ok' if ok else 'FAIL'}")
 
+    def release_check(label: str, got, want) -> None:
+        if args.allow_release_drift:
+            state = "matches" if got == want else "expected pre-publication drift"
+            print(f"  {label:48} {str(got):>14}  {state}")
+            return
+        check(label, got, want)
+
     pdf = read_csv(RESEARCH / "corpus" / "conversion-manifest.csv")
     office = read_csv(RESEARCH / "corpus" / "office" / "conversion-manifest.csv")
     quality = read_csv(RESEARCH / "qa" / "extraction-quality.csv")
@@ -210,6 +224,8 @@ def main() -> int:
     catalog = read_csv(ROOT / "publish" / "blob-catalog.csv")
     blob_summary = json.loads(
         (ROOT / "publish" / "blob-summary.json").read_text(encoding="utf-8"))
+    raw_validation = json.loads(
+        (RESEARCH / "qa" / "raw-archive-validation.json").read_text(encoding="utf-8"))
     quality_summary = json.loads(
         (RESEARCH / "qa" / "extraction-quality-summary.json").read_text(encoding="utf-8"))
     corpus_validation = json.loads(
@@ -224,6 +240,9 @@ def main() -> int:
     engagement_coverage = read_csv(RESEARCH / "qa" / "engagement-coverage.csv")
     engagement_summary = json.loads(
         (RESEARCH / "qa" / "engagement-coverage-summary.json").read_text(encoding="utf-8"))
+    voice_scope = read_csv(RESEARCH / "qa" / "voice-review-scope.csv")
+    voice_scope_summary = json.loads(
+        (RESEARCH / "qa" / "voice-review-scope-summary.json").read_text(encoding="utf-8"))
     individual_review = read_csv(RESEARCH / "qa" / "individual-submission-review.csv")
     extraction_preferences = read_csv(RESEARCH / "qa" / "extraction-preferences.csv")
     file_manifest = read_csv(ROOT / "outputs" / "cbi-archive" / "cbi-data" /
@@ -252,6 +271,11 @@ def main() -> int:
     check("unique documents across both manifests",
           len({r["source_sha256"] for r in pdf} | {r["source_sha256"] for r in office}), 5568)
     check("catalogue matches its summary", blob_summary["files_laid_out"], len(catalog))
+    check("full raw validation passed", raw_validation.get("passed"), True)
+    check("full raw validation unique objects",
+          raw_validation.get("unique_downloaded_files"), len(catalog))
+    check("full raw validation bytes",
+          raw_validation.get("bytes_hashed"), blob_summary.get("total_bytes"))
     check("catalogue keys carrying a blobs/ prefix",
           sum(1 for r in catalog if r["key"].startswith("blobs/")), 0)
     check("summary layout string", blob_summary["layout"], "<sha[0:2]>/<sha[2:4]>/<sha256><ext>")
@@ -266,14 +290,14 @@ def main() -> int:
           sum(1 for row in page_manifest if row.get("htmlSha256") and
               row.get("archiveKey") !=
               f"page-context/{row['htmlSha256'][:2]}/{row['htmlSha256']}.html"), 0)
-    check("release-lock schema version", release.get("schema_version"), 1)
-    check("release-lock corpus revision is immutable",
+    release_check("release-lock schema version", release.get("schema_version"), 2)
+    release_check("release-lock corpus revision is immutable",
           bool(re.fullmatch(r"[0-9a-f]{40}",
                             release.get("hugging_face", {}).get("corpus_revision", ""))), True)
-    check("release-lock raw revision is immutable",
+    release_check("release-lock raw revision is immutable",
           bool(re.fullmatch(r"[0-9a-f]{40}",
                             release.get("hugging_face", {}).get("raw_revision", ""))), True)
-    check("release-lock artifact hashes are SHA-256",
+    release_check("release-lock artifact hashes are SHA-256",
           all(re.fullmatch(r"[0-9a-f]{64}", value or "")
               for value in release.get("artifacts", {}).values()), True)
     for name, wanted in release.get("artifacts", {}).items():
@@ -282,8 +306,9 @@ def main() -> int:
                 "data/documents.parquet", "data/pages.parquet"}:
             print(f"  release-lock bytes {name:29} {'not in git':>14}  skipped")
             continue
-        check(f"release-lock bytes {name}", sha256_file(path) if path.is_file() else None, wanted)
-    check("release-lock expected document count",
+        release_check(f"release-lock bytes {name}",
+                      sha256_file(path) if path.is_file() else None, wanted)
+    release_check("release-lock expected document count",
           release.get("expected", {}).get("documents"), 5568)
     overlap = {row["source_sha256"] for row in pdf} & {
         row["source_sha256"] for row in office}
@@ -291,7 +316,7 @@ def main() -> int:
           {row["source_sha256"] for row in extraction_preferences}, overlap)
     check("mixed documents with page-authorship overrides",
           len({row["source_sha256"] for row in page_overrides}), 2)
-    check("authorship adjudication rows", len(authorship_overrides), 89)
+    check("authorship adjudication rows", len(authorship_overrides), 114)
     check("authorship adjudication hashes unique",
           len({row["source_sha256"] for row in authorship_overrides}), len(authorship_overrides))
     check("conversion exclusion rows", len(conversion_exclusions), 1)
@@ -310,6 +335,10 @@ def main() -> int:
     check("engagement coverage complete loops",
           sum((row.get("complete_argumentative_loop") or "").lower() == "true"
               for row in engagement_coverage), engagement_summary["complete_argumentative_loops"])
+    check("voice review scope rows", len(voice_scope),
+          voice_scope_summary["documents_in_scope"])
+    check("voice review scope hashes unique",
+          len({row["source_sha256"] for row in voice_scope}), len(voice_scope))
     check("authorship audit covers every gold row",
           authorship_evaluation.get("documents"), len(authorship_gold))
     check("authorship audit has no detected errors",
@@ -319,6 +348,10 @@ def main() -> int:
     for row in provenance:
         key = row.get("authorship") or row.get("new_authorship") or ""
         authorship[key] = authorship.get(key, 0) + 1
+    institutional_voice: dict[str, int] = {}
+    for row in provenance:
+        key = row.get("institutional_voice") or ""
+        institutional_voice[key] = institutional_voice.get(key, 0) + 1
     confidence: dict[str, int] = {}
     for row in provenance:
         key = row.get("classification_confidence") or ""
@@ -327,9 +360,11 @@ def main() -> int:
                    if row.get("classification_basis", "").startswith("adjudicated:")}
     check("adjudication hashes carried into provenance",
           adjudicated == {row["source_sha256"] for row in authorship_overrides}, True)
-    check("current unresolved document count", authorship.get("unresolved", 0), 0)
-    check("release-lock expected authorship split",
+    check("current unresolved document count", authorship.get("unresolved", 0), 3480)
+    release_check("release-lock expected authorship split",
           release.get("expected", {}).get("authorship"), authorship)
+    release_check("release-lock expected institutional-voice split",
+          release.get("expected", {}).get("institutional_voice"), institutional_voice)
     current_by_sha = {row["source_sha256"]: row["authorship"] for row in provenance}
     check("rights-review candidates with stale authorship",
           sum(current_by_sha.get(row["source_sha256"]) != row.get("authorship")
@@ -344,6 +379,7 @@ def main() -> int:
         RESEARCH / "qa" / "page-authorship-overrides.csv",
         RESEARCH / "qa" / "conversion-exclusions.csv",
         RESEARCH / "qa" / "engagement-coverage.csv",
+        RESEARCH / "qa" / "voice-review-scope.csv",
         RESEARCH / "qa" / "individual-submission-review.csv",
         RESEARCH / "qa" / "corpus-validation-failures.csv",
         RESEARCH / "qa" / "corpus-validation-warnings.csv",
@@ -374,6 +410,8 @@ def main() -> int:
     print("\nderived from the tracked data")
     for label, value in sorted(authorship.items()):
         print(f"  authorship {label:36} {value:>14,}")
+    for label, value in sorted(institutional_voice.items()):
+        print(f"  institutional voice {label:27} {value:>14,}")
     print(f"  {'documents graded ok / below ok':48} {clean:>8,} / {flagged:,}")
     print(f"  {'Python scripts':48} {len(scripts):>14,}")
     print(f"  {'classifier assertions':48} {assertions:>14,}")
@@ -397,8 +435,8 @@ def main() -> int:
 
     expected_facts: dict[str, int | float | Decimal] = {
         **{f"quality.grade.{grade}": count for grade, count in grades.items()},
-        **{f"authorship.{label}": authorship.get(label, 0)
-           for label in ("central-bank", "stakeholder", "mixed", "unresolved")},
+        **{f"voice.{label}": institutional_voice.get(label, 0)
+           for label in ("cbi-institutional", "stakeholder", "unknown", "mixed")},
         "classifier.assertions": assertions,
         "audit.documents": len(authorship_gold),
         "audit.correct": authorship_evaluation.get("correct", 0),
@@ -433,6 +471,8 @@ def main() -> int:
         (102, ["assertion", "regression test", "classifier", "test_classify"],
          assertions, "assertion count"),
         (104, ["assertion", "regression test", "classifier", "test_classify"],
+         assertions, "assertion count"),
+        (123, ["assertion", "regression test", "classifier", "test_classify"],
          assertions, "assertion count"),
         (30, ["audit sample", "human-reviewed sample", "human-labelled audit", "30/30"],
          len(authorship_gold), "human-audit sample size"),
@@ -494,11 +534,13 @@ def main() -> int:
                 continue
             for offset in number_near(text, stale, keywords):
                 line_number = text.count("\n", 0, offset)
-                if HISTORICAL in lines[line_number]:
+                if (HISTORICAL in lines[line_number]
+                        or NOT_A_POPULATION_COUNT in lines[line_number]):
                     continue
                 problems.append(
                     f"{relative}:{line_number + 1} stale {why}: {stale:,} where the data says "
-                    f"{current:,}. Add {HISTORICAL} to that line if it is deliberate history.")
+                                 f"{current:,}. Add {HISTORICAL} for deliberate history or "
+                                 f"{NOT_A_POPULATION_COUNT} for an unrelated measure.")
                 hits += 1
         # Strings that are simply wrong wherever they appear.
         for pattern, why in ((r"/resolve/main/blobs/", "blobs/ URL that 404s"),
@@ -570,7 +612,7 @@ def main() -> int:
         check("Markdown files whose hash differs from the manifest", stale_manifest, 0)
         check("manifest rows with no Markdown file on disk", missing, 0)
 
-    index = RESEARCH / "index" / "cbi-corpus-v5.1-5568docs.sqlite"
+    index = RESEARCH / "index" / "cbi-corpus-v5.2-5568docs.sqlite"
     if not index.is_file() or not file_hash:
         print("  index not present, skipped (this is normal in CI)")
     else:
@@ -609,10 +651,19 @@ def main() -> int:
                   "SELECT COUNT(*) FROM documents WHERE authorship = 'mixed'").fetchone()[0], 2)
         check("index unresolved-document count",
               connection.execute(
-                  "SELECT COUNT(*) FROM documents WHERE authorship = 'unresolved'").fetchone()[0], 0)
+                  "SELECT COUNT(*) FROM documents WHERE authorship = 'unresolved'").fetchone()[0],
+              authorship.get("unresolved", 0))
         check("index pages without page-level authorship",
               connection.execute(
                   "SELECT COUNT(*) FROM pages WHERE authorship IS NULL OR authorship = ''").fetchone()[0], 0)
+        check("index pages without institutional voice",
+              connection.execute(
+                  "SELECT COUNT(*) FROM pages WHERE institutional_voice IS NULL "
+                  "OR institutional_voice = ''").fetchone()[0], 0)
+        check("index pages without voice review status",
+              connection.execute(
+                  "SELECT COUNT(*) FROM pages WHERE voice_review_status IS NULL "
+                  "OR voice_review_status = ''").fetchone()[0], 0)
         check("index quality empty-page total",
               connection.execute("SELECT SUM(quality_empty_pages) FROM documents").fetchone()[0],
               total_empty_pages)

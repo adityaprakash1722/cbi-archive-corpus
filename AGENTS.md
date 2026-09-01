@@ -5,23 +5,35 @@ the analysis built on top of it. Read this before touching anything.
 
 ## The one rule that matters
 
-**Check `authorship` before you quote anything.**
+**Check `institutional_voice` and `voice_review_status` before you quote anything.**
 
 This archive contains two kinds of document that read alike and mean the
 opposite:
 
-- `authorship = 'central-bank'` (3,844 docs) is the regulator speaking. A
-  finding, a rule, a supervisory expectation.
-- `authorship = 'stakeholder'` (1,722 docs) is a bank, insurer or trade body
+- `institutional_voice = 'cbi-institutional'` (338 docs) is evidence-supported
+  institutional Central Bank material.
+- `institutional_voice = 'stakeholder'` (1,739 docs) is a bank, insurer or trade body
   writing **to** the regulator during a consultation. This is advocacy. These
   firms have a standing incentive to claim that requirements are burdensome and
   disproportionate.
-- `authorship = 'mixed'` (2 documents) is a composite whose pages have different
+- `institutional_voice = 'external-authority'` (3 documents) is an IMF-authored
+  assessment hosted by the Central Bank.
+- `institutional_voice = 'cbi-staff'` (2 documents) is attributable to a named
+  Central Bank staff member, not automatically the institution.
+- `institutional_voice = 'judicial-tribunal'` (2 documents) and
+  `institutional_voice = 'third-party'` (2 documents) are public-role material
+  hosted by the Bank and must be attributed to their actual speakers.
+- `institutional_voice = 'mixed'` (2 documents) is a composite whose pages have different
   authors. Filter the page rows, not the container label.
-- `authorship = 'unresolved'` (0 docs in v5.1) remains a valid answer for future
-  ambiguity. **Never fold it into `central-bank`** — defaulting ambiguity to the
-  regulator is the exact bug that put AIB's and Bank of Ireland's lobbying
+- `institutional_voice = 'unknown'` (3,480 docs) means the site hosts the file
+  but the issuer/voice is not evidenced. **Never fold it into the regulator**.
+  Defaulting host-path ambiguity to the regulator is the exact bug that put
+  AIB's and Bank of Ireland's lobbying
   positions into the Central Bank pile in an earlier version.
+
+`authorship` and `legacy_authorship` remain for migration and must not be used as
+v5.2 regulator-only filters. v5.1 called 19 stakeholder or IMF documents
+`central-bank`; see `ERRATA-V5.1.md`.
 
 Reporting a stakeholder claim as a regulatory finding is the single easiest way
 to produce confidently wrong analysis from this data. If you cite a stakeholder
@@ -29,12 +41,13 @@ document, say so in the sentence.
 
 ## Which index to use
 
-There are six SQLite files in `index/`, plus a partial one under `work/`.
+There are seven SQLite files in `index/`, plus a partial one under `work/`.
 Only one is current.
 
 | File | Documents | Use |
 |---|---:|---|
-| `outputs/cbi-research/index/cbi-corpus-v5.1-5568docs.sqlite` | 5,568 | **Yes. This one.** |
+| `outputs/cbi-research/index/cbi-corpus-v5.2-5568docs.sqlite` | 5,568 | **Yes. This one.** |
+| `cbi-corpus-v5.1-5568docs.sqlite` | 5,568 | Superseded. Unsafe host-path authorship and two corrupt DOCX extractions. |
 | `cbi-corpus-v5-5568docs.sqlite` | 5,568 | Superseded. 89 documents still unresolved; unnormalised CP/DP identifiers and stale quality metrics. | <!-- historical -->
 | `cbi-corpus-v4-5568docs.sqlite` | 5,568 | Superseded. Document-level authorship only; one inferior duplicate extraction. |
 | `cbi-corpus-v3-5568docs.sqlite` | 5,568 | Superseded. 441,610 characters of page text missing. |
@@ -42,9 +55,9 @@ Only one is current.
 | `cbi-corpus.sqlite` | 5,246 | Superseded. Wrong provenance, missing the office corpus. |
 | `work/live-index/cbi-corpus.sqlite` | 3,259 | Never. Partial build from an interrupted run. |
 
-v5.1 SHA-256: `aa779f4bba4ec5b783d3cedeebaa20fbba638bc5e6fcb4f716872affb086fed8`
-
-None of these are in git. Run `make index` to build v5 locally, or `make fetch`
+v5.2 index SHA-256: `0870a95847400e3419cded329ef0d7cba13403ba1ce186a303343c53d3225eb0`.
+It is also recorded in `outputs/cbi-research/index/README.md`
+and the release lock. None of these indexes are in git. Run `make index` to build v5.2 locally, or `make fetch`
 to pull the Parquet corpus, which is usually what you actually want.
 
 ## Layout
@@ -59,13 +72,13 @@ outputs/
     cbi-data/manifests/files.csv       every URL, SHA-256, bytes, referrers  [tracked]
     cbi-data/files/                    6.56 GB of raw source              [not tracked]
   cbi-research/
-    scripts/                           the whole pipeline, 29 Python files
+    scripts/                           the whole pipeline, 33 Python files
     corpus/conversion-manifest.csv     per-document conversion record     [tracked]
     corpus/markdown/                   202 MB of page-anchored Markdown   [not tracked]
     index/                             SQLite build artifacts             [not tracked]
     qa/                                validation, provenance and extraction grades
     structured/                        CSV, workbook and XML profiling
-    analysis-v5.1/                     current topic scan and evidence candidates
+    analysis-v5.2/                     current topic scan and evidence candidates
 publish/hf/                            the public dataset, ready to upload
 ```
 
@@ -105,7 +118,7 @@ Nothing here is a monolith. The project lives in three places, joined by one key
 
 - `files.csv` in this repo maps every source URL to its hash
 - `documents.parquet` carries `source_sha256` on every document
-- the raw repo stores each file at `<ab>/<cd>/<sha256>.pdf`
+- the raw repo stores each file at `<ab>/<cd>/<sha256><ext>`
 
 Because the files are content-addressed, the identifier and the location are the
 same string. No lookup service is needed to get from a search result to the
@@ -129,10 +142,11 @@ and fetches only those.
    portable, but historical `conversion-manifest.csv` rows can contain
    backslashes. Any script joining those paths to a root must normalise with
    `.replace("\\", "/")`.
-2. **`page_basis` is not always a page.** PDFs have true page anchors. Office
-   documents mostly do not: 179 of 323 are `single-pseudo-page`, meaning the
-   anchor identifies the document, not a position in it. Only `source-page` and
-   `slide` are citable as locations.
+2. **`page_basis` is not always a source page.** PDFs have true page anchors.
+   Among 323 Office/archive records, 137 use `single-pseudo-page`, 133 use
+   explicit OOXML page breaks, 49 use archive members, two use slides, and only
+   two have source pages. Only `source-page` and `slide` are citable locations;
+   an explicit page break is a converter boundary, not a source-page number.
 3. **87 documents extract below `ok`.** Graded `gappy`, `garbled`, `thin` or `empty`
    in `qa/extraction-quality.csv`. Chart-heavy statistical releases are the worst
    offenders and can render "March" as "~~M~~ arch" while their numbers survive
@@ -149,8 +163,8 @@ and fetches only those.
 ```bash
 make fetch      # pull the published corpus (about 51 MB), no build needed
 make materialize # regenerate the Markdown corpus from the Parquet, for a fresh clone
-make index      # rebuild the v5 SQLite from the Markdown corpus (~15s)
-make test       # classifier regression suite, 116 assertions
+make index      # rebuild the v5.2 SQLite from the Markdown corpus
+make test       # classifier and Office extraction regression suites
 make test-fresh-rebuild   # prove a clone can rebuild the index from published data
 make verify     # re-hash every source and output, check page markers
 ```

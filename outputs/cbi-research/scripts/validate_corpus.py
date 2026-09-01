@@ -106,7 +106,7 @@ def main() -> int:
         if row["status"] not in {"success", "low_text"}:
             failures.append({"source_sha256": sha, "check": "conversion-status", "detail": row["status"] + ": " + (row.get("error") or "")})
             continue
-        markdown_path = (corpus / row["markdown_file"]).resolve()
+        markdown_path = (corpus / row["markdown_file"].replace("\\", "/")).resolve()
         valid_markdown_paths.add(markdown_path)
         if not markdown_path.is_file():
             failures.append({"source_sha256": sha, "check": "markdown-file", "detail": f"missing: {markdown_path}"})

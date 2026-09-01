@@ -1,17 +1,48 @@
 # Which index file to use
 
-Six SQLite databases sit in this directory, and a seventh, stale one exists under
+Seven versioned or legacy SQLite databases sit in this directory. A local v5.2
+smoke-test build may also be present, and a stale partial build exists under
 `work/live-index/`. They are not interchangeable.
 
 | File | Documents | Pages | Use it? |
 |---|---:|---:|---|
-| `cbi-corpus-v5.1-5568docs.sqlite` | 5,568 | 88,783 | **Yes.** Current. Adjudicated authorship, canonical CP/DP keys, final-text quality metrics and exact-text clusters. |
+| `cbi-corpus-v5.2-5568docs.sqlite` | 5,568 | 89,242 | **Yes.** Current. Institutional-voice ontology, repaired DOCX extraction, canonical CP/DP keys, final-text quality metrics and exact-text clusters. |
+| `cbi-corpus-v5.1-5568docs.sqlite` | 5,568 | 88,783 | Superseded. Unsafe host-path authorship and two corrupt DOCX extractions. |
 | `cbi-corpus-v5-5568docs.sqlite` | 5,568 | 88,783 | Superseded. 89 unresolved documents, unnormalised identifiers and quality counts that did not describe the final page text. | <!-- historical -->
 | `cbi-corpus-v4-5568docs.sqlite` | 5,568 | 88,782 | Superseded. Adds 441,610 characters of page text the converter had dropped. |
 | `cbi-corpus-v3-5568docs.sqlite` | 5,568 | 88,782 | Superseded. Correct provenance, but 1,425 pages are blank that should not be. |
 | `cbi-corpus-v2-5568docs.sqlite` | 5,568 | 88,782 | Superseded. Includes office files, but 55 stakeholder documents are misattributed. |
 | `cbi-corpus.sqlite` | 5,246 | 88,106 | Superseded. PDF only, and its provenance classes are wrong (see below). |
 | `../../../work/live-index/cbi-corpus.sqlite` | 3,259 | 57,368 | **No.** Partial build from a run that was still converting. |
+
+## What changed in v5.2
+
+1. **Speaker identity is separated from hosting.** The new `host`, `author_org`,
+   `document_role`, `institutional_voice`, `voice_review_status`, and
+   `voice_evidence` columns replace unsafe regulator-only filtering on the
+   legacy `authorship` field. The current document split is 338
+   `cbi-institutional`, 1,739 `stakeholder`, 3,480 `unknown`, three
+   `external-authority`, and two each of `cbi-staff`, `judicial-tribunal`,
+   `third-party`, and `mixed`.
+2. **Known v5.1 speaker errors are corrected.** Nineteen stakeholder or IMF
+   documents, totalling 372 pages, are no longer represented as Central Bank
+   institutional voice. Six public-role documents were also adjudicated. See
+   `../../../ERRATA-V5.1.md` and `../qa/authorship-overrides.csv`.
+3. **DOCX is extracted in OOXML body order.** Tables stay where they occur,
+   merged cells are deduplicated, explicit page breaks are retained, and
+   headers, footers, notes and comments are handled separately. The two
+   multi-million-character repeated-table corruptions in v5.1 are repaired.
+4. **Semantic extraction gates are enforced.** The quality pass rejects extreme
+   expansion, repeated prose and oversized pages, and caps exact duplicate-page
+   characters after exact-document deduplication at 4 percent. The current
+   corpus passes at 3.19 percent.
+5. **Every published page column is covered by the fresh-rebuild comparison.**
+   Synthetic Office tests run on every push; pinned raw-source Office fixtures
+   run in CI; complete raw-object verification is available locally and in the
+   post-publication release verifier.
+
+v5.2 SHA-256:
+`0870a95847400e3419cded329ef0d7cba13403ba1ce186a303343c53d3225eb0`.
 
 ## What changed in v5.1
 
@@ -33,7 +64,7 @@ Six SQLite databases sit in this directory, and a seventh, stale one exists unde
    LF endings; release-lock checks hash the actual artifacts rather than only
    validating the shape of the hash strings.
 
-v5.1 SHA-256:
+v5.1 SHA-256 (superseded):
 `aa779f4bba4ec5b783d3cedeebaa20fbba638bc5e6fcb4f716872affb086fed8`.
 
 ## What changed in v5
@@ -106,16 +137,17 @@ v5 SHA-256 (superseded):
    so the named `.sqlite` file is self-contained. The unversioned legacy database
    still has sidecars and should not be copied or queried as the current index.
 
-## Querying by authorship
+## Querying by institutional voice
 
 ```sql
-SELECT COUNT(*) FROM documents WHERE authorship = 'stakeholder';
+SELECT COUNT(*) FROM documents WHERE institutional_voice = 'stakeholder';
 SELECT document_class, COUNT(*) FROM documents
- WHERE authorship = 'central-bank' GROUP BY document_class;
+ WHERE institutional_voice = 'cbi-institutional' GROUP BY document_class;
 ```
 
-Never treat `authorship = 'unresolved'` as Central Bank material. That default is
-exactly what produced the v1 error.
+Do not use `authorship` or `legacy_authorship` as v5.2 regulator-only filters.
+Never fold `institutional_voice = 'unknown'` into `cbi-institutional`. That
+default is exactly what produced the v1 and v5.1 errors.
 
 ## A caution about page anchors
 

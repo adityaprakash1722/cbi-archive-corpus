@@ -41,23 +41,25 @@ the whole reason this review exists.
 
 ## 3. What the screen found
 
-`scripts/scan_personal_data.py` pattern-screened all 88,783 v5 pages. It stores
+`scripts/scan_personal_data.py` pattern-screened all 89,242 v5.2 page or
+pseudo-page rows. It stores
 counts and truncated hashes, never values.
 
-| Signal | Documents | Stakeholder | Central Bank |
-|---|---:|---:|---:|
-| Irish PPS number shape | 17 | 13 | 4 |
-| IBAN shape | 4 | 0 | 4 |
-| Email, personal-looking local part | 509 | 152 | 348 |
-| Email, any | 2,406 | 618 | 1,758 |
-| Irish phone number shape | 226 | 124 | 97 |
-| Date of birth label | 2 | 0 | 2 |
-| Signature block | 1,827 | 731 | 1,065 |
-| Home address label | 14 | 3 | 11 |
-| Written as a private individual | 39 | 20 | 19 |
+| Signal | Documents | Stakeholder | CBI institutional | Unknown | Other voice |
+|---|---:|---:|---:|---:|---:|
+| Irish PPS number shape | 17 | 13 | 0 | 4 | 0 |
+| IBAN shape | 4 | 0 | 0 | 4 | 0 |
+| Email, personal-looking local part | 509 | 160 | 12 | 337 | 0 |
+| Email, any | 2,415 | 639 | 228 | 1,544 | 4 |
+| Irish phone number shape | 227 | 130 | 10 | 86 | 1 |
+| Date of birth label | 2 | 0 | 0 | 2 | 0 |
+| Signature block | 1,828 | 749 | 98 | 978 | 3 |
+| Home address label | 14 | 3 | 2 | 9 | 0 |
+| Written as a private individual | 39 | 20 | 1 | 17 | 1 |
 
-3,196 of 5,568 documents carry at least one signal. The remaining signal rows
-are 29 unresolved documents and one mixed composite; column totals can overlap.
+3,200 of 5,568 documents carry at least one signal. `Other voice` combines
+mixed and external-authority records; column totals are document-level and can
+overlap across signal rows.
 That number is alarming and
 almost entirely meaningless on its own, which is why every high-severity
 category was then read individually.
@@ -90,9 +92,10 @@ Submissions written by private individuals rather than firms. These are the
 documents where a name, an occupation, a personal circumstance and an opinion
 appear together, which is what makes them sensitive in aggregate.
 
-`qa/individual-submission-review.csv` lists **18 candidates**: 12 stakeholder
-and 6 central-bank. That is **0.70% of the 1,722 stakeholder
-documents**.
+`qa/individual-submission-review.csv` lists **18 candidates**: 12 stakeholder,
+two Central Bank staff profiles, two third-party records and two
+judicial/tribunal records. The 12 stakeholder candidates are **0.69% of the
+1,739 stakeholder documents**.
 
 They were found three ways: a title styled as a personal name, a URL styled the
 same way, or first-person self-description in the text ("I write to you as an
@@ -180,7 +183,7 @@ position.
 
 ```bash
 python outputs/cbi-research/scripts/scan_personal_data.py \
-  --database outputs/cbi-research/index/cbi-corpus-v5-5568docs.sqlite \
+  --database outputs/cbi-research/index/cbi-corpus-v5.2-5568docs.sqlite \
   --output outputs/cbi-research/qa
 ```
 
@@ -228,7 +231,7 @@ The reasoning:
    request can be granted at any time. A document deleted from an archive is
    gone, and this crawl is not trivially repeatable: source URLs rot, and the
    Bank reorganises its site.
-2. **The nine private submissions are 0.54% of the stakeholder pile.** Removing
+2. **The nine private submissions are 0.52% of the stakeholder pile.** Removing
    them would put a silent, undocumented hole in a corpus whose entire value is
    that it is a complete and checkable record. A researcher who later found the
    gap could not tell whether it was censorship, crawler failure, or the Bank

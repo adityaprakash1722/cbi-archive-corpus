@@ -8,6 +8,13 @@
 > survives: it rests on named, dated Central Bank documents, every figure in
 > which was re-verified against its source page. See
 > `REMEDIATION-2026-08-26.md`.
+>
+> **v5.2 compatibility note, 1 September 2026.** The corpus now treats hosting,
+> issuer, document role and institutional voice as separate facts. This thesis
+> predates that ontology. Its named, page-checked sources remain usable, but any
+> corpus-wide regulator/stakeholder comparison must be rerun with
+> `institutional_voice` and `voice_review_status`. The thesis is not a held-out
+> validation of the v5.2 labels and remains a research draft.
 
 **Archive snapshot:** 25 August 2026  
 **Analysis completed:** 26 August 2026  
@@ -67,14 +74,14 @@ summarise with an LLM.
 The final four rows are the correction. Those 323 documents, 387 MB, were
 downloaded in the crawl but excluded from the first analysis because the
 conversion pipeline filtered on `format == "PDF"`. The corpus now holds 5,568
-documents and 88,783 pages.
+documents and 89,242 page or pseudo-page rows.
 
 The PDF corpus contains **88,106 source pages or recovered pseudo-pages**. Of 5,246
-documents, 5,237 raised no conversion error. A separate extraction-fidelity pass,
+documents, 5,239 are normal successes and seven are explainable low-text
+results. A separate extraction-fidelity pass,
 which structural validation cannot perform, grades 5,481 of 5,568 unique converted
 documents as clean and flags 87: 36 with substantially blank pages, 25 garbled by
-encoding damage, 19 thin and seven empty. Nine low-text results are explainable:
-two heavily redacted notices and seven one-page video placeholders. Four Office files
+encoding damage, 19 thin and seven empty. Four Office files
 served with a `.pdf` suffix were recovered. All source and Markdown hashes, page-marker
 sequences and logical-document mappings passed validation with zero unexplained orphans.
 
@@ -84,18 +91,19 @@ The 489 workbooks contain 5,404 sheets. Their purpose matters: 120 are published
 tools. The five XML files are reporting examples, not economic observations. Treating
 every structured file as a statistical series would be a category error.
 
-The index separates **1,722 stakeholder consultation and discussion containers**
-from Central Bank research, findings, rules and feedback, and marks two
-compilations as `mixed`. Every one of the 89 formerly unresolved documents was <!-- historical -->
-opened and adjudicated by source hash: 37 Central Bank, 51 stakeholder, and one
-mixed. Page-level authorship separates the voices inside both composites.
+The v5.2 index labels **1,739 stakeholder containers**, 338 evidence-supported
+`cbi-institutional` containers, 3,480 `unknown`, three `external-authority`, and
+two each of `cbi-staff`, `judicial-tribunal`, `third-party`, and `mixed`.
+Page-level institutional voice separates the speakers inside both composites.
+The 114 source-hash adjudications include the 89 formerly unresolved-document <!-- historical -->
+decisions, 19 adversarial corrections and six public-role decisions.
 
 The original figure was 1,134, and it was wrong. A consultation-hosted document was
 treated as a stakeholder submission only if its filename contained the substring
 `response`, so 289 files named `...-submission-from-...`, 123 named
 `...-feedback-from-...` and an unknown number published under the responder's bare
 name were all recorded as Central Bank material. Classification is now two-pass,
-filename then document text, with 116 regression assertions (including all 55 known
+filename then document text, with 132 regression assertions (including all 55 known
 generic-document-type/explicit-attribution conflicts) and a stored basis and
 confidence for every label. A 32-document reviewed regression set is an
 additional error detector, not a held-out population accuracy estimate. Stakeholder submissions can reveal pain or objections;

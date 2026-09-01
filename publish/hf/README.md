@@ -31,9 +31,8 @@ configs:
 # Central Bank of Ireland Public Archive Corpus
 
 A page-anchored, provenance-classified corpus of the Central Bank of Ireland's
-public document archive. **5,568 documents, 88,783 source pages and 190,941,651
-characters**, in about 48 MB of Parquet (about 51 MB including compressed audit
-manifests).
+public document archive. **5,568 documents and 89,242 page or pseudo-page rows.**
+PDF rows have true source-page anchors; most Office and archive rows do not.
 
 This is an unofficial derived work. It is not published by, affiliated with, or
 endorsed by the Central Bank of Ireland.
@@ -47,7 +46,7 @@ SHA-256, its URL, and its page number in the original PDF. A claim found here
 can be traced back to a specific page of a specific file whose bytes you can
 verify. Nothing is a floating snippet.
 
-**Every page is classified by who is speaking.** The Central Bank hosts two
+**Every page carries a separately reviewable voice label.** The Central Bank hosts two
 very different kinds of document: material it authored, and submissions that
 banks, insurers, trade bodies and individuals sent it during public
 consultations. Those read alike and mean the opposite. A submission from a bank
@@ -55,20 +54,26 @@ arguing that a rule is burdensome is not a regulatory finding, and treating it
 as one is the single easiest way to produce confidently wrong analysis from this
 archive.
 
-The document-level `authorship` column separates ordinary documents, while the
-page table can separate voices inside a composite:
+v5.1's `authorship` field collapsed hosting, authorship, document role and
+institutional voice. v5.2 retains it only for migration and introduces the safe
+analytical field `institutional_voice`:
 
-| authorship | documents | what it means |
+| institutional_voice | documents | what it means |
 |---|---:|---|
-| `central-bank` | 3,844 | the regulator speaking |
-| `stakeholder` | 1,722 | a respondent writing to the regulator: advocacy or consultation input |
-| `mixed` | 2 | a composite; use page-level authorship |
-| `unresolved` | 0 | retained as a valid schema value, but no v5.1 document remains unresolved |
+| `cbi-institutional` | 338 | reviewed/rule-supported institutional CBI material |
+| `stakeholder` | 1,739 | a respondent writing to the regulator: advocacy or consultation input |
+| `external-authority` | 3 | IMF-authored assessments hosted by the Bank |
+| `cbi-staff` | 2 | attributable to a named staff member, not automatically the institution |
+| `judicial-tribunal` | 2 | a court or tribunal speaking |
+| `third-party` | 2 | another evidenced external speaker |
+| `mixed` | 2 | a composite; use page-level institutional voice |
+| `unknown` | 3,480 | hosted by CBI, but issuer/voice not yet evidenced |
 
-`unresolved` remains a real answer, not a fallback to `central-bank`. In v5.1,
-all 89 formerly unresolved records were adjudicated from their opening and <!-- historical -->
-closing pages. The SHA-keyed decisions are published rather than hidden in
-classifier code: 37 are Central Bank, 51 stakeholder and one mixed.
+`unknown` is a safety result, not missing data to be folded into the regulator.
+`host`, `author_org`, `document_role`, `voice_review_status`, and
+`voice_evidence` expose why a row may or may not support a claim about the Bank.
+See the [v5.1 erratum](https://github.com/adityaprakash1722/cbi-archive-corpus/blob/master/ERRATA-V5.1.md)
+for the 19 confirmed v5.1 speaker errors.
 
 ### Why the classifier is not a keyword match
 
@@ -93,31 +98,33 @@ only where the filename carries no attribution, because letting them win is the
 defect that put AIB's and Bank of Ireland's submissions into the regulator's
 pile in an earlier version. The rule that produced each label is stored in
 `classification_basis`, with a `classification_confidence` of high, medium or
-low. 116 regression assertions cover known failure modes. A separate reviewed
+low. 132 regression assertions cover known failure modes. A separate reviewed
 32-document regression set includes one mixed composite and two audited
 submissions outside consultation folders. It was used during development, so
 it is an error detector, not an independent holdout or a population accuracy
-estimate.
+estimate. A deterministic 359-document risk queue is included for future
+independent double review; it is not a gold set or an accuracy sample.
 
 ## Files
 
 | File | Rows | Size | Contents |
 |---|---:|---:|---|
-| `data/documents.parquet` | 5,568 | 1.19 MB | one row per document: URL, hashes, publication evidence, title, authorship, engagement, exact-content cluster and extraction metadata |
-| `data/pages.parquet` | 88,783 | 46.8 MB | one row per source page, carrying full text and page-level authorship |
+| `data/documents.parquet` | 5,568 | 1.20 MB | one row per document: URL, hashes, publication evidence, issuer/role/voice, engagement, exact-content cluster and extraction metadata |
+| `data/pages.parquet` | 89,242 | 46.8 MB | one row per page or pseudo-page, carrying full text and page-level voice evidence |
 | `manifests/files.csv.zst` | 6,984 | 0.6 MB | the original download manifest: every URL, its SHA-256, bytes, content type, referrers |
 | `manifests/conversion-manifest.csv.zst` | 5,246 | 0.8 MB | PDF to Markdown conversion record, per document |
-| `manifests/conversion-manifest-office.csv.zst` | 323 | 51 KB | the same for Word, Excel, PowerPoint and ZIP sources |
+| `manifests/conversion-manifest-office.csv.zst` | 323 | varies | conversion details for DOC, DOCX, PPTX and ZIP sources |
 | `manifests/provenance-classification.csv.zst` | 5,568 | 0.3 MB | full classification audit trail, including the previous label |
 | `manifests/extraction-quality.csv.zst` | 5,568 | 0.3 MB | per-document extraction fidelity grades |
-| `manifests/authorship-overrides.csv.zst` | 89 | 6 KB | SHA-keyed adjudications of every formerly unresolved document | <!-- historical -->
+| `manifests/authorship-overrides.csv.zst` | 114 | varies | SHA-keyed manual voice adjudications |
 | `manifests/page-authorship-overrides.csv.zst` | 4 | <1 KB | audited page ranges for the two mixed composites |
 | `manifests/conversion-exclusions.csv.zst` | 1 | <1 KB | the one downloaded HTML error body excluded from conversion |
 | `manifests/engagement-coverage.csv.zst` | 182 | 2 KB | canonical CP/DP identifiers and document-class coverage |
-| `manifests/manifest-build-summary.json` | 1 | <1 KB | hashes and row counts for every compressed manifest |
+| `manifests/voice-review-scope.csv.zst` | 359 | varies | deterministic high-risk queue for independent voice review |
+| `manifests/manifest-build-summary.json` | 1 | <1 KB | hashes and byte sizes for every compressed manifest |
 
 The split is deliberate. Most questions need only `documents.parquet`, which is
-under a megabyte, and never touch the page text at all.
+about 1.2 MB, and never touch the page text at all.
 
 ## Usage
 
@@ -136,7 +143,8 @@ SELECT d.title, p.page_number, substr(p.text, 1, 200)
 FROM  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/main/data/pages.parquet' p
 JOIN  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/main/data/documents.parquet' d
   USING (document_id)
-WHERE p.authorship = 'central-bank'
+WHERE p.institutional_voice = 'cbi-institutional'
+  AND p.voice_review_status IN ('rule-classified', 'manual-reviewed')
   AND lower(p.text) LIKE '%operational resilience%'
 LIMIT 20;
 ```
@@ -153,7 +161,10 @@ Parquet is columnar, so that query reads only the columns it names.
   content served at more than one URL.
 - **Converted:** PDFs through PyMuPDF4LLM with page anchors preserved, selective
   RapidOCR for scanned documents, and a separate pipeline for the 323 DOCX, DOC,
-  ZIP and PPTX files that a PDF-only filter had originally skipped.
+  ZIP and PPTX files that a PDF-only filter had originally skipped. OOXML uses a
+  body-order extractor that preserves table position and explicit page breaks;
+  70 retained legacy DOC conversions state that their historical LibreOffice
+  version was not recorded.
 - **Validated:** every source hash and every output hash recomputed from disk,
   page markers checked for sequence, orphans checked for. Zero failures.
 - **Engagement identifiers normalised:** `cp071`, `cp-71` and `CP71` map to
@@ -161,9 +172,9 @@ Parquet is columnar, so that query reads only the columns it names.
   CP identifiers, 11 DP identifiers and 73 CPs with a proposal, stakeholder
   responses and a Central Bank feedback statement. The 22 gaps in CP1 to CP171
   are published as snapshot coverage gaps, not asserted to be unissued numbers.
-- **Exact-content clusters retained:** 5,490 exact-text clusters cover 5,568
-  documents; 146 documents belong to a cluster larger than one. Seven are the
-  empty-document cluster, leaving 139 duplicated non-empty documents and 72
+- **Exact-content clusters retained:** 5,493 exact-text clusters cover 5,568
+  documents; 140 documents belong to a cluster larger than one. Seven are the
+  empty-document cluster, leaving 133 duplicated non-empty documents and 69
   excess non-empty records if text is counted once. They remain as
   separate records because their URLs and publication contexts differ. Use
   `content_cluster_id` to avoid double-counting identical text in analysis.
@@ -171,9 +182,13 @@ Parquet is columnar, so that query reads only the columns it names.
 ## Limitations, stated plainly
 
 - **`page_basis` is not always a page.** PDFs carry true source-page anchors.
-  Office documents mostly have no page structure: 179 of the 323 are a single
-  pseudo-page, meaning the anchor identifies the document, not a location within
-  it. Only `source-page` and `slide` are safe to cite as positions.
+  Of the 323 Office/archive records, 137 are a single pseudo-page, 133 use
+  explicit OOXML page breaks, 49 use archive members, two use slides and two
+  have source pages. Only `source-page` and `slide` are safe source locations;
+  explicit page breaks are converter boundaries.
+- **Institutional voice is conservative.** 3,480 documents remain `unknown`
+  because hosting is not issuer evidence. The development set is not an
+  independent holdout, and v5.2 makes no population accuracy claim.
 - **87 documents are graded below `ok`** for extraction fidelity: 36 with
   substantially blank pages, 25 garbled by encoding damage, 19 thin, 7 empty.
   They are listed in `extraction-quality.csv.zst`. Chart-heavy statistical
@@ -217,7 +232,8 @@ and URL for each open-data resource are retained in
 personal information, third-party rights, trademarks, crests, logos and official
 symbols, and prohibits any implication of endorsement.
 
-See `RIGHTS-REVIEW.md` in the GitHub repository before redistributing text or
+See [RIGHTS-REVIEW.md](https://github.com/adityaprakash1722/cbi-archive-corpus/blob/master/RIGHTS-REVIEW.md)
+before redistributing text or
 using the corpus commercially. This metadata change is conservative and is not
 legal advice.
 

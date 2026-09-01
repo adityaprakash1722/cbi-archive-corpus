@@ -4,9 +4,9 @@
 Why this exists
 ---------------
 The topic scan measures how often a subject appears anywhere in the archive.
-That answers "what does the Central Bank publish about", which is a poor proxy
+That answers "what does the hosted archive contain", which is a poor proxy
 for "what is expensive and unsolved for the firms". This script asks a different
-question, using the authorship axis that only became reliable after the
+question, using the reviewed institutional-voice axis:
 provenance classifier was rewritten:
 
   * how many *stakeholder submissions* raise a given operational pain
@@ -79,7 +79,7 @@ THEMES = [
 ]
 
 
-def counts(cur, query: str, authorship: str) -> dict:
+def counts(cur, query: str, voice: str) -> dict:
     row = cur.execute(
         """
         SELECT COUNT(DISTINCT d.document_id) AS documents,
@@ -88,8 +88,8 @@ def counts(cur, query: str, authorship: str) -> dict:
         FROM pages_fts AS p
         JOIN pages AS pg USING(document_id, page_number)
         JOIN documents AS d USING(document_id)
-        WHERE pages_fts MATCH ? AND pg.authorship = ?
-        """, (query, authorship)).fetchone()
+        WHERE pages_fts MATCH ? AND pg.institutional_voice = ?
+        """, (query, voice)).fetchone()
     years = [
         int(y) for (y,) in cur.execute(
             """
@@ -97,9 +97,9 @@ def counts(cur, query: str, authorship: str) -> dict:
             FROM pages_fts AS p
             JOIN pages AS pg USING(document_id, page_number)
             JOIN documents AS d USING(document_id)
-            WHERE pages_fts MATCH ? AND pg.authorship = ?
+            WHERE pages_fts MATCH ? AND pg.institutional_voice = ?
               AND d.analysis_year IS NOT NULL
-            """, (query, authorship)).fetchall()
+            """, (query, voice)).fetchall()
     ]
     return {"documents": row["documents"], "pages": row["pages"],
             "consultations": row["consultations"],
@@ -118,18 +118,20 @@ def main() -> int:
     cur = con.cursor()
 
     # A mixed container can contribute to both denominators, but only through
-    # pages whose audited page-level authorship matches the requested voice.
+    # pages whose audited page-level institutional voice matches the request.
     total_stake = cur.execute(
-        "SELECT COUNT(DISTINCT document_id) FROM pages WHERE authorship='stakeholder'"
+        "SELECT COUNT(DISTINCT document_id) FROM pages "
+        "WHERE institutional_voice='stakeholder'"
     ).fetchone()[0]
     total_cbi = cur.execute(
-        "SELECT COUNT(DISTINCT document_id) FROM pages WHERE authorship='central-bank'"
+        "SELECT COUNT(DISTINCT document_id) FROM pages "
+        "WHERE institutional_voice='cbi-institutional'"
     ).fetchone()[0]
 
     rows = []
     for theme_id, label, query in THEMES:
         stake = counts(cur, query, "stakeholder")
-        cbi = counts(cur, query, "central-bank")
+        cbi = counts(cur, query, "cbi-institutional")
         # Persistence: raised in many separate consultations, over a long span.
         persistence = stake["consultations"] * stake["years_present"]
         # Attention gap: how much more of the industry raises it than the share of
@@ -145,8 +147,8 @@ def main() -> int:
             "years_present": stake["years_present"],
             "first_year": stake["first_year"], "last_year": stake["last_year"],
             "persistence_score": persistence,
-            "cbi_documents": cbi["documents"],
-            "cbi_share_pct": round(100 * cbi_share, 1),
+            "cbi_institutional_documents": cbi["documents"],
+            "cbi_institutional_share_pct": round(100 * cbi_share, 1),
             "industry_vs_regulator_ratio": round(stake_share / cbi_share, 2) if cbi_share else None,
             "query": query,
         })
@@ -157,13 +159,14 @@ def main() -> int:
         w = csv.DictWriter(fh, fieldnames=list(rows[0]), lineterminator="\n"); w.writeheader(); w.writerows(rows)
     (args.output / "industry-pain-scan.json").write_text(
         json.dumps({"generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                    "stakeholder_documents_total": total_stake,
-                    "central_bank_documents_total": total_cbi,
+                    "stakeholder_bearing_documents_total": total_stake,
+                    "cbi_institutional_bearing_documents_total": total_cbi,
                     "method": "Discovery layer only. Counts locate documents to read. "
-                              "Authorship is page-level; mixed containers can contribute to both voices.",
+                              "Institutional voice is page-level; mixed containers can contribute to both voices.",
                     "themes": rows}, indent=2) + "\n", encoding="utf-8", newline="\n")
 
-    print(f"stakeholder corpus: {total_stake}   central bank corpus: {total_cbi}\n")
+    print(f"stakeholder-bearing documents: {total_stake}   "
+          f"CBI-institutional-bearing documents: {total_cbi}\n")
     print(f"{'theme':22s} {'docs':>5s} {'%':>5s} {'cons':>5s} {'span':>11s} {'persist':>8s} {'vs CBI':>7s}")
     for r in rows:
         span = f"{r['first_year']}-{r['last_year']}" if r["first_year"] else "n/a"

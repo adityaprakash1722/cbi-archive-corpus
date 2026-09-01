@@ -20,9 +20,9 @@ Artifacts are therefore tiered by **cost to recreate**, not by size:
 | Expensive | extracted and classified text | publish it, do not regenerate |
 | Trivial | the SQLite search index, under a minute | never store, always rebuild |
 
-A 674 MB file that rebuilds in under a minute is not data. It is a build product,
+A 663 MB file that rebuilds in under a minute is not data. It is a build product,
 and syncing it is paying to move something you can recreate faster than you can
-download it. A 48 MB Parquet pair representing 190 million characters of extracted,
+download it. A 48 MB Parquet pair representing 180 million characters of extracted,
 hash-verified, provenance-classified text is the opposite: small, and
 irreplaceable without re-running a multi-hour pipeline.
 
@@ -33,8 +33,8 @@ irreplaceable without re-running a multi-hour pipeline.
 ### Tier 1: the project
 
 **GitHub, `adityaprakash1722/cbi-archive-corpus`.** The repository contains
-<!-- fact:repo.tracked_files -->256<!-- /fact --> repository files and occupies about
-about 53 MB checked out and about 16 MB as packed Git objects.
+<!-- fact:repo.tracked_files -->273<!-- /fact --> repository files and occupies about
+53 MB checked out and about 16 MB as packed Git objects.
 
 The whole pipeline, every manifest, every analysis output, and the documents.
 Small enough that a full clone is instant.
@@ -52,12 +52,12 @@ outputs/
     cbi-data/manifests/summary.json      crawl totals
     cbi-data/metadata/ckan-packages.json open-data catalogue metadata
   cbi-research/
-    scripts/                             29 Python files, the whole pipeline
+    scripts/                             33 Python files, the whole pipeline
     corpus/conversion-manifest.csv       5,246 rows, PDF conversion record
     corpus/office/conversion-manifest.csv  323 rows, Office and ZIP record
     qa/                                  validation, provenance, extraction grades
     structured/                          CSV, workbook and XML profiling
-    analysis-v5.1/                       current topic scan and evidence candidates
+    analysis-v5.2/                       current topic scan and evidence candidates
     index/README.md                      which database to use
 publish/                                 publishing scripts and the dataset card
 work/                                    working notes: ledger, system map, screens
@@ -71,8 +71,8 @@ The text extracted from every source document, with full provenance. This is the
 working surface: nearly every question is answerable here.
 
 ```
-data/documents.parquet      5,568 rows, 1.19 MB
-data/pages.parquet         88,783 rows, 46.8 MB, 190,941,651 characters
+data/documents.parquet      5,568 rows, 1.20 MB
+data/pages.parquet         89,242 rows, 46.8 MB, 179,924,863 characters
 data/dataset-summary.json
 manifests/files.csv.zst
 manifests/conversion-manifest.csv.zst
@@ -86,8 +86,8 @@ README.md                   dataset card, drives the HF viewer
 ATTRIBUTION.md              attribution used where the Irish PSI terms apply
 ```
 
-Those figures describe the published v5.1 release. `RELEASE.lock.json` identifies
-its immutable Git and Hugging Face revisions and hashes the published artifacts.
+Those figures describe the v5.2 release candidate. `RELEASE.lock.json` identifies
+the published release's immutable Git and Hugging Face revisions and hashes.
 
 ### Tier 3: the source
 
@@ -107,7 +107,8 @@ page-catalog.csv                             future HTML source-page snapshots; 
 
 | Artifact | Size | Why not |
 |---|---:|---|
-| `cbi-corpus-v5.1-5568docs.sqlite` | 674 MB | current; rebuilds via `make materialize && make index` |
+| `cbi-corpus-v5.2-5568docs.sqlite` | 663 MB | current; rebuilds via `make materialize && make index` |
+| `cbi-corpus-v5.1-5568docs.sqlite` | 674 MB | superseded; unsafe speaker labels and two corrupt DOCX extractions |
 | `cbi-corpus-v5-5568docs.sqlite` | 673 MB | superseded; unresolved authorship and unreconciled final-text metrics |
 | `cbi-corpus-v4-5568docs.sqlite` | 664 MB | superseded; document-level voice and inferior duplicate extraction |
 | `cbi-corpus-v3-5568docs.sqlite` | 663 MB | superseded, 441,610 characters of page text missing |
@@ -176,25 +177,32 @@ Three properties follow, and all three are load-bearing:
 | 13 | `source_page_url` | string | page that referred to the downloaded file |
 | 14 | `source_last_modified_at` | string | HTTP metadata where available |
 | 15 | `document_class` | string | 15 values, see index summary |
-| 16 | `authorship` | string | **`central-bank` / `stakeholder` / `mixed` / `unresolved`** |
-| 17 | `classification_basis` | string | the rule or audit decision that produced the label |
-| 18 | `classification_confidence` | string | `high` 5,431 / `medium` 137 |
-| 19 | `page_basis` | string | what a page anchor means, see below |
-| 20 | `source_format` | string | detected from magic bytes, not the file extension |
-| 21 | `consultation_id` | string | e.g. `cp158`, null outside consultations |
-| 22 | `engagement_id` | string | canonical `cpN` or `dpN` join key |
-| 23 | `page_count` | int64 | |
-| 24 | `extraction_engine` | string | `pymupdf4llm`, `markitdown`, `python-docx`, etc. |
-| 25 | `ocr_enabled` | int64 | 0 or 1 |
-| 26 | `quality_low_text` | int64 | 0 or 1 |
-| 27 | `quality_empty_pages` | int64 | final-text pages with fewer than 30 non-space characters |
-| 28 | `extraction_selection_basis` | string | why this extraction won when a hash had alternatives |
-| 29 | `alternate_extraction_count` | int64 | number of non-selected conversions for the same hash |
-| 30 | `content_sha256` | string | SHA-256 of the ordered final page text |
-| 31 | `content_cluster_id` | string | exact-text duplicate cluster key |
-| 32 | `content_cluster_size` | int64 | documents carrying exactly the same extracted text |
+| 16 | `authorship` | string | compatibility projection; not safe for v5.2 voice filtering |
+| 17 | `legacy_authorship` | string | exact pre-v5.2 compatibility label |
+| 18 | `host` | string | service that hosts the file, not its speaker |
+| 19 | `author_org` | string | evidenced issuer where known |
+| 20 | `document_role` | string | functional role, independent of issuer |
+| 21 | `institutional_voice` | string | voice taxonomy described below |
+| 22 | `voice_review_status` | string | `rule-classified`, `manual-reviewed`, or `unreviewed` |
+| 23 | `voice_evidence` | string | rule or adjudication evidence for the voice label |
+| 24 | `classification_basis` | string | legacy classifier/audit decision trail |
+| 25 | `classification_confidence` | string | high 1,950 / medium 138 / low 3,480 |
+| 26 | `page_basis` | string | what a page anchor means, see below |
+| 27 | `source_format` | string | detected from magic bytes, not the file extension |
+| 28 | `consultation_id` | string | e.g. `cp158`, null outside consultations |
+| 29 | `engagement_id` | string | canonical `cpN` or `dpN` join key |
+| 30 | `page_count` | int64 | |
+| 31 | `extraction_engine` | string | exact engine and version evidence where recorded |
+| 32 | `ocr_enabled` | int64 | 0 or 1 |
+| 33 | `quality_low_text` | int64 | 0 or 1 |
+| 34 | `quality_empty_pages` | int64 | final-text pages with fewer than 30 non-space characters |
+| 35 | `extraction_selection_basis` | string | why this extraction won when a hash had alternatives |
+| 36 | `alternate_extraction_count` | int64 | number of non-selected conversions for the same hash |
+| 37 | `content_sha256` | string | SHA-256 of the ordered final page text |
+| 38 | `content_cluster_id` | string | exact-text duplicate cluster key |
+| 39 | `content_cluster_size` | int64 | documents carrying exactly the same extracted text |
 
-### `pages.parquet`, 88,783 rows, one per source page
+### `pages.parquet`, 89,242 rows, one per page or pseudo-page
 
 | # | Column | Type |
 |---:|---|---|
@@ -203,17 +211,20 @@ Three properties follow, and all three are load-bearing:
 | 2 | `page_number` | int32 |
 | 3 | `authorship` | string |
 | 4 | `authorship_basis` | string |
-| 5 | `document_class` | string |
-| 6 | `page_basis` | string |
-| 7 | `consultation_id` | string |
-| 8 | `engagement_id` | string |
-| 9 | `title` | string |
-| 10 | `source_url` | string |
-| 11 | `characters` | int32 |
-| 12 | `text` | string |
+| 5 | `institutional_voice` | string |
+| 6 | `voice_review_status` | string |
+| 7 | `voice_evidence` | string |
+| 8 | `document_class` | string |
+| 9 | `page_basis` | string |
+| 10 | `consultation_id` | string |
+| 11 | `engagement_id` | string |
+| 12 | `title` | string |
+| 13 | `source_url` | string |
+| 14 | `characters` | int32 |
+| 15 | `text` | string |
 
 Most descriptive columns are denormalised from `documents` deliberately.
-`authorship` is the exception: it is genuinely page-level so a composite can
+`institutional_voice` is genuinely page-level so a composite can
 contain regulator framing and stakeholder submissions without calling both the
 same voice. Parquet is columnar, so unused columns cost nothing to read.
 
@@ -221,27 +232,32 @@ Both files use ZSTD compression. `pages.parquet` has 23 row groups, which is wha
 lets a reader skip most of the file when filtering.
 
 `content_sha256` hashes the ordered final page strings separated by U+001E. It
-forms 5,490 exact-text clusters. There are 146 documents in non-singleton
-clusters; seven of those are the empty-document cluster, leaving 139 documents
-with duplicated non-empty text and 72 excess non-empty records. Records are not
+forms 5,493 exact-text clusters. There are 140 documents in non-singleton
+clusters; seven of those are the empty-document cluster, leaving 133 documents
+with duplicated non-empty text and 69 excess non-empty records. Records are not
 dropped because different URLs and publication contexts remain distinct
 provenance. Use `content_cluster_id` when an analysis should count the text once.
 
-### `authorship`, the value that matters most
+### `institutional_voice`, the value that matters most
 
 | Value | Documents | Meaning |
 |---|---:|---|
-| `central-bank` | <!-- fact:authorship.central-bank -->3,844<!-- /fact --> | the regulator speaking: a rule, finding or expectation |
-| `stakeholder` | <!-- fact:authorship.stakeholder -->1,722<!-- /fact --> | a firm, association or member of the public writing **to** the regulator. Advocacy or consultation input. |
-| `mixed` | <!-- fact:authorship.mixed -->2<!-- /fact --> | container with multiple voices; use page authorship. |
-| `unresolved` | <!-- fact:authorship.unresolved -->0<!-- /fact --> | valid future label for genuine ambiguity. **Never treat as `central-bank`.** |
+| `cbi-institutional` | <!-- fact:voice.cbi-institutional -->338<!-- /fact --> | evidence-supported institutional Central Bank material |
+| `stakeholder` | <!-- fact:voice.stakeholder -->1,739<!-- /fact --> | a respondent writing to the regulator; advocacy or consultation input |
+| `unknown` | <!-- fact:voice.unknown -->3,480<!-- /fact --> | hosted by the Bank, but issuer/voice is not evidenced |
+| `external-authority` | 3 | IMF-authored assessments hosted by the Bank |
+| `cbi-staff` | 2 | attributable to a named staff member, not automatically the institution |
+| `judicial-tribunal` | 2 | court or tribunal voice |
+| `third-party` | 2 | other evidenced external speaker |
+| `mixed` | <!-- fact:voice.mixed -->2<!-- /fact --> | composite with multiple voices; filter page rows |
 
 Defaulting ambiguity to the regulator is the exact bug that put AIB's and Bank of
 Ireland's lobbying positions into the Central Bank pile in an earlier version.
-<!-- fact:classifier.assertions -->116<!-- /fact --> regression assertions, a
-<!-- fact:audit.documents -->32<!-- /fact -->-document reviewed regression set, and
-89 SHA-keyed adjudications guard known failure modes. The 32-document set was used
-during development, so it is an error detector, not a held-out accuracy estimate.
+<!-- fact:classifier.assertions -->132<!-- /fact --> regression assertions, a
+<!-- fact:audit.documents -->32<!-- /fact -->-document development set, and
+114 SHA-keyed adjudications guard known failure modes. The 32-document set was
+used during development, so it is an error detector, not a held-out accuracy
+estimate. `VOICE-REVIEW-PROTOCOL.md` defines a separate 359-document review queue.
 
 ### `page_basis`, which decides whether a citation is valid
 
@@ -279,7 +295,8 @@ SELECT d.title, p.page_number
 FROM  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/f9a60f39c666b9aac4a68951a685bed1a46cea33/data/pages.parquet' p
 JOIN  'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/f9a60f39c666b9aac4a68951a685bed1a46cea33/data/documents.parquet' d
   USING (document_id)
-WHERE d.authorship = 'central-bank'
+WHERE d.institutional_voice = 'cbi-institutional'
+  AND d.voice_review_status IN ('rule-classified', 'manual-reviewed')
   AND lower(p.text) LIKE '%operational resilience%'
 LIMIT 20;
 ```
@@ -293,7 +310,7 @@ This works because of two mechanisms in combination:
    replies `206 Partial Content`.
 
 So a reader fetches the footer, a few KB, looks up which ranges hold the columns
-in the query, and fetches only those. A query touching `authorship` never reads
+in the query, and fetches only those. A query touching `institutional_voice` never reads
 the 46 MB `text` column. `publish/demo_how_it_works.py` demonstrates this against
 the live URL and times it against a full download.
 
@@ -306,7 +323,7 @@ python outputs/cbi-research/scripts/bootstrap.py --dataset aditya487/cbi-archive
 ### Retrieving an original document
 
 ```bash
-python publish/get_source.py --search "operational resilience" --authorship central-bank --limit 3
+python publish/get_source.py --search "operational resilience" --voice cbi-institutional --limit 3
 python publish/get_source.py --sha e5dabf14e1e876c484b3fd0d9b4fe86925befc868391e73aeddd6b0218a3a6cc --fetch
 ```
 
@@ -323,7 +340,7 @@ https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/61f50ee9ed975b
 ```bash
 make index      # Tier 2 Markdown -> SQLite index, about 30 seconds on this machine
 make dataset    # SQLite index -> Parquet, about 4 seconds
-make test       # 116 classifier regression assertions
+make test       # 132 classifier assertions plus Office extraction regressions
 make verify     # re-hash every source and output, check page markers
 ```
 
@@ -358,13 +375,13 @@ Every layer is hash-verified, and the hashes chain.
 | `conversion-manifest.csv` `markdown_sha256` | the extracted text has not changed |
 | `validate_corpus.py` | re-reads every source and output from disk and re-hashes |
 | Tier 3 filename | any fetched blob verifies against its own name |
-| v5.1 index SHA-256 | `aa779f4bba4ec5b783d3cedeebaa20fbba638bc5e6fcb4f716872affb086fed8` |
+| v5.2 index SHA-256 | `0870a95847400e3419cded329ef0d7cba13403ba1ce186a303343c53d3225eb0` |
 | `RELEASE.lock.json` | immutable Git/Hugging Face revisions and published-artifact hashes |
 
 `publish/verify_dataset.py` downloads the two pinned Parquet artifacts to a
 temporary directory over certificate-verified HTTPS, checks their SHA-256
-digests, then verifies the authorship split, row totals, a real join query, and
-the central-bank versus stakeholder separation.
+digests, then verifies the institutional-voice split, row totals, all raw object
+paths and available LFS object IDs, and a real join query.
 
 ---
 
@@ -375,8 +392,9 @@ the central-bank versus stakeholder separation.
    manifests still normalise with `.replace("\\", "/")`.
 2. **`pdf-audit.csv` contains NUL bytes** from PDF metadata. Strip them on read
    or Python's `csv` module raises `_csv.Error: line contains NUL`.
-3. **Six SQLite files exist, one is current.** See `index/README.md`. A seventh,
-   at `work/live-index/`, is a partial build covering 3,259 of 5,568 documents
+3. **Seven versioned or legacy SQLite files exist, one is current.** See
+   `index/README.md`. A local v5.2 smoke build may also be present. The database
+   at `work/live-index/` is a partial build covering 3,259 of 5,568 documents
    and carries no warning of its own.
 4. **87 documents extract below `ok`**, graded in `qa/extraction-quality.csv`:
    <!-- fact:quality.grade.gappy -->36<!-- /fact --> `gappy`,
@@ -403,8 +421,9 @@ the central-bank versus stakeholder separation.
 |---|---|
 | `scripts/bootstrap.py` | fetch the published corpus onto a fresh machine |
 | `scripts/build_search_index.py` | Markdown to SQLite FTS5, multi-corpus |
-| `scripts/classify_provenance.py` | two-pass authorship classifier |
-| `scripts/test_classify_provenance.py` | 116 regression assertions |
+| `scripts/classify_provenance.py` | issuer, role and institutional-voice classifier |
+| `scripts/test_classify_provenance.py` | 132 regression assertions |
+| `scripts/export_voice_review_scope.py` | deterministic high-risk voice-review queue |
 | `scripts/evaluate_provenance.py` | evaluate against the reviewed regression set |
 | `scripts/release_lock.py` | read and validate immutable release coordinates |
 | `scripts/convert_pdfs.py` | PDF to page-anchored Markdown |

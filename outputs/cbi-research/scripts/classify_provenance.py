@@ -19,7 +19,14 @@ Output contract
 ---------------
 ``classify(url, first_pages_text)`` returns a ``Provenance`` with:
 
-  authorship      central-bank | stakeholder | mixed | unresolved
+  authorship      central-bank | stakeholder | external-authority |
+                  judicial-tribunal | third-party | mixed | unresolved
+  legacy_authorship  the v5.1 four-value result, retained only for migration
+  institutional_voice  the safe analytical voice class
+  author_org      reviewed authoring institution where known
+  document_role   proposal, submission, feedback, report, etc.
+  review_status   manual-reviewed | rule-classified | unreviewed
+  review_evidence evidence supporting the voice label
   document_class  the original 15-class taxonomy, corrected
   consultation_id canonical CP identifier, e.g. cp158, or None
   engagement_id   canonical CP or DP identifier, e.g. cp158 or dp10
@@ -96,10 +103,10 @@ CBI_DOCTYPE = re.compile(
 # two misspellings that actually occur in the archive ("reponse", "repsonse").
 ATTRIBUTED = re.compile(
     r"""(
-        (?:submission|response|reponse|repsonse|feedback|comments?|cover-letter|cover-e-?mail|letter)
+        (?:submission|response|reponse|repsonse|replies|feedback|comments?|cover-letter|cover-e-?mail|letter)
         [-_ ]*(?:from|by)[-_ ]
       | (?:submission|response|reponse|repsonse)[-_ ]*to[-_ ]
-      | [-_](?:submission|response|reponse|repsonse|comments)(?:[-_.(]|$)
+      | [-_](?:submission|response|reponse|repsonse|replies|comments)(?:[-_.(]|$)
       | ^(?:response|submission)[-_]
       | -to-cp-?\d
     )""",
@@ -158,6 +165,67 @@ class Provenance:
     engagement_id: str | None
     basis: str
     confidence: str
+    legacy_authorship: str | None = None
+    host: str = "centralbank.ie"
+    author_org: str | None = None
+    document_role: str | None = None
+    institutional_voice: str | None = None
+    review_status: str | None = None
+    review_evidence: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.legacy_authorship is None:
+            self.legacy_authorship = self.authorship
+        if self.institutional_voice is None:
+            self.institutional_voice = {
+                "central-bank": "cbi-institutional",
+                "stakeholder": "stakeholder",
+                "external-authority": "external-authority",
+                "judicial-tribunal": "judicial-tribunal",
+                "third-party": "third-party",
+                "mixed": "mixed",
+                "unresolved": "unknown",
+            }[self.authorship]
+        if self.author_org is None and self.institutional_voice == "cbi-institutional":
+            self.author_org = "Central Bank of Ireland"
+        if self.document_role is None:
+            if self.document_class.startswith("stakeholder-"):
+                self.document_role = "consultation-submission"
+            elif self.document_class == "cbi-consultation-feedback":
+                self.document_role = "feedback-statement"
+            elif self.document_class in {"cbi-consultation-material", "cbi-discussion-material"}:
+                self.document_role = "consultation-or-discussion-material"
+            elif self.document_class == "external-authority-report":
+                self.document_role = "external-assessment"
+            elif self.document_class == "judicial-or-tribunal-material":
+                self.document_role = "judicial-or-tribunal-record"
+            elif self.document_class == "cbi-research":
+                self.document_role = "research-paper"
+            elif self.document_class == "cbi-speech-or-news-material":
+                self.document_role = "speech-or-news"
+            elif self.document_class == "cbi-policy-analysis":
+                self.document_role = "policy-analysis"
+            elif self.document_class == "cbi-regulatory-material":
+                self.document_role = "regulatory-material"
+            elif self.document_class == "cbi-statistical-material":
+                self.document_role = "statistical-material"
+            elif self.document_class == "cbi-correspondence":
+                self.document_role = "correspondence"
+            elif self.document_class == "cbi-corporate-report":
+                self.document_role = "corporate-report"
+            elif self.document_class == "cbi-consumer-material":
+                self.document_role = "consumer-information"
+            else:
+                self.document_role = "other"
+        if self.review_status is None:
+            self.review_status = (
+                "manual-reviewed"
+                if self.basis.startswith(("adjudicated:", "audited-", "manual-"))
+                else "unreviewed" if self.institutional_voice == "unknown"
+                else "rule-classified"
+            )
+        if self.review_evidence is None:
+            self.review_evidence = self.basis
 
 
 # --------------------------------------------------------------------------
@@ -336,12 +404,22 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
 
     if not is_consultation:
         return Provenance(
-            authorship="central-bank",
+            # v5.1 treated every file outside the consultation directories as
+            # Central Bank speech. That confused hosting location with author:
+            # IMF assessments and tribunal material are counterexamples. Keep
+            # the old result only as migration metadata and make the safe label
+            # unknown until issuer evidence or a manual review exists.
+            authorship="unresolved",
             document_class=topical_class(path),
             consultation_id=consultation,
             engagement_id=engagement,
-            basis="non-consultation-path",
-            confidence="high",
+            basis="host-path-only:non-consultation",
+            confidence="low",
+            legacy_authorship="central-bank",
+            institutional_voice="unknown",
+            author_org=None,
+            review_status="unreviewed",
+            review_evidence="centralbank.ie host path is not authorship evidence",
         )
 
     strong_cbi_cue = STRONG_CBI_DOCTYPE.search(name)
@@ -375,7 +453,48 @@ def classify(url: str, first_pages_text: str = "") -> Provenance:
             confidence="high",
         )
 
+    # DP5 exposed a whole filename family that identifies the respondent first
+    # and merely repeats the discussion-paper title afterwards, for example
+    # ``allianz---discussion-paper-on-payment-of-commission...``. The generic
+    # words "discussion paper" are the subject, not the author.
+    # Require the archive's actual respondent/title delimiter. A generic prefix
+    # such as ``review-of-the-`` or ``dis-2-`` is part of the Bank's document
+    # title, not an organisation name. DP5 respondent files consistently use
+    # two or more hyphens immediately before ``discussion-paper``.
+    respondent_title = re.search(r"-{2,}discussion-paper", name)
+    if discussion and cbi_cue and respondent_title:
+        prefix = name[:cbi_cue.start()].strip("-_ .")
+        if prefix and not re.fullmatch(r"(?:dp|discussion-paper)[-_ ]?\d*[a-z]?", prefix):
+            return Provenance(
+                authorship="stakeholder",
+                document_class="stakeholder-discussion-submission",
+                consultation_id=consultation,
+                engagement_id=engagement,
+                basis=f"filename-discussion-responder-prefix:{prefix[:80]}",
+                confidence="high",
+            )
+
     if cbi_cue:
+        if first_pages_text.strip():
+            cbi_points, _cbi_hits = _score(first_pages_text, CBI_TEXT_MARKERS)
+            third_points, third_hits = _score(first_pages_text, STAKEHOLDER_TEXT_MARKERS)
+            # One marker is not enough to reverse a filename that identifies a
+            # Central Bank document. The Bank's consultation papers naturally
+            # say "our submission" when explaining how respondents should write
+            # to it. Demand four stakeholder points plus a three-point margin.
+            if third_points >= max(cbi_points + 3, 4):
+                return Provenance(
+                    authorship="stakeholder",
+                    document_class=(
+                        "stakeholder-discussion-submission" if discussion
+                        else "stakeholder-consultation-submission"
+                    ),
+                    consultation_id=consultation,
+                    engagement_id=engagement,
+                    basis=(f"content-overrides-generic-doctype({third_points}v{cbi_points}):"
+                           f"{';'.join(third_hits[:3])}"),
+                    confidence="medium",
+                )
         return Provenance(
             authorship="central-bank",
             document_class="cbi-discussion-material" if discussion else "cbi-consultation-material",

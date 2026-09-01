@@ -66,18 +66,24 @@ def metrics(pages: list[str]) -> dict[str, int | float | bool]:
     }
 
 
-def yaml_scalar(value: int | bool) -> str:
+def yaml_scalar(value: int | bool | str) -> str:
     if isinstance(value, bool):
         return "true" if value else "false"
+    if isinstance(value, str):
+        return json.dumps(value)
     return str(value)
 
 
-def update_frontmatter(lines: list[str], values: dict[str, int | bool]) -> tuple[list[str], bool]:
+def update_frontmatter(lines: list[str], values: dict[str, int | bool],
+                       engine_override: str | None = None) -> tuple[list[str], bool]:
     replacements = {
         "source_pages": values["pages"],
         "quality_low_text": values["low_text"],
         "quality_empty_pages": values["empty_pages"],
     }
+    if engine_override:
+        replacements["extraction_engine"] = engine_override
+        replacements["extraction_engine_version"] = engine_override
     found = set()
     changed = False
     output = []
@@ -120,7 +126,18 @@ def reconcile(corpus: Path, check_only: bool) -> tuple[int, int]:
         payload = original_bytes.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
         frontmatter, body, pages = parse_markdown(payload)
         final = metrics(pages)
-        updated_frontmatter, frontmatter_changed = update_frontmatter(frontmatter, final)
+        # v5.1 retained the converter family but not the LibreOffice version.
+        # Do not manufacture a version after the fact. Make the missing datum
+        # explicit so a user cannot mistake these 70 legacy conversions for a
+        # pinned raw-to-text build. New conversions record `soffice --version`.
+        engine_override = None
+        if row.get("engine") in {
+                "libreoffice-headless",
+                "libreoffice-headless version-unrecorded-pre-v5.2"}:
+            engine_override = "libreoffice-headless version-unrecorded-pre-v5.2"
+            row["engine"] = engine_override
+        updated_frontmatter, frontmatter_changed = update_frontmatter(
+            frontmatter, final, engine_override)
         new_payload = "---\n" + "\n".join(updated_frontmatter) + "\n---\n" + body
         encoded = new_payload.encode("utf-8")
         payload_changed = encoded != original_bytes

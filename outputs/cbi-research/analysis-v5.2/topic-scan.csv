@@ -1,0 +1,25 @@
+id,label,query,matching_documents,matching_pages,stakeholder_documents,unknown_voice_documents
+bank_competition,Bank competition and concentration,"(bank OR banks OR banking OR lender OR lenders OR mortgage OR mortgages OR deposit OR deposits) AND (competition OR concentration OR ""market share"" OR switching)",1111,3202,381,635
+mortgage_arrears,Mortgage arrears and distressed debt,mortgage AND (arrears OR restructuring OR repossession OR forbearance),619,2795,196,389
+mortgage_switching,Mortgage switching and refinancing,mortgage AND (switching OR refinance OR refinancing OR cashback),285,747,61,212
+sme_finance,SME finance and credit access,"(SME OR ""small business"" OR ""small and medium enterprises"") AND (credit OR lending OR finance OR funding)",470,1671,108,327
+credit_unions,Credit unions,"""credit union"" OR ""credit unions""",1183,8551,509,587
+consumer_harm,Consumer harm and vulnerability,(consumer OR customer) AND (harm OR vulnerable OR vulnerability OR detriment OR exploitation),610,1850,266,289
+fraud_scams,"Fraud, scams and payment deception","fraud OR fraudulent OR scam OR scams OR phishing OR smishing OR vishing OR impersonation OR ""money mule"" OR ""money mules"" OR ""authorised push payment"" OR ""authorized push payment""",510,1143,139,319
+aml_cft,"AML, CFT and financial crime controls","AML OR ""money laundering"" OR ""terrorist financing"" OR sanctions",941,3382,184,660
+reg_reporting,Regulatory reporting burden and quality,(reporting OR returns OR submission) AND (burden OR manual OR error OR quality OR reconciliation OR duplication),964,2549,314,553
+data_quality,Data quality and fragmentation,"""data quality"" OR ""data governance"" OR ""data gap"" OR ""fragmented data""",116,204,8,95
+authorisation,Authorisation and licensing,"authorisation OR authorization OR licensing OR ""application process""",1384,6074,274,910
+operational_resilience,Operational resilience and outsourcing,"""operational resilience"" OR outsourcing OR ""third party risk"" OR ""third-party risk"" OR ""critical third party"" OR ""business continuity"" OR DORA",645,2593,163,407
+cybersecurity,Cybersecurity and ICT risk,"cybersecurity OR cyber OR ""ICT risk"" OR ransomware",223,636,37,177
+payments,Payments and electronic money,"payments OR ""electronic money"" OR ""e-money"" OR ""payment institution""",1671,6464,340,1200
+open_banking,Open banking and data portability,"""open banking"" OR PSD2 OR AISP OR PISP OR ""account information service"" OR ""payment initiation service"" OR ""data portability""",149,409,28,116
+cash_access,Cash access and infrastructure,cash AND (access OR ATM OR infrastructure OR acceptance OR withdrawal),402,838,100,271
+financial_inclusion,Financial inclusion and basic access,"""financial inclusion"" OR ""basic bank account"" OR unbanked OR exclusion",408,655,187,175
+insurance_protection_gap,Insurance affordability and protection gaps,"insurance AND (affordability OR availability OR exclusion OR ""protection gap"")",274,469,106,145
+climate_finance,Climate and financial risk,climate AND (risk OR insurance OR lending OR finance OR transition OR physical),396,1304,100,273
+funds_sector,Funds and asset management,"UCITS OR AIF OR ""investment fund"" OR ""fund management company""",995,9133,254,638
+financial_literacy,Financial literacy and consumer understanding,"""financial literacy"" OR ""financial education"" OR ""consumer understanding""",186,572,86,88
+complaints_redress,Complaints and consumer redress,complaints OR redress OR remediation OR compensation,1119,3202,301,712
+legacy_systems,Legacy technology and manual processes,"""legacy system"" OR ""legacy systems"" OR ""manual process"" OR spreadsheets",33,46,10,20
+housing_credit,"Housing, mortgages and credit supply",housing AND (mortgage OR credit OR lending OR affordability OR supply),635,2695,126,481

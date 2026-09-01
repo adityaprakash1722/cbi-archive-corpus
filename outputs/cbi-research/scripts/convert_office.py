@@ -23,12 +23,14 @@ must not be cited as a page reference.
 
 from __future__ import annotations
 
-import argparse, csv, hashlib, io, json, os, re, shutil, subprocess, sys, tempfile, time, zipfile
+import argparse, csv, functools, hashlib, io, json, os, re, shutil, subprocess, sys, tempfile, time, zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
-PIPELINE_VERSION = "office-0.2.0"
+PIPELINE_VERSION = "office-0.3.0"
 TEXTUAL_SUFFIXES = {".xsd", ".xml", ".txt", ".csv", ".json", ".md", ".htm", ".html", ".xsl", ".dtd", ".ini", ".cfg"}
 MAX_MEMBER_CHARS = 40000
+W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 
 
 def atomic_text_write(path: Path, text: str) -> None:
@@ -43,52 +45,144 @@ def yaml_scalar(v) -> str:
 
 
 # --------------------------------------------------------------------- DOCX
-def convert_docx(path: Path) -> tuple[list[str], str, str]:
-    import docx
-    from docx.oxml.ns import qn
-    document = docx.Document(str(path))
-    pages: list[list[str]] = [[]]
-    for para in document.paragraphs:
-        if para.text.strip():
-            style = (para.style.name or "").lower() if para.style is not None else ""
-            if style.startswith("heading"):
-                level = "".join(ch for ch in style if ch.isdigit()) or "2"
-                pages[-1].append(f"{'#' * min(int(level), 6)} {para.text.strip()}")
-            else:
-                pages[-1].append(para.text.strip())
-        for run in para.runs:
-            for br in run._element.findall(qn("w:br")):
-                if br.get(qn("w:type")) == "page":
-                    pages.append([])
-    used_xml_table_fallback = False
-    for table in document.tables:
-        rendered = []
-        try:
-            for row in table.rows:
-                cells = [c.text.replace("\n", " ").strip() for c in row.cells]
-                rendered.append("| " + " | ".join(cells) + " |")
-        except (ValueError, KeyError, IndexError):
-            # python-docx can raise while resolving irregular merged-cell grids.
-            # Rebuild the *whole* table from its XML instead of silently keeping
-            # an incomplete prefix. Cell spans are flattened, but no text node is
-            # discarded.
-            rendered = []
-            for xml_row in table._tbl.findall(qn("w:tr")):
-                cells = []
-                for xml_cell in xml_row.findall(qn("w:tc")):
-                    fragments = [node.text or "" for node in xml_cell.iter(qn("w:t"))]
-                    cells.append(" ".join("".join(fragments).split()))
-                rendered.append("| " + " | ".join(cells) + " |")
-            used_xml_table_fallback = True
-        if rendered:
-            pages[-1].append("\n".join(rendered))
-    text_pages = ["\n\n".join(p).strip() for p in pages]
-    text_pages = [p for p in text_pages if p] or [""]
+def _word_text(element: ET.Element) -> str:
+    """Read each OOXML text node once, preserving inline tabs and breaks."""
+    pieces: list[str] = []
+    for node in element.iter():
+        if node.tag == W_NS + "t":
+            pieces.append(node.text or "")
+        elif node.tag == W_NS + "tab":
+            pieces.append("\t")
+        elif node.tag == W_NS + "br":
+            pieces.append("\f" if node.get(W_NS + "type") == "page" else "\n")
+        elif node.tag == W_NS + "lastRenderedPageBreak":
+            pieces.append("\f")
+    return "".join(pieces)
+
+
+def _paragraph_markdown(paragraph: ET.Element) -> list[str]:
+    text = _word_text(paragraph)
+    style_node = paragraph.find(f"{W_NS}pPr/{W_NS}pStyle")
+    style = (style_node.get(W_NS + "val") if style_node is not None else "") or ""
+    page_before = paragraph.find(f"{W_NS}pPr/{W_NS}pageBreakBefore") is not None
+    parts = text.split("\f")
+    rendered: list[str] = []
+    for part in parts:
+        clean = part.strip()
+        if clean:
+            heading = re.search(r"heading\s*([1-9])", style, re.I)
+            if heading:
+                clean = "#" * min(int(heading.group(1)), 6) + " " + clean
+            elif style.casefold() in {"title", "subtitle"}:
+                clean = "# " + clean
+        rendered.append(clean)
+    if page_before:
+        rendered.insert(0, "")
+    return rendered
+
+
+def _table_markdown(table: ET.Element) -> str:
+    """Render direct XML cells once, avoiding python-docx merged-cell aliases."""
+    rendered: list[str] = []
+    for row in table.findall(W_NS + "tr"):
+        cells: list[str] = []
+        for cell in row.findall(W_NS + "tc"):
+            merge = cell.find(f"{W_NS}tcPr/{W_NS}vMerge")
+            continuing_merge = (
+                merge is not None
+                and (merge.get(W_NS + "val") or "continue").casefold() != "restart"
+            )
+            text = "" if continuing_merge else " ".join(_word_text(cell).replace("\f", " ").split())
+            cells.append(text.replace("|", "\\|"))
+            span = cell.find(f"{W_NS}tcPr/{W_NS}gridSpan")
+            try:
+                cells.extend([""] * max(int(span.get(W_NS + "val")) - 1, 0) if span is not None else [])
+            except (TypeError, ValueError):
+                pass
+        if cells:
+            rendered.append("| " + " | ".join(cells) + " |")
+    return "\n".join(rendered)
+
+
+def _append_block(pages: list[list[str]], block_parts: list[str]) -> None:
+    """Append a block whose list boundaries represent explicit page breaks."""
+    for index, part in enumerate(block_parts):
+        if index:
+            pages.append([])
+        if part.strip():
+            pages[-1].append(part.strip())
+
+
+def _ancillary_part(zf: zipfile.ZipFile, name: str) -> tuple[str, int]:
+    try:
+        root = ET.fromstring(zf.read(name))
+    except KeyError:
+        return "", 0
+    text = "\n".join(
+        " ".join(_word_text(child).replace("\f", " ").split())
+        for child in root
+        if _word_text(child).strip()
+    ).strip()
+    visible = sum(len(node.text or "") for node in root.iter(W_NS + "t"))
+    return text, visible
+
+
+def convert_docx(path: Path) -> tuple[list[str], str, str, dict]:
+    """Extract a DOCX in body order without duplicating merged table cells.
+
+    The v5.1 extractor enumerated ``document.paragraphs`` and then
+    ``document.tables``. That reordered every interleaved table and, because
+    python-docx exposes a merged cell through several grid positions, expanded
+    two forms about forty-fold. Walking the direct OOXML body children preserves
+    order and gives every physical ``w:tc`` element exactly one rendering.
+    """
+    with zipfile.ZipFile(path) as zf:
+        document_xml = zf.read("word/document.xml")
+        root = ET.fromstring(document_xml)
+        body = root.find(W_NS + "body")
+        if body is None:
+            raise ValueError("word/document.xml has no w:body")
+        pages: list[list[str]] = [[]]
+        for child in body:
+            if child.tag == W_NS + "p":
+                _append_block(pages, _paragraph_markdown(child))
+            elif child.tag == W_NS + "tbl":
+                table = _table_markdown(child)
+                if table:
+                    pages[-1].append(table)
+
+        source_visible = sum(len(node.text or "") for node in root.iter(W_NS + "t"))
+        ancillary_sections: list[str] = []
+        seen_ancillary: set[str] = set()
+        part_groups = (
+            ("Headers", sorted(name for name in zf.namelist() if re.fullmatch(r"word/header\d+\.xml", name))),
+            ("Footers", sorted(name for name in zf.namelist() if re.fullmatch(r"word/footer\d+\.xml", name))),
+            ("Footnotes", ["word/footnotes.xml"]),
+            ("Endnotes", ["word/endnotes.xml"]),
+            ("Comments", ["word/comments.xml"]),
+        )
+        for label, names in part_groups:
+            texts: list[str] = []
+            for name in names:
+                text, visible = _ancillary_part(zf, name)
+                source_visible += visible
+                if text and text not in seen_ancillary:
+                    seen_ancillary.add(text)
+                    texts.append(text)
+            if texts:
+                ancillary_sections.append(f"## {label}\n\n" + "\n\n".join(texts))
+        if ancillary_sections:
+            pages[-1].extend(ancillary_sections)
+
+    text_pages = ["\n\n".join(page).strip() for page in pages]
+    text_pages = [page for page in text_pages if page] or [""]
+    output_characters = sum(len(page) for page in text_pages)
+    diagnostics = {
+        "source_text_characters": source_visible,
+        "output_expansion_ratio": round(output_characters / max(source_visible, 1), 4),
+    }
     basis = "explicit-page-break" if len(text_pages) > 1 else "single-pseudo-page"
-    engine = f"python-docx {docx.__version__ if hasattr(docx,'__version__') else '1.x'}"
-    if used_xml_table_fallback:
-        engine += "+xml-table-fallback"
-    return text_pages, engine, basis
+    return text_pages, "ooxml-body-order 1.0", basis, diagnostics
 
 
 # --------------------------------------------------------------------- PPTX
@@ -114,6 +208,18 @@ def convert_pptx(path: Path) -> tuple[list[str], str, str]:
 
 
 # ---------------------------------------------------------------- legacy DOC
+@functools.lru_cache(maxsize=1)
+def libreoffice_engine() -> tuple[str, str]:
+    soffice = shutil.which("soffice")
+    if not soffice:
+        raise RuntimeError("LibreOffice 'soffice' executable is required but was not found on PATH")
+    result = subprocess.run([soffice, "--version"], capture_output=True, text=True, timeout=30)
+    version = (result.stdout or result.stderr).strip().replace("LibreOffice ", "")
+    if result.returncode or not version:
+        raise RuntimeError("could not determine LibreOffice version")
+    return soffice, "libreoffice-headless " + version
+
+
 def convert_doc(path: Path) -> tuple[list[str], str, str]:
     """LibreOffice headless. Replaces the original longest-run-only OLE scraper,
     which kept a single text fragment and discarded the rest of the document."""
@@ -121,9 +227,7 @@ def convert_doc(path: Path) -> tuple[list[str], str, str]:
         staged = Path(workdir) / (re.sub(r"[^A-Za-z0-9._-]", "_", path.name) or "doc.doc")
         staged.write_bytes(path.read_bytes())
         profile = Path(workdir) / "profile"
-        soffice = shutil.which("soffice")
-        if not soffice:
-            raise RuntimeError("LibreOffice 'soffice' executable is required but was not found on PATH")
+        soffice, engine = libreoffice_engine()
         result = subprocess.run(
             [soffice, "--headless", "--norestore", f"-env:UserInstallation=file://{profile}",
              "--convert-to", "txt:Text (encoded):UTF8", "--outdir", workdir, str(staged)],
@@ -135,7 +239,7 @@ def convert_doc(path: Path) -> tuple[list[str], str, str]:
         text = produced[0].read_text(encoding="utf-8", errors="replace")
     pages = [p.strip() for p in text.split("\f")]
     pages = [p for p in pages if p] or [""]
-    return pages, "libreoffice-headless", ("explicit-page-break" if len(pages) > 1 else "single-pseudo-page")
+    return pages, engine, ("explicit-page-break" if len(pages) > 1 else "single-pseudo-page")
 
 
 # --------------------------------------------------------------------- ZIP
@@ -212,21 +316,21 @@ def convert_zip(path: Path) -> tuple[list[str], str, str]:
     return pages, "zipfile-profile", "archive-member"
 
 
-def convert_docx_resilient(path: Path) -> tuple[list[str], str, str]:
-    """python-docx first; LibreOffice for packages it cannot open.
-
-    Irregular merged-cell tables are handled inside ``convert_docx`` with a
-    loss-avoiding XML fallback. LibreOffice remains the package-level fallback
-    for unusual relationship targets such as ``word/#Contents``.
-    """
+def convert_docx_resilient(path: Path) -> tuple[list[str], str, str, dict]:
+    """OOXML body-order extraction first; LibreOffice only if the package fails."""
     try:
         return convert_docx(path)
     except Exception as first_error:
         try:
-            pages, _engine, basis = convert_doc(path)
-            return pages, f"libreoffice-fallback (python-docx: {type(first_error).__name__})", basis
+            pages, fallback_engine, basis = convert_doc(path)
+            return (
+                pages,
+                f"{fallback_engine} fallback (ooxml: {type(first_error).__name__})",
+                basis,
+                {"source_text_characters": "", "output_expansion_ratio": ""},
+            )
         except Exception as second_error:
-            raise RuntimeError(f"python-docx: {first_error}; libreoffice: {second_error}") from second_error
+            raise RuntimeError(f"ooxml: {first_error}; libreoffice: {second_error}") from second_error
 
 
 def convert_pdf(path: Path) -> tuple[list[str], str, str]:
@@ -271,11 +375,29 @@ CONVERTERS = {"PDF": convert_pdf, "DOCX": convert_docx_resilient, "PPTX": conver
 def metrics(pages: list[str]) -> dict:
     text = "\n".join(pages)
     nonspace = len(re.sub(r"\s+", "", text))
+    normalized_lines = [" ".join(line.split()).casefold() for line in text.splitlines()]
+    # Form templates legitimately contain hundreds of repeated empty table rows,
+    # underscore writing lines and short labels. They are layout, not duplicated
+    # prose. Count only lines with enough semantic content to diagnose the XML
+    # alias-expansion failure this metric exists to catch.
+    normalized_lines = [
+        line for line in normalized_lines
+        if sum(character.isalnum() for character in line) >= 20
+    ]
+    seen: set[str] = set()
+    repeated_characters = 0
+    for line in normalized_lines:
+        if line in seen:
+            repeated_characters += len(line)
+        else:
+            seen.add(line)
     return {"characters": len(text), "nonspace_characters": nonspace,
             "lines": len(text.splitlines()),
             "replacement_characters": text.count("�"),
             "empty_pages": sum(len(re.sub(r"\s+", "", p)) < 30 for p in pages),
-            "low_text": nonspace < 100}
+            "low_text": nonspace < 100,
+            "max_page_characters": max((len(page) for page in pages), default=0),
+            "repeated_line_share": round(repeated_characters / max(len(text), 1), 4)}
 
 
 def render(record: dict, pages: list[str], engine: str, basis: str, m: dict) -> str:
@@ -302,6 +424,8 @@ def main() -> int:
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--formats", default="DOCX,DOC,PPTX,ZIP")
     ap.add_argument("--max-files", type=int, default=0)
+    ap.add_argument("--force", action="store_true",
+                    help="reprocess every selected source even when the journal records success")
     ap.add_argument("--force-sha", action="append", default=[], metavar="SHA256",
                     help="reprocess this source hash even if the journal records success; repeatable")
     args = ap.parse_args()
@@ -333,8 +457,9 @@ def main() -> int:
     started = time.time()
     with journal_path.open("a", encoding="utf-8") as journal:
         for i, record in enumerate(todo, 1):
-            if record["sha256"] in done and record["sha256"].lower() not in forced:
+            if record["sha256"] in done and not args.force and record["sha256"].lower() not in forced:
                 continue
+            previous_success = done.get(record["sha256"])
             source = archive / record["localPath"].replace("\\", "/")
             destination = root / "markdown" / record["sha256"][:2] / record["sha256"][2:4] / f"{record['sha256']}.md"
             row = {"url": record["url"], "source_urls": record["source_urls"],
@@ -353,8 +478,14 @@ def main() -> int:
                 if effective != declared:
                     row["format_mismatch"] = f"declared={declared} detected={detected}"
                     record = {**record, "format": f"{detected} (served as {declared})"}
-                pages, engine, basis = CONVERTERS[effective](source)
+                diagnostics = {}
+                converted = CONVERTERS[effective](source)
+                if effective == "DOCX":
+                    pages, engine, basis, diagnostics = converted
+                else:
+                    pages, engine, basis = converted
                 m = metrics(pages)
+                m.update(diagnostics)
                 atomic_text_write(destination, render(record, pages, engine, basis, m))
                 row.update(m)
                 row.update({"engine": engine, "page_basis": basis, "pages": len(pages),
@@ -365,7 +496,11 @@ def main() -> int:
                 row.update({"status": "error", "error": f"{type(exc).__name__}: {exc}"[:800],
                             "engine": "", "page_basis": "", "pages": 0})
             journal.write(json.dumps(row, ensure_ascii=False) + "\n"); journal.flush()
-            done[record["sha256"]] = row
+            # A failed forced refresh must not erase a previously successful,
+            # still-valid conversion from the materialised manifest. The failed
+            # attempt remains in the append-only journal for diagnosis.
+            if row["status"] in {"success", "low_text"} or previous_success is None:
+                done[record["sha256"]] = row
             if i % 10 == 0 or i == len(todo):
                 print(f"  {i}/{len(todo)}  {time.time()-started:.0f}s  last={row['status']}", flush=True)
 
@@ -376,7 +511,9 @@ def main() -> int:
     fields = ["url", "source_urls", "alias_count", "source_file", "source_sha256", "source_bytes",
               "format", "pipeline_version", "markdown_file", "markdown_bytes", "markdown_sha256", "engine", "page_basis",
               "pages", "characters", "nonspace_characters", "lines", "replacement_characters",
-              "empty_pages", "low_text", "status", "error", "format_mismatch"]
+              "empty_pages", "low_text", "max_page_characters", "repeated_line_share",
+              "source_text_characters", "output_expansion_ratio",
+              "status", "error", "format_mismatch"]
     with (root / "conversion-manifest.csv").open("w", encoding="utf-8", newline="") as fh:
         w = csv.DictWriter(
             fh, fieldnames=fields, extrasaction="ignore", lineterminator="\n")

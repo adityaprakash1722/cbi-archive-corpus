@@ -32,6 +32,8 @@ SOURCES = {
         ROOT / "outputs/cbi-research/qa/conversion-exclusions.csv",
     "engagement-coverage.csv.zst":
         ROOT / "outputs/cbi-research/qa/engagement-coverage.csv",
+    "voice-review-scope.csv.zst":
+        ROOT / "outputs/cbi-research/qa/voice-review-scope.csv",
 }
 
 

@@ -222,12 +222,12 @@ Fixed by giving four decision-maker phrases precedence over the generic
 stakeholder cue, on the reasoning that only the body making the decision counts
 the submissions it received, thanks the parties who made them, and sets out next
 steps. Three regression assertions cover it, including the mirror case of a
-genuine respondent citing the same consultation. The suite is now 116 assertions.
+genuine respondent citing the same consultation. The suite is now 132 assertions.
 
 *The general lesson is worth keeping: recovering data changed a classification,
 and a classifier that was correct on an empty document was wrong on a full one.
-Any future recovery pass should diff the authorship split before and after, and
-read every document that moves.*
+Any future recovery pass should diff the institutional-voice split before and
+after, and read every document that moves.*
 
 ---
 
@@ -251,3 +251,26 @@ a report for the most recent run, not a cumulative total.
 After reconciling the metrics against final page text, the current extraction
 grades are 5,481 `ok`, 36 `gappy`, 25 `garbled`, 19 `thin` and 7 `empty`: 87
 documents below `ok` in total.
+
+---
+
+## 9. v5.2 Office recovery: two repeated-table corruptions
+
+The v5.1 DOCX extractor read paragraphs and tables in separate passes. Besides
+reordering interleaved content, it emitted merged table cells repeatedly. Two
+different DOCX sources, SHA-256 `3e18fdce...e6a9` and `96dbc5c7...9b48`, each
+became the same 3,071,759-character page even though each package contained only
+about 75,000 visible source characters. Together they contributed 3.217% of all
+v5.1 text.
+
+v5.2 walks the OOXML body in document order, emits merged cells once, preserves
+explicit page breaks, and handles headers, footers, notes and comments as
+ancillary content. The corrected extracts contain 155,854 and 155,092
+characters. Synthetic tests cover body order, merged cells, page breaks and
+repeated-line metrics; pinned raw-source fixtures re-extract the affected files
+in CI.
+
+The corpus-wide semantic gate rejects extreme source expansion, repeated prose
+and oversized pages. It also measures exact duplicate page characters after
+exact-document deduplication. v5.2 passes at 3.19%, below its 4% ceiling, with no
+semantic gate failures.

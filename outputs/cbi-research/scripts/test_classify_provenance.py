@@ -50,11 +50,11 @@ CASES = [
     (f"{BASE}/cp33/consumer-protection-code-for-licensed-moneylenders-public-response-document.pdf",
      "central-bank", "cp33"),
 
-    # --- non-consultation paths are unchanged ---
+    # --- v5.2 safety rule: a hosting path alone is not authorship evidence ---
     ("https://www.centralbank.ie/docs/default-source/publications/research-technical-papers/caught-in-net.pdf",
-     "central-bank", None),
+     "unresolved", None),
     ("https://www.centralbank.ie/docs/default-source/statistics/data-and-analysis/mortgage-arrears/2026-q1-release.pdf",
-     "central-bank", None),
+     "unresolved", None),
     # Audited stakeholder submissions filed outside the consultation archive.
     ("https://www.centralbank.ie/docs/default-source/regulation/industry-market-sectors/credit-unions/"
      "communications/sector-stakeholder-dialogues/lending-framework-review-2024-joint-submission-from-"
@@ -124,6 +124,22 @@ CASES += [
      "stakeholder", None),
     (f"{BASE}/cp43/cp43-cover-e-mail-from-the-office-of-the-director-of-corporate-enforcement.pdf",
      "stakeholder", "cp43"),
+    # DP5 respondent names precede the discussion-paper title and do not contain
+    # a response/submission preposition. v5.1 mislabelled all fifteen.
+    (f"{DISC}/discussion-paper-5/allianz---discussion-paper-on-payment-of-commission-to-intermediaries.pdf",
+     "stakeholder", None),
+    (f"{DISC}/discussion-paper-5/bpfi---discussion-paper-on-payment-of-commission-to-intermediaries.pdf",
+     "stakeholder", None),
+    (f"{DISC}/discussion-paper-5/zurich---discussion-paper-on-payment-of-commission-to-intermediaries.pdf",
+     "stakeholder", None),
+    (f"{DISC}/discussion-paper-5/discussion-paper-on-payment-of-commission-to-intermediaries.pdf",
+     "central-bank", None),
+    (f"{DISC}/discussion-paper-1/review-of-the-requirements-for-the-management-of-liquidity-risk.pdf",
+     "central-bank", None),
+    (f"{DISC}/disucssion-paper-2/dis-2-discussion-paper-on-switching.pdf",
+     "central-bank", None),
+    (f"{BASE}/cp77/maples-replies-to-consultation-paper-cp77.pdf",
+     "stakeholder", "cp77"),
 ]
 
 # Bare responder names: filename gives nothing, so content decides.
@@ -190,6 +206,15 @@ ID_CASES = [
     (f"{DISC}/disucssion-paper-2/mabs-submission.pdf", None, "dp2"),
 ]
 
+VOICE_CASES = [
+    ("https://www.centralbank.ie/docs/default-source/publications/research-technical-papers/caught-in-net.pdf",
+     "central-bank", "unknown", "unreviewed"),
+    (f"{BASE}/cp117/feedback-statement-on-cp117.pdf",
+     "central-bank", "cbi-institutional", "rule-classified"),
+    (f"{DISC}/discussion-paper-5/allianz---discussion-paper-on-payment-of-commission-to-intermediaries.pdf",
+     "stakeholder", "stakeholder", "rule-classified"),
+]
+
 def main() -> int:
     failures = []
     for url, want_authorship, want_cp in CASES:
@@ -214,8 +239,17 @@ def main() -> int:
         if got.engagement_id != want_engagement:
             failures.append(
                 f"engagement_id {url}: want {want_engagement}, got {got.engagement_id}")
+    for url, want_legacy, want_voice, want_status in VOICE_CASES:
+        got = classify(url)
+        if got.legacy_authorship != want_legacy:
+            failures.append(f"legacy authorship {url}: want {want_legacy}, got {got.legacy_authorship}")
+        if got.institutional_voice != want_voice:
+            failures.append(f"voice {url}: want {want_voice}, got {got.institutional_voice}")
+        if got.review_status != want_status:
+            failures.append(f"review status {url}: want {want_status}, got {got.review_status}")
 
-    total = len(CASES) + len(CONTENT_CASES) + len(CLASS_CASES) + len(ID_CASES) * 2
+    total = (len(CASES) + len(CONTENT_CASES) + len(CLASS_CASES)
+             + len(ID_CASES) * 2 + len(VOICE_CASES) * 3)
     if failures:
         print(f"FAIL {len(failures)} of {total} assertions")
         for line in failures:
@@ -223,7 +257,7 @@ def main() -> int:
         return 1
     print(f"PASS {total} assertions across {len(CASES)} filename, "
           f"{len(CONTENT_CASES)} content, {len(CLASS_CASES)} class and "
-          f"{len(ID_CASES)} identifier cases")
+          f"{len(ID_CASES)} identifier cases plus v5.2 voice safety")
     return 0
 
 if __name__ == "__main__":

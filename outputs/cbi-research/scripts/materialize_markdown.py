@@ -54,7 +54,9 @@ FIELDS = ["document_id", "source_url", "source_alias_count", "source_sha256",
           # absent. Omitting them mislabels every Office and archive document.
           "page_basis", "source_format"]
 OPTIONAL_FIELDS = [
-    "title", "document_class", "authorship", "classification_basis",
+    "title", "document_class", "authorship", "legacy_authorship", "host", "author_org",
+    "document_role", "institutional_voice", "voice_review_status", "voice_evidence",
+    "classification_basis",
     "classification_confidence", "consultation_id", "engagement_id", "published_at",
     "published_at_basis", "analysis_year", "analysis_year_basis", "retrieved_at",
     "source_page_url", "source_last_modified_at", "extraction_selection_basis",
@@ -238,8 +240,10 @@ def from_remote(user: str, revision: str):
     page_select = "document_id, page_number, text"
     if "authorship" in page_columns:
         page_select += ", authorship"
-    if "authorship_basis" in page_columns:
-        page_select += ", authorship_basis"
+    for field in ("authorship_basis", "institutional_voice",
+                  "voice_review_status", "voice_evidence"):
+        if field in page_columns:
+            page_select += ", " + field
     pages = {}
     for row in connection.execute(
             "SELECT " + page_select + " FROM read_parquet('" + pages_url +
@@ -307,9 +311,12 @@ def from_local(database: Path, corpus: Path):
 
     page_columns = {row[1] for row in connection.execute("PRAGMA table_info(pages)")}
     page_select = ["document_id", "page_number", "text"]
-    page_select += [field for field in ("authorship", "authorship_basis")
+    page_select += [field for field in ("authorship", "authorship_basis",
+                                        "institutional_voice", "voice_review_status",
+                                        "voice_evidence")
                     if field in page_columns]
     document_authorship = {d["document_id"]: d.get("authorship") for d in documents}
+    document_voice = {d["document_id"]: d.get("institutional_voice") for d in documents}
     pages = {}
     for row in connection.execute(
             "SELECT " + ", ".join(page_select) + " FROM pages "
@@ -318,8 +325,15 @@ def from_local(database: Path, corpus: Path):
                            else document_authorship.get(row["document_id"]))
         page_basis = (row["authorship_basis"] if "authorship_basis" in page_columns
                       else "document-level-authorship")
+        page_voice = (row["institutional_voice"] if "institutional_voice" in page_columns
+                      else document_voice.get(row["document_id"]))
+        review_status = (row["voice_review_status"] if "voice_review_status" in page_columns
+                         else "unreviewed")
+        evidence = (row["voice_evidence"] if "voice_evidence" in page_columns
+                    else page_basis)
         pages.setdefault(row["document_id"], []).append(
-            (row["page_number"], row["text"], page_authorship, page_basis))
+            (row["page_number"], row["text"], page_authorship, page_basis,
+             page_voice, review_status, evidence))
     return documents, aliases, extra, pages, corpus_of, manifest_rows
 
 
@@ -388,18 +402,33 @@ def write_page_authorship(output: Path, documents: list[dict], pages: dict) -> N
             raise ValueError("published mixed document lacks page-level authorship")
         start = previous = values[0][0]
         authorship, basis = values[0][2], values[0][3]
-        for number, _text, current_authorship, current_basis in values[1:]:
-            if current_authorship != authorship or current_basis != basis:
+        voice = values[0][4] if len(values[0]) > 4 else None
+        status = values[0][5] if len(values[0]) > 5 else "manual-reviewed"
+        evidence = values[0][6] if len(values[0]) > 6 else basis
+        for value in values[1:]:
+            number, current_authorship, current_basis = value[0], value[2], value[3]
+            current_voice = value[4] if len(value) > 4 else None
+            current_status = value[5] if len(value) > 5 else "manual-reviewed"
+            current_evidence = value[6] if len(value) > 6 else current_basis
+            if ((current_authorship, current_basis, current_voice, current_status, current_evidence) !=
+                    (authorship, basis, voice, status, evidence)):
                 rows.append({"source_sha256": document["source_sha256"],
                              "start_page": start, "end_page": previous,
-                             "authorship": authorship, "basis": basis})
-                start, authorship, basis = number, current_authorship, current_basis
+                             "authorship": authorship, "basis": basis,
+                             "institutional_voice": voice, "review_status": status,
+                             "review_evidence": evidence})
+                start = number
+                authorship, basis = current_authorship, current_basis
+                voice, status, evidence = current_voice, current_status, current_evidence
             previous = number
         rows.append({"source_sha256": document["source_sha256"],
                      "start_page": start, "end_page": previous,
-                     "authorship": authorship, "basis": basis})
+                     "authorship": authorship, "basis": basis,
+                     "institutional_voice": voice, "review_status": status,
+                     "review_evidence": evidence})
     target = output / "page-authorship-overrides.csv"
-    fields = ["source_sha256", "start_page", "end_page", "authorship", "basis"]
+    fields = ["source_sha256", "start_page", "end_page", "authorship", "basis",
+              "institutional_voice", "review_status", "review_evidence"]
     with target.open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
         writer.writeheader()

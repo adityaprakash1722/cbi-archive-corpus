@@ -49,6 +49,8 @@ def ranked_pages(
                d.pdf_creation_date, d.document_class, d.consultation_id,
                d.published_at, d.analysis_year, pg.authorship AS page_authorship,
                pg.authorship_basis AS page_authorship_basis,
+               pg.institutional_voice AS page_institutional_voice,
+               pg.voice_review_status, pg.voice_evidence,
                d.page_count, d.ocr_enabled,
                d.quality_low_text
         FROM pages_fts AS f
@@ -113,6 +115,9 @@ def main() -> int:
                             "analysis_year": row["analysis_year"],
                             "page_authorship": row["page_authorship"],
                             "page_authorship_basis": row["page_authorship_basis"],
+                            "page_institutional_voice": row["page_institutional_voice"],
+                            "voice_review_status": row["voice_review_status"],
+                            "voice_evidence": row["voice_evidence"],
                             "document_class": row["document_class"],
                             "consultation_id": row["consultation_id"],
                             "ocr_enabled": bool(row["ocr_enabled"]),

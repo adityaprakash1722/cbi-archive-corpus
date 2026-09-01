@@ -12,6 +12,11 @@ tags:
   - primary-sources
 size_categories:
   - 1K<n<10K
+configs:
+  - config_name: catalog
+    data_files:
+      - split: train
+        path: blob-catalog.csv
 ---
 
 # Central Bank of Ireland Archive: original source files
@@ -23,12 +28,11 @@ human would actually read.
 
 This is the **raw tier**. If you want the text, you almost certainly want
 [`aditya487/cbi-archive-corpus`](https://huggingface.co/datasets/aditya487/cbi-archive-corpus)
-instead: 5,568 documents and 88,783 pages as Parquet, about 48 MB, queryable over
+instead: 5,568 documents and 89,242 page or pseudo-page rows as Parquet, queryable over
 HTTPS without downloading anything.
 
 Come here when the text is not enough: charts, diagrams, scanned pages, tables
-that did not survive extraction, and the 87 documents graded below `ok`
-badly.
+that did not survive extraction, and the 87 documents graded below `ok`.
 
 ## How files are addressed
 
@@ -67,6 +71,11 @@ wrong.
 | XML | 5 |
 | PPTX | 2 |
 
+These are URL/path-declared formats. Magic-byte checks found three `.pdf` paths
+containing Word bytes, one containing HTML, and two `.docx` paths containing PDF
+bytes. The raw objects are preserved unchanged; converters dispatch on detected
+content where necessary.
+
 Plus three metadata files:
 
 - **`blob-catalog.csv`** maps every hash to its path, format, byte count, and
@@ -96,8 +105,11 @@ https://huggingface.co/datasets/aditya487/cbi-archive-raw/resolve/main/ae/0a/<sh
 For a reproducible citation, replace `main` with the immutable `raw_revision`
 recorded in `RELEASE.lock.json` in the GitHub repository.
 
-Every file's SHA-256 is also exposed in the Hub's own LFS metadata, so integrity
-can be checked through the API without downloading a byte.
+The Hub exposes SHA-256 metadata for the 5,296 files stored through LFS. The
+remaining 1,013 are ordinary Git blobs, for which the tree API proves path and
+size but does not expose the file's SHA-256. `blob-catalog.csv` carries the
+expected hash for all 6,309; `publish/verify_dataset.py` checks every pinned path
+and size and every available LFS hash.
 
 ## Rights and reuse
 
@@ -131,9 +143,11 @@ The corpus has been screened for personal data. Findings, in full:
   (seven digits and a letter). Every one appeared on a corporate letterhead.
 - **No personal payment details.** All 4 IBAN matches are the Central Bank's own
   published accounts for levy and fee payments.
-- **18 documents** are submissions from identifiable private individuals,
-  about 0.66% of the stakeholder pile. All 18 were manually reviewed and
-  preserved under the documented decision in `RIGHTS-REVIEW.md`.
+- **18 candidates** were manually reviewed: nine are private individuals and
+  nine are people writing in a public or professional role. Twelve of the 18
+  are stakeholder documents. The nine private submissions are 0.52% of the
+  1,739 stakeholder documents in v5.2. The decisions are recorded in
+  `RIGHTS-REVIEW.md` and `qa/individual-submission-review.csv`.
 - Email addresses and phone numbers appear widely but are overwhelmingly
   corporate contact points already printed on letterheads.
 - The Central Bank applies its own redaction upstream: 206 documents reference
@@ -174,10 +188,12 @@ A consultation response from a bank arguing that a requirement is
 disproportionate is **advocacy**, not a regulatory finding, and treating it as
 one is the easiest way to produce confidently wrong analysis from this data.
 
-The `authorship` column in `documents.parquet` records which is which:
-`central-bank` (3,844), `stakeholder` (1,722) and `mixed` (2); no v5.1 document
-remains unresolved. For either mixed composite, use the page-level label. Check it before you
-quote anything.
+Use `institutional_voice`, not the legacy `authorship` field, for this decision.
+v5.2 labels 338 documents `cbi-institutional`, 1,739 `stakeholder`, three
+`external-authority`, two each `cbi-staff`, `judicial-tribunal`, `third-party`
+and `mixed`, and 3,480 `unknown`. The large unknown class
+is deliberate: a file being hosted on centralbank.ie is not proof that the Bank
+authored it. Check `voice_review_status` and the page-level fields before quoting.
 
 ## Citation
 

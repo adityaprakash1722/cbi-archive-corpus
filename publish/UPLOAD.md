@@ -23,7 +23,8 @@ public data, and is designed for files far larger than git handles comfortably.
 It is where the roughly 48 MB Parquet corpus and its compressed audit manifests go.
 
 **GitHub** hosts code. It is where the pipeline, the manifests and the analysis
-go: 256 repository files in the v5.1 release candidate, about 13 MB before
+go: a low-hundreds file count in the v5.2 release candidate, about 16 MB as
+packed Git objects before
 generated data artifacts.
 
 They are separate because the two kinds of content have different needs. Code is
@@ -107,7 +108,7 @@ make dataset
 python publish\build_hf_release.py
 ```
 
-The upload contains the two Parquet files, nine compressed audit manifests,
+The upload contains the two Parquet files, ten compressed audit manifests,
 their build summary, the dataset summary, card and attribution. The 46.8 MB
 `pages.parquet` is most of it.
 Expect a progress bar and under a minute on a normal connection.
@@ -125,18 +126,23 @@ Now the real test, that anyone anywhere can query it without downloading it:
 
 ```powershell
 pip install duckdb
-duckdb -c "SELECT authorship, count(*) FROM 'https://huggingface.co/datasets/YOUR_USERNAME/cbi-archive-corpus/resolve/main/data/documents.parquet' GROUP BY 1"
+duckdb -c "SELECT institutional_voice, count(*) FROM 'https://huggingface.co/datasets/YOUR_USERNAME/cbi-archive-corpus/resolve/main/data/documents.parquet' GROUP BY 1 ORDER BY 1"
 ```
 
 Expect exactly:
 
 ```
-central-bank   3844
-stakeholder    1722
-mixed             2
+cbi-institutional    338
+cbi-staff              2
+external-authority     3
+judicial-tribunal      2
+mixed                  2
+stakeholder         1739
+third-party            2
+unknown             3480
 ```
 
-If you get those three rows, the corpus is live and reachable from any
+If you get those eight rows, the corpus is live and reachable from any
 machine on earth. That query downloaded only the one column it needed, not the
 file.
 
@@ -173,7 +179,7 @@ git add .
 git status --short | Measure-Object -Line
 ```
 
-Expect roughly **256 files** in the v5.1 release candidate. If you see thousands, stop: something
+Expect a low-hundreds file count in the v5.2 release candidate. If you see thousands, stop: something
 slipped past the ignore rules.
 
 ```powershell
@@ -235,7 +241,8 @@ SELECT d.title, p.page_number, substr(p.text, 1, 300)
 FROM  'https://huggingface.co/datasets/YOU/cbi-archive-corpus/resolve/main/data/pages.parquet' p
 JOIN  'https://huggingface.co/datasets/YOU/cbi-archive-corpus/resolve/main/data/documents.parquet' d
   USING (document_id)
-WHERE d.authorship = 'central-bank'
+WHERE d.institutional_voice = 'cbi-institutional'
+  AND d.voice_review_status IN ('rule-classified', 'manual-reviewed')
   AND lower(p.text) LIKE '%operational resilience%'
 LIMIT 20;
 ```
@@ -244,8 +251,9 @@ LIMIT 20;
 
 # Things that commonly go wrong
 
-**`hf` is not recognised.** Older `huggingface_hub`. Use `huggingface-cli`
-instead, or upgrade with `pip install -U huggingface_hub`.
+**`hf` is not recognised.** Open a new terminal after installing the current
+Hugging Face CLI, or call its full installed path. `huggingface-cli` is
+deprecated and should not be used for this runbook.
 
 **401 or 403 on upload.** Run `hf auth whoami`. If the account is wrong or the
 OAuth credential is stale, run `hf auth login --force` and approve the browser
@@ -325,8 +333,8 @@ hf upload aditya487/cbi-archive-raw publish/page-catalog.csv page-catalog.csv --
 ## Step 3. Test the whole loop
 
 ```powershell
-python publish\get_source.py --search "operational resilience" --authorship central-bank --limit 3
-python publish\get_source.py --search "operational resilience" --authorship central-bank --limit 1 --fetch
+python publish\get_source.py --search "operational resilience" --voice cbi-institutional --limit 3
+python publish\get_source.py --search "operational resilience" --voice cbi-institutional --limit 1 --fetch
 ```
 
 The first lists matching documents and prints the blob URL for each. The second

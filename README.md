@@ -4,17 +4,21 @@ A crawl of the Central Bank of Ireland's public archive, turned into a
 page-anchored, provenance-classified research corpus, plus the analysis built on
 it.
 
-**5,568 documents. 88,783 source pages. 190,941,651 characters.**
+**5,568 documents. 89,242 page or pseudo-page rows. 179,924,863 extracted characters.**
+
+> v5.1 speaker labels are unsafe for regulator-only filtering and two DOCX
+> extracts were materially corrupt. See `ERRATA-V5.1.md`. v5.2 replaces the
+> overloaded label with evidence-bearing institutional voice fields.
 
 | | |
 |---|---|
 | Crawl snapshot | 25 August 2026 |
 | Downloaded | 6,963 files, 7.476 GB, 21 URLs failed (all 404, all recorded) |
 | Unique by SHA-256 | 6,309 files, 6.559 GB |
-| Corpus release v5.1 | 5,568 documents, 88,783 pages, zero conversion errors |
+| Corpus release v5.2 | 5,568 documents, 89,242 page or pseudo-page rows, 87 extraction cautions |
 | Published as | 48.0 MB of Parquet plus auditable compressed manifests |
 
-`RELEASE.lock.json` pins the published v5.1 Git and Hugging Face revisions plus
+`RELEASE.lock.json` pins the published release's Git and Hugging Face revisions plus
 the artifact hashes; scripts never silently substitute Hugging Face `main` for
 that immutable release.
 
@@ -27,20 +31,21 @@ that immutable release.
   its limits are.
 - `outputs/REMEDIATION-2026-08-26.md` — what was wrong with the first version and
   how it was fixed. Worth reading before trusting anything.
+- `ERRATA-V5.1.md` — the independent-review defects corrected in v5.2.
 
 ## Quick start
 
 ```bash
 make fetch DATASET=aditya487/cbi-archive-corpus   # about 51 MB, no build required
-make test                                      # 116 classifier assertions
+make test                                      # provenance and Office extraction regressions
 ```
 
 Or query the corpus without downloading it at all:
 
 ```sql
-SELECT authorship, count(*)
-FROM 'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/f9a60f39c666b9aac4a68951a685bed1a46cea33/data/documents.parquet'
-GROUP BY 1;
+SELECT institutional_voice, voice_review_status, count(*)
+FROM 'https://huggingface.co/datasets/aditya487/cbi-archive-corpus/resolve/<v5.2-revision>/data/documents.parquet'
+GROUP BY 1, 2;
 ```
 
 ## Rights and reuse

@@ -3,7 +3,7 @@
 
 The heavy artifacts are deliberately not in git: 6.56 GB of raw source, 202 MB of
 Markdown, and 1.94 GB of SQLite indices that are build products. What travels is
-47 MB of Parquet. This script fetches it and, if asked, rebuilds the local index.
+48 MB of Parquet. This script fetches it and, if asked, rebuilds the local index.
 
     python3 bootstrap.py --dataset <user>/cbi-archive-corpus
     python3 bootstrap.py --dataset <user>/cbi-archive-corpus --index
@@ -32,6 +32,7 @@ WANTED = [
     "manifests/page-authorship-overrides.csv.zst",
     "manifests/conversion-exclusions.csv.zst",
     "manifests/engagement-coverage.csv.zst",
+    "manifests/voice-review-scope.csv.zst",
     "manifests/manifest-build-summary.json",
 ]
 

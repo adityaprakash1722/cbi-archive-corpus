@@ -9,8 +9,8 @@ The content-level audit found:
 - 5,874 downloaded PDF URLs.
 - 5,246 logical PDF documents after SHA-256 deduplication and malformed-alias reconciliation.
 - 88,106 source pages/pseudo-pages and 4.22 GB of unique PDF content.
-- 4,701 PDFs converted from native text.
-- 541 PDFs converted with targeted OCR.
+- 4,700 PDFs converted from native text.
+- 542 PDFs converted with targeted OCR.
 - 4 Office files served with a `.pdf` name; all four were recovered.
 - 627 byte-identical duplicate URL records across 491 content groups, plus one malformed HTML alias.
 
@@ -68,6 +68,10 @@ cbi-research/
     convert_office.py
     qa_extraction_quality.py
     export_provenance_qa.py
+    export_voice_review_scope.py
+    test_convert_office.py
+    test_raw_source_extraction.py
+    verify_raw_archive.py
   structured/
     structured-file-catalog.csv
     all-csv-profile.csv
@@ -88,7 +92,7 @@ python -m venv .\work\pdf-env
 ```
 
 Install LibreOffice and ensure `soffice` is on `PATH` before converting legacy
-`.doc` files or using DOCX package fallback.
+`.doc` files. DOCX uses the built-in OOXML body-order extractor.
 
 Audit unique PDFs:
 
@@ -132,6 +136,7 @@ Validate every normalized artifact against its source and the logical audit:
 python .\outputs\cbi-research\scripts\validate_corpus.py `
   --archive .\outputs\cbi-archive\cbi-data `
   --corpus .\outputs\cbi-research\corpus `
+  --corpus .\outputs\cbi-research\corpus\office `
   --audit-csv .\outputs\cbi-research\audit\pdf-audit.csv `
   --output .\outputs\cbi-research\qa
 ```
@@ -147,28 +152,31 @@ python .\outputs\cbi-research\scripts\build_search_index.py `
   --files-csv .\outputs\cbi-archive\cbi-data\manifests\files.csv `
   --snapshot-date 2026-08-25 `
   --page-authorship-csv .\outputs\cbi-research\qa\page-authorship-overrides.csv `
+  --authorship-overrides-csv .\outputs\cbi-research\qa\authorship-overrides.csv `
   --extraction-preferences-csv .\outputs\cbi-research\qa\extraction-preferences.csv `
-  --database-name cbi-corpus-v5-5568docs.sqlite
+  --database-name cbi-corpus-v5.2-5568docs.sqlite
 
 python .\outputs\cbi-research\scripts\run_topic_scan.py `
-  --database .\outputs\cbi-research\index\cbi-corpus-v5-5568docs.sqlite `
+  --database .\outputs\cbi-research\index\cbi-corpus-v5.2-5568docs.sqlite `
   --queries .\outputs\cbi-research\topic_queries.json `
-  --output .\outputs\cbi-research\analysis-v5
+  --output .\outputs\cbi-research\analysis-v5.2
 
 python .\outputs\cbi-research\scripts\export_evidence_candidates.py `
-  --database .\outputs\cbi-research\index\cbi-corpus-v5-5568docs.sqlite `
+  --database .\outputs\cbi-research\index\cbi-corpus-v5.2-5568docs.sqlite `
   --queries .\outputs\cbi-research\topic_queries.json `
-  --output .\outputs\cbi-research\analysis-v5
+  --output .\outputs\cbi-research\analysis-v5.2
 
 python .\outputs\cbi-research\scripts\export_provenance_qa.py `
-  --database .\outputs\cbi-research\index\cbi-corpus-v5-5568docs.sqlite `
-  --previous-database .\outputs\cbi-research\index\cbi-corpus-v4-5568docs.sqlite `
+  --database .\outputs\cbi-research\index\cbi-corpus-v5.2-5568docs.sqlite `
+  --previous-database .\outputs\cbi-research\index\cbi-corpus-v5.1-5568docs.sqlite `
   --output .\outputs\cbi-research\qa
 ```
 
-The index gives stakeholder consultation submissions their own provenance class.
-They can reveal industry pain or objections, but they are not counted as Central
-Bank findings merely because they are hosted on the Central Bank website.
+The index separates host, issuer, document role and institutional voice. Filter
+`institutional_voice = 'cbi-institutional'` for evidence-supported Bank material
+and check `voice_review_status`. Stakeholder material can reveal industry pain
+or objections, but it is advocacy, not a Central Bank finding. `unknown` stays
+outside both voice-specific denominators.
 
 Run extraction-density QA over both manifests (the script deduplicates by SHA-256):
 

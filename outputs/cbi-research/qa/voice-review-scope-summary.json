@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-09-01T10:35:52Z",
+  "database": "C:\\Users\\adipr\\Documents\\Codex\\2026-08-25\\want-to-mass-download-everything-from\\outputs\\cbi-research\\index\\cbi-corpus-v5.2-5568docs.sqlite",
+  "database_sha256": "0870a95847400e3419cded329ef0d7cba13403ba1ce186a303343c53d3225eb0",
+  "documents_in_scope": 359,
+  "scope_reason_counts_nonexclusive": {
+    "content-scored consultation edge case": 77,
+    "discussion-paper population": 167,
+    "unknown external-authority or tribunal candidate": 115
+  },
+  "current_voice": {
+    "stakeholder": 221,
+    "unknown": 115,
+    "cbi-institutional": 22,
+    "mixed": 1
+  },
+  "review_state": {
+    "pending-independent-review": 359
+  },
+  "methodological_status": "review queue; not a gold set or accuracy sample"
+}

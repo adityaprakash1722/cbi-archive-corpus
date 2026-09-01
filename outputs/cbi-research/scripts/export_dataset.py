@@ -35,8 +35,9 @@ DOC_COLUMNS = [
     "source_bytes", "title", "pdf_author", "pdf_creation_date",
     "published_at", "published_at_basis", "analysis_year", "analysis_year_basis",
     "retrieved_at", "source_page_url", "source_last_modified_at",
-    "document_class", "authorship", "classification_basis",
-    "classification_confidence", "page_basis", "source_format",
+    "document_class", "authorship", "legacy_authorship", "host", "author_org",
+    "document_role", "institutional_voice", "voice_review_status", "voice_evidence",
+    "classification_basis", "classification_confidence", "page_basis", "source_format",
     "consultation_id", "engagement_id", "page_count", "extraction_engine", "ocr_enabled",
     "quality_low_text", "quality_empty_pages", "extraction_selection_basis",
     "alternate_extraction_count", "content_sha256", "content_cluster_id",
@@ -47,6 +48,9 @@ PAGE_SCHEMA = pa.schema([
     ("document_id", pa.string()), ("source_sha256", pa.string()),
     ("page_number", pa.int32()), ("authorship", pa.string()),
     ("authorship_basis", pa.string()),
+    ("institutional_voice", pa.string()),
+    ("voice_review_status", pa.string()),
+    ("voice_evidence", pa.string()),
     ("document_class", pa.string()), ("page_basis", pa.string()),
     ("consultation_id", pa.string()), ("engagement_id", pa.string()),
     ("title", pa.string()),
@@ -76,7 +80,8 @@ def write_pages(connection: sqlite3.Connection, out: Path, batch: int = 4000) ->
     total = 0
     query = """
         SELECT p.document_id, d.source_sha256, p.page_number, p.authorship,
-               p.authorship_basis, d.document_class, d.page_basis, d.consultation_id,
+               p.authorship_basis, p.institutional_voice, p.voice_review_status,
+               p.voice_evidence, d.document_class, d.page_basis, d.consultation_id,
                d.engagement_id, d.title,
                d.source_url, p.characters, p.text
         FROM pages AS p JOIN documents AS d USING(document_id)

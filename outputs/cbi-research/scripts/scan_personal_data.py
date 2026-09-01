@@ -81,6 +81,7 @@ def scan(database: Path, output: Path) -> dict:
         row["document_id"]: row
         for row in connection.execute(
             "SELECT document_id, source_sha256, source_url, title, authorship, "
+            "institutional_voice, voice_review_status, "
             "consultation_id, document_class FROM documents")
     }
 
@@ -118,6 +119,8 @@ def scan(database: Path, output: Path) -> dict:
             "document_id": document_id,
             "source_sha256": document["source_sha256"],
             "authorship": document["authorship"],
+            "institutional_voice": document["institutional_voice"],
+            "voice_review_status": document["voice_review_status"],
             "document_class": document["document_class"],
             "consultation_id": document["consultation_id"] or "",
             "title": (document["title"] or "")[:120],
@@ -136,10 +139,12 @@ def scan(database: Path, output: Path) -> dict:
         writer.writerows(rows)
 
     by_authorship: dict[str, Counter] = defaultdict(Counter)
+    by_voice: dict[str, Counter] = defaultdict(Counter)
     for record in rows:
         for name, _label, _pattern in PATTERNS:
             if record[name]:
                 by_authorship[record["authorship"]][name] += 1
+                by_voice[record["institutional_voice"]][name] += 1
 
     summary = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -153,6 +158,8 @@ def scan(database: Path, output: Path) -> dict:
             name: sum(1 for r in rows if r[name]) for name, _l, _p in PATTERNS},
         "documents_by_pattern_and_authorship": {
             a: dict(c) for a, c in by_authorship.items()},
+        "documents_by_pattern_and_institutional_voice": {
+            voice: dict(counter) for voice, counter in by_voice.items()},
         "distinct_values_seen": {k: len(v) for k, v in distinct.items()},
     }
     (output / "personal-data-scan.json").write_text(

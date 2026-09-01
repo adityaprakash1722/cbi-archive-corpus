@@ -1,36 +1,59 @@
 {
-  "generated_at": "2026-08-30T22:21:00Z",
+  "generated_at": "2026-08-31T16:16:58Z",
   "manifest_records": 5568,
   "indexed_documents": 5568,
-  "indexed_pages": 88783,
+  "indexed_pages": 89242,
   "authorship": {
-    "central-bank": 3844,
-    "stakeholder": 1722,
-    "mixed": 2
+    "unresolved": 3480,
+    "stakeholder": 1739,
+    "central-bank": 340,
+    "external-authority": 3,
+    "judicial-tribunal": 2,
+    "mixed": 2,
+    "third-party": 2
+  },
+  "institutional_voice": {
+    "unknown": 3480,
+    "stakeholder": 1739,
+    "cbi-institutional": 338,
+    "external-authority": 3,
+    "cbi-staff": 2,
+    "judicial-tribunal": 2,
+    "mixed": 2,
+    "third-party": 2
+  },
+  "voice_review_status": {
+    "unreviewed": 3480,
+    "rule-classified": 1971,
+    "manual-reviewed": 117
   },
   "classification_confidence": {
-    "high": 5431,
-    "medium": 137
+    "high": 1950,
+    "low": 3480,
+    "medium": 138
   },
   "document_classes": {
     "cbi-regulatory-material": 1693,
-    "stakeholder-consultation-submission": 1586,
-    "other-cbi-material": 606,
+    "stakeholder-consultation-submission": 1588,
+    "other-cbi-material": 600,
     "cbi-policy-analysis": 400,
     "cbi-research": 244,
-    "cbi-consultation-material": 239,
+    "cbi-consultation-material": 237,
     "cbi-statistical-material": 210,
-    "cbi-speech-or-news-material": 145,
-    "stakeholder-discussion-submission": 136,
+    "stakeholder-discussion-submission": 151,
+    "cbi-speech-or-news-material": 144,
     "cbi-correspondence": 111,
     "cbi-consultation-feedback": 89,
     "cbi-consumer-material": 49,
     "cbi-corporate-report": 32,
-    "cbi-discussion-material": 27,
-    "mixed-engagement-compilation": 1
+    "cbi-discussion-material": 12,
+    "external-authority-report": 3,
+    "judicial-or-tribunal-material": 3,
+    "mixed-engagement-compilation": 1,
+    "third-party-event-material": 1
   },
   "failures": 0,
-  "elapsed_seconds": 21.03,
-  "database_bytes": 674332672,
-  "database_file": "cbi-corpus-v5.1-5568docs.sqlite"
+  "elapsed_seconds": 40.73,
+  "database_bytes": 662970368,
+  "database_file": "cbi-corpus-v5.2-5568docs.sqlite"
 }

@@ -3,7 +3,7 @@
 
 Each bundle answers one learning question. Pages are selected by relevance from
 the FTS index, deduplicated, and written with a header carrying title, URL, page
-number and, critically, **authorship**. A reader of the bundle must never be able
+number and, critically, **institutional voice and review status**. A reader of the bundle must never be able
 to mistake an industry lobbying claim for a Central Bank finding, which is the
 single discipline this whole corpus was built to preserve.
 """
@@ -94,15 +94,18 @@ INDUSTRY = ("industry_voice", "What firms themselves say is broken", [
 ])
 
 
-def collect(cur, queries, authorship, per_query, seen):
+def collect(cur, queries, voice, per_query, seen):
     picked = []
     for query in queries:
         rows = cur.execute("""
-            SELECT d.title, d.source_url, d.authorship, d.document_class, d.source_sha256,
+            SELECT d.title, d.source_url, pg.authorship, pg.institutional_voice,
+                   pg.voice_review_status, d.document_class, d.source_sha256,
                    p.page_number, p.text, bm25(pages_fts,0,0,1.5,1.0) AS rank
-            FROM pages_fts AS p JOIN documents AS d USING(document_id)
-            WHERE pages_fts MATCH ? AND d.authorship = ?
-            ORDER BY rank LIMIT ?""", (query, authorship, per_query)).fetchall()
+            FROM pages_fts AS p
+            JOIN pages AS pg USING(document_id, page_number)
+            JOIN documents AS d USING(document_id)
+            WHERE pages_fts MATCH ? AND pg.institutional_voice = ?
+            ORDER BY rank LIMIT ?""", (query, voice, per_query)).fetchall()
         for r in rows:
             key = (r["source_sha256"], r["page_number"])
             if key in seen:
@@ -120,7 +123,8 @@ def render(rows) -> str:
             continue
         out.append(
             f"\n===== SOURCE =====\n"
-            f"authorship: {r['authorship'].upper()}   class: {r['document_class']}\n"
+            f"voice: {r['institutional_voice'].upper()}   review: {r['voice_review_status']}\n"
+            f"legacy_authorship: {r['authorship'].upper()}   class: {r['document_class']}\n"
             f"title: {r['title']}\n"
             f"page: {r['page_number']}   sha256: {r['source_sha256'][:16]}\n"
             f"url: {r['source_url']}\n"
@@ -144,13 +148,14 @@ def main() -> int:
 
     for name, (question, queries) in BUNDLES.items():
         seen = set()
-        rows = collect(cur, queries, "central-bank", args.per_query, seen)
+        rows = collect(cur, queries, "cbi-institutional", args.per_query, seen)
         # a minority of industry pages for contrast, clearly labelled
         rows += collect(cur, queries, "stakeholder", max(4, args.per_query // 4), seen)
         text = render(rows)[: args.max_bytes]
         header = (f"# Reading bundle: {name}\n# Question: {question}\n"
-                  f"# Every excerpt below is labelled with its AUTHORSHIP. CENTRAL-BANK is the\n"
-                  f"# regulator speaking. STAKEHOLDER is a regulated firm or trade body writing to\n"
+                  f"# Every excerpt is labelled with institutional voice and review status.\n"
+                  f"# CBI-INSTITUTIONAL is evidence-supported regulator material. STAKEHOLDER is\n"
+                  f"# a regulated firm or trade body writing to\n"
                   f"# the regulator, which is advocacy and must never be reported as a finding.\n")
         (args.output / f"{name}.txt").write_text(header + text, encoding="utf-8")
         manifest.append({"bundle": name, "question": question, "pages": len(rows), "bytes": len(header + text)})

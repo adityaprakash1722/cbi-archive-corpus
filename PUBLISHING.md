@@ -51,7 +51,7 @@ The Markdown corpus is 202 MB across 5,569 files, covering 5,568 unique document
 is about 48 MB in two
 files, and, more importantly, **queryable over HTTPS without downloading**.
 DuckDB reads the file footer, finds which byte ranges hold the columns in the
-query, and fetches only those. A query filtering on `authorship` never touches
+query, and fetches only those. A query filtering on `institutional_voice` never touches
 the 46 MB text column.
 
 **Rejected: a zip or tarball of the Markdown.** Would require a full download
@@ -90,7 +90,7 @@ corpus alone would consume it, and bandwidth burns every time a machine clones.
 
 ### Decision 4: GitHub for the code
 
-**Chosen:** a public GitHub repository, <!-- fact:repo.tracked_files -->256<!-- /fact --> files, about 13 MB before generated data artifacts.
+**Chosen:** a public GitHub repository, <!-- fact:repo.tracked_files -->273<!-- /fact --> files, about 16 MB as packed Git objects.
 
 Both Claude Code and Codex have first-class GitHub integration, and it is where
 anyone looks for code by default.
@@ -141,7 +141,7 @@ and in `ATTRIBUTION.md`:
 
 | Service | Account | Holds |
 |---|---|---|
-| GitHub | `adityaprakash1722` | `cbi-archive-corpus`, the code, <!-- fact:repo.tracked_files -->256<!-- /fact --> files, about 13 MB before generated data artifacts |
+| GitHub | `adityaprakash1722` | `cbi-archive-corpus`, the code, <!-- fact:repo.tracked_files -->273<!-- /fact --> files, about 16 MB as packed Git objects |
 | Hugging Face | `aditya487` | `cbi-archive-corpus` dataset, the text, 48 MB |
 | Hugging Face | `aditya487` | `cbi-archive-raw` dataset, the source files, 6.56 GB |
 
@@ -159,14 +159,16 @@ one for the right service.
 | Item | State |
 |---|---|
 | GitHub repo | published from `master`; follow the repository for the current revision |
-| Hugging Face corpus | published. Two Parquet files, nine compressed audit manifests, their build summary, dataset summary, card and attribution |
+| Hugging Face corpus | published. Two Parquet files, ten compressed audit manifests, their build summary, dataset summary, card and attribution |
 | Hugging Face raw archive | published. 6,309 blobs plus four metadata files, 6.56 GB |
 
-`RELEASE.lock.json` identifies the current public v5.1 release by immutable Git
-and Hugging Face revisions and hashes every published artifact. Its verified
-split is 3,844 Central Bank, 1,722 stakeholder, zero unresolved and two mixed
-documents; 5,568 documents / 88,783 pages. The lock records the build-input Git
-commit separately from the final lock-and-tag commit.
+Until the v5.2 runbook finishes, `RELEASE.lock.json` continues to identify the
+current public v5.1 release by immutable Git and Hugging Face revisions. The
+v5.2 candidate has 5,568 documents and 89,242 page or pseudo-page rows; its
+institutional-voice split is 338 `cbi-institutional`, 1,739 `stakeholder`, 3,480
+`unknown`, three `external-authority`, and two each of `cbi-staff`,
+`judicial-tribunal`, `third-party`, and `mixed`. The lock records the build-input
+Git commit separately from the final lock-and-tag commit.
 
 The raw archive is uploaded, so `get_source.py --fetch` works end to end. Note
 that files sit at `<ab>/<cd>/<sha256><ext>` in the repository root, with no
@@ -214,13 +216,14 @@ git push
 
 ```powershell
 make test
-make test-invariants
+python outputs\cbi-research\scripts\check_manifest_invariants.py --allow-release-drift
 python outputs\cbi-research\scripts\reconcile_final_text_metrics.py --check
+python outputs\cbi-research\scripts\verify_raw_archive.py --archive outputs\cbi-archive\cbi-data --output outputs\cbi-research\qa
 make dataset
 python publish\build_hf_release.py
-make test-invariants
+python outputs\cbi-research\scripts\check_manifest_invariants.py --allow-release-drift
 git add .
-git commit -m "prepare corpus v5.1 build inputs"
+git commit -m "prepare corpus v5.2 build inputs"
 hf upload aditya487/cbi-archive-corpus publish/hf . --repo-type=dataset
 hf repo-files ls aditya487/cbi-archive-corpus --repo-type dataset
 # Upload changed raw catalogues too, even when the blob set is unchanged.
@@ -230,15 +233,20 @@ hf upload aditya487/cbi-archive-raw publish/blob-summary.json blob-summary.json 
 # Record both immutable HF revisions, every artifact hash and the build-input
 # Git commit in RELEASE.lock.json. Then rerun invariants, commit and tag.
 python publish\verify_dataset.py aditya487 --revision <immutable-hf-revision>
+make test-invariants
 git add RELEASE.lock.json README.md HANDOVER.md PUBLISHING.md STORAGE.md
-git commit -m "lock corpus v5.1 release"
-git tag -a v5.1.0 -m "Corpus v5.1"
-git push origin master v5.1.0
+git commit -m "lock corpus v5.2 release"
+git tag -a v5.2.0 -m "Corpus v5.2"
+git push origin master v5.2.0
 ```
 
-`make dataset` regenerates the two Parquet files from the current v5.1 index;
+`make dataset` regenerates the two Parquet files from the current v5.2 index;
 `build_hf_release.py` regenerates every compressed audit manifest and its
 machine-readable build summary. Do not upload a hand-picked subset.
+`--allow-release-drift` is only for the interval where local v5.2 bytes exist but
+the immutable lock still correctly describes public v5.1. It skips only lock
+comparisons. Standard `make test-invariants` must pass after the v5.2 lock is
+written and before the tag is created.
 Never replace the release lock with `main`; a mutable URL destroys the ability
 to reconstruct an older Git checkout. `verify_dataset.py` derives its expected
 facts and hashes from the pinned release rather than assuming whichever dataset
@@ -322,8 +330,9 @@ how this project proves things.
 
 | Item | Size | Reason |
 |---|---:|---|
-| `cbi-corpus-v5.1-5568docs.sqlite` | 674 MB | current build artifact; rebuilds via materialize then index |
-| `cbi-corpus-v5-5568docs.sqlite` | 673 MB | superseded after v5.1 is published |
+| `cbi-corpus-v5.2-5568docs.sqlite` | 663 MB | current build artifact; rebuilds via materialize then index |
+| `cbi-corpus-v5.1-5568docs.sqlite` | 674 MB | superseded; unsafe speaker labels and two corrupt DOCX extractions |
+| `cbi-corpus-v5-5568docs.sqlite` | 673 MB | superseded |
 | `cbi-corpus-v4-5568docs.sqlite` | 664 MB | superseded |
 | v2 and v1 indices | 1.28 GB | superseded, kept locally for audit history |
 | `work/live-index/` | 423 MB | partial build from an interrupted run |
@@ -364,7 +373,7 @@ at which point the card requirement becomes unavoidable.
 
 - `STORAGE.md`: the technical map. Tiers, schemas, access patterns, rebuild
   commands, integrity model.
-- `CLAUDE.md` and `AGENTS.md`: working rules. The authorship discipline and the
+- `CLAUDE.md` and `AGENTS.md`: working rules. The institutional-voice discipline and the
   gotchas that cost an hour each.
 - `publish/UPLOAD.md`: the step-by-step publishing walkthrough, written for
   someone who has not used these services before.

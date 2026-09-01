@@ -4,7 +4,7 @@ name: checks
 # never file a firm's lobbying submission as a regulatory finding. It runs on
 # every push.
 #
-# The rebuild test downloads 47 MB from Hugging Face and takes several minutes,
+# The rebuild test downloads about 48 MB from Hugging Face and takes several minutes,
 # so it runs on a schedule and on demand rather than on every commit. It is the
 # only thing that proves the published data is actually sufficient to rebuild
 # the index, which was claimed for a while before it was true.
@@ -30,6 +30,19 @@ jobs:
       - name: Run the suite
         run: python outputs/cbi-research/scripts/test_classify_provenance.py
         working-directory: ${{ github.workspace }}
+
+  office-extraction:
+    name: pinned raw DOCX extraction fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Run synthetic body-order unit fixtures
+        run: python outputs/cbi-research/scripts/test_convert_office.py
+      - name: Re-extract the three adversarial pinned sources
+        run: python outputs/cbi-research/scripts/test_raw_source_extraction.py
 
   crawler:
     name: crawler regression suite
@@ -89,11 +102,27 @@ jobs:
       - name: Materialise from the published data and index it
         run: python outputs/cbi-research/scripts/test_fresh_rebuild.py
 
-  release-gate:
-    name: immutable release gate
+  published-release:
+    name: verify every pinned public artifact and raw path
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [classifier, crawler, compile, manifest-invariants, fresh-rebuild]
+    needs: [classifier, office-extraction, crawler, compile, manifest-invariants, fresh-rebuild]
     steps:
-      - name: Confirm every release proof passed
-        run: echo "classifier, crawler, compile, invariants, and pinned fresh rebuild passed"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install verifier dependency
+        run: pip install --quiet duckdb
+      - name: Verify locked Hugging Face bytes, queries, and all raw paths
+        run: python publish/verify_dataset.py
+
+  release-verification:
+    # A tag has already been created when this workflow starts. This is a
+    # post-publication verification, not a gate that can prevent the tag.
+    name: immutable release verified
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [published-release]
+    steps:
+      - run: echo "the tagged release and its pinned public artifacts were independently verified"
